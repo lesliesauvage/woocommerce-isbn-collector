@@ -1,0 +1,67 @@
+{
+    "isbn": "2040120815",
+    "identifiers": {
+        "isbn10": "",
+        "isbn13": "",
+        "oclc": "",
+        "lccn": "",
+        "other": ""
+    },
+    "bibliographic": {
+        "title": "L'écrevisse et son élevage",
+        "subtitle": "",
+        "authors": "Jacques Arrignon",
+        "publisher": "Gauthier-Villars",
+        "publishDate": "",
+        "publishPlace": "",
+        "edition": "",
+        "series": "",
+        "language": "fr"
+    },
+    "physical": {
+        "pages": "178",
+        "binding": "Paperback",
+        "printType": "",
+        "dimensions": "21 x 14 x 2",
+        "height": "",
+        "width": "",
+        "thickness": "",
+        "weight": "445"
+    },
+    "classification": {
+        "dewey": "",
+        "lc": "",
+        "bisac": "",
+        "categories": "Crayfish,, Reference,Foreign Language Study & Reference,, Crayfish,Crayfish culture,",
+        "vintedCategoryId": "1201",
+        "vintedCategoryName": "Autres livres"
+    },
+    "commercial": {
+        "msrp": "15.34",
+        "retailPrice": "",
+        "currency": "EUR",
+        "saleability": ""
+    },
+    "ratings": {
+        "average": "",
+        "count": "",
+        "maturity": ""
+    },
+    "content": {
+        "description": " ",
+        "notes": "",
+        "searchTerms": " L'écrevisse et son élevage Jacques Arrignon Gauthier-Villars Crayfish Reference Foreign Language Study & Reference Crayfish Crayfish culture ",
+        "bulletPoints": [
+            "Écrit par Jacques Arrignon - Expert reconnu dans son domaine",
+            "178 pages de contenu riche et détaillé",
+            "Publié par Gauthier-Villars - Éditeur de référence",
+            "Format Paperback - Qualité de fabrication supérieure",
+            "ISBN: 2040120815 - Authenticité garantie"
+        ]
+    },
+    "media": {
+        "image": "",
+        "previewLink": "",
+        "infoLink": ""
+    }
+}

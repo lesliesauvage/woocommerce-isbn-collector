@@ -1,0 +1,67 @@
+{
+    "isbn": "2850760854",
+    "identifiers": {
+        "isbn10": "",
+        "isbn13": "",
+        "oclc": "",
+        "lccn": "",
+        "other": ""
+    },
+    "bibliographic": {
+        "title": "DICTIONNAIRE ASTROLOGIQUE",
+        "subtitle": "",
+        "authors": "Henri-Jean Gouchon",
+        "publisher": "Dervy",
+        "publishDate": "",
+        "publishPlace": "",
+        "edition": "",
+        "series": "",
+        "language": "fr"
+    },
+    "physical": {
+        "pages": "668",
+        "binding": "Hardcover",
+        "printType": "",
+        "dimensions": "24 x 16 x 3",
+        "height": "",
+        "width": "",
+        "thickness": "",
+        "weight": "1670"
+    },
+    "classification": {
+        "dewey": "",
+        "lc": "",
+        "bisac": "",
+        "categories": "Crayfish,, Reference,Foreign Language Study & Reference,, Crayfish,Crayfish culture,",
+        "vintedCategoryId": "1201",
+        "vintedCategoryName": "Autres livres"
+    },
+    "commercial": {
+        "msrp": "58.40",
+        "retailPrice": "",
+        "currency": "EUR",
+        "saleability": ""
+    },
+    "ratings": {
+        "average": "",
+        "count": "",
+        "maturity": ""
+    },
+    "content": {
+        "description": " ",
+        "notes": "",
+        "searchTerms": " DICTIONNAIRE ASTROLOGIQUE Henri-Jean Gouchon Dervy",
+        "bulletPoints": [
+            "Écrit par Henri-Jean Gouchon - Expert reconnu dans son domaine",
+            "668 pages de contenu riche et détaillé",
+            "Publié par Dervy - Éditeur de référence",
+            "Format Hardcover - Qualité de fabrication supérieure",
+            "ISBN: 2850760854 - Authenticité garantie"
+        ]
+    },
+    "media": {
+        "image": "",
+        "previewLink": "",
+        "infoLink": ""
+    }
+}

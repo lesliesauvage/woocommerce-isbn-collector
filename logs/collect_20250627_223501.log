@@ -1,0 +1,7 @@
+[2025-06-27 22:35:01]   → Groq IA (génération gratuite)...
+[2025-06-27 22:35:03]     ✓ Groq IA : description générée
+[2025-06-27 22:35:03]       → Poids calculé : 872g
+[2025-06-27 22:35:03]   ✓ Enrichissement terminé avec succès
+[2025-06-27 22:35:03]       → Appels API : Google=1, ISBNdb=1, OL=1, Groq=1
+[2025-06-27 22:35:04] [2/3] ---
+[2025-06-27 22:35:04] Collecte données pour produit #16089 - ISBN: 2850760854

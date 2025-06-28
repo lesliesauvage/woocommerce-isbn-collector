@@ -1,0 +1,67 @@
+{
+    "isbn": "2901821030",
+    "identifiers": {
+        "isbn10": "",
+        "isbn13": "",
+        "oclc": "",
+        "lccn": "",
+        "other": ""
+    },
+    "bibliographic": {
+        "title": "La Révélation d'Arès intégrale",
+        "subtitle": "",
+        "authors": "Michel Potay",
+        "publisher": "Maison de La Révélation",
+        "publishDate": "",
+        "publishPlace": "",
+        "edition": "",
+        "series": "",
+        "language": "fr"
+    },
+    "physical": {
+        "pages": "349",
+        "binding": "Paperback",
+        "printType": "",
+        "dimensions": "21 x 14 x 2",
+        "height": "",
+        "width": "",
+        "thickness": "",
+        "weight": "872"
+    },
+    "classification": {
+        "dewey": "",
+        "lc": "",
+        "bisac": "",
+        "categories": "Crayfish,, Reference,Foreign Language Study & Reference,, Crayfish,Crayfish culture,",
+        "vintedCategoryId": "1201",
+        "vintedCategoryName": "Autres livres"
+    },
+    "commercial": {
+        "msrp": "20.47",
+        "retailPrice": "",
+        "currency": "EUR",
+        "saleability": ""
+    },
+    "ratings": {
+        "average": "",
+        "count": "",
+        "maturity": ""
+    },
+    "content": {
+        "description": " ",
+        "notes": "",
+        "searchTerms": " La Révélation d'Arès intégrale Michel Potay Maison de La Révélation",
+        "bulletPoints": [
+            "Écrit par Michel Potay - Expert reconnu dans son domaine",
+            "349 pages de contenu riche et détaillé",
+            "Publié par Maison de La Révélation - Éditeur de référence",
+            "Format Paperback - Qualité de fabrication supérieure",
+            "ISBN: 2901821030 - Authenticité garantie"
+        ]
+    },
+    "media": {
+        "image": "",
+        "previewLink": "",
+        "infoLink": ""
+    }
+}

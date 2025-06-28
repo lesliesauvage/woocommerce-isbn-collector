@@ -1,0 +1,9 @@
+[2025-06-27 22:35:07]   → Gallica API (livre français)...
+[2025-06-27 22:35:07]     ✗ Gallica : pas de résultat
+[2025-06-27 22:35:08]   → Groq IA (génération gratuite)...
+[2025-06-27 22:35:09]     ✓ Groq IA : description générée
+[2025-06-27 22:35:09]       → Poids calculé : 1670g
+[2025-06-27 22:35:09]   ✓ Enrichissement terminé avec succès
+[2025-06-27 22:35:09]       → Appels API : Google=2, ISBNdb=2, OL=1, Groq=2
+[2025-06-27 22:35:10] [3/3] ---
+[2025-06-27 22:35:10] Collecte données pour produit #16087 - ISBN: 2040120815

@@ -1,0 +1,14 @@
+[Unit]
+Description=ISBN Watch and Sync to GitHub
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/scripts-home-root/isbn
+ExecStart=/var/www/scripts-home-root/isbn/watch_and_sync.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -106,3 +106,4 @@ Pour chaque livre :
 - Images : toutes les tailles disponibles
 - Classifications : Dewey, BISAC, catégories
 
+# Test sync Sat Jul  5 21:11:38 CEST 2025

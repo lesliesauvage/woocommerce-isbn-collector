@@ -3,8 +3,8 @@
 
 # Base de données WordPress
 DB_HOST="localhost"
-DB_USER="savoir"
-DB_PASSWORD="kCQAKXCQjRJQI.3~"
+DB_USER="wordpress"
+DB_PASSWORD="e96e30c154b7a661211a793bbac6416dcbaf9843ff19fb54"
 DB_NAME="savoir"
 SITE_ID="28"
 

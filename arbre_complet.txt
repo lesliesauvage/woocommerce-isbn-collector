@@ -1,0 +1,696 @@
+Niveau	Chemin complet
+0	ADOS
+1	ADOS > Apprendre
+2	ADOS > Apprendre > Art, musique et photographie
+2	ADOS > Apprendre > Histoire
+2	ADOS > Apprendre > Informatique
+2	ADOS > Apprendre > Sciences
+1	ADOS > BD ados
+2	ADOS > BD ados > BD franco-belge
+2	ADOS > BD ados > Comics
+2	ADOS > BD ados > Manga
+1	ADOS > Classiques ado
+2	ADOS > Classiques ado > Biographie jeunesse
+2	ADOS > Classiques ado > Classique
+2	ADOS > Classiques ado > Humour
+2	ADOS > Classiques ado > Nouvelles
+2	ADOS > Classiques ado > Poésie
+2	ADOS > Classiques ado > Religion
+2	ADOS > Classiques ado > Sport, loisirs et jeux
+2	ADOS > Classiques ado > Théâtre
+2	ADOS > Classiques ado > Voyages
+2	ADOS > Classiques ado > Westerns
+1	ADOS > Fantasy & Aventure
+2	ADOS > Fantasy & Aventure > Chair de poule
+2	ADOS > Fantasy & Aventure > Contes modernes
+2	ADOS > Fantasy & Aventure > Fantastique
+2	ADOS > Fantasy & Aventure > Fantasy
+2	ADOS > Fantasy & Aventure > Heroic fantasy
+2	ADOS > Fantasy & Aventure > Histoires de fantômes
+2	ADOS > Fantasy & Aventure > Loups-garous
+2	ADOS > Fantasy & Aventure > Magie & Sorcellerie
+2	ADOS > Fantasy & Aventure > Pirates
+2	ADOS > Fantasy & Aventure > Récits de survie
+2	ADOS > Fantasy & Aventure > Saga
+2	ADOS > Fantasy & Aventure > Super-héros
+2	ADOS > Fantasy & Aventure > Vampires
+2	ADOS > Fantasy & Aventure > Zombies
+1	ADOS > Fiction historique
+1	ADOS > Mythologie
+1	ADOS > Romance ado
+2	ADOS > Romance ado > Comédie romantique
+2	ADOS > Romance ado > Fantastique
+2	ADOS > Romance ado > Historique
+1	ADOS > Science-fiction
+2	ADOS > Science-fiction > Extraterrestres
+2	ADOS > Science-fiction > Uchronie
+2	ADOS > Science-fiction > Voyage dans le temps
+1	ADOS > Suspense
+2	ADOS > Suspense > Policier ado
+2	ADOS > Suspense > Thriller ado
+0	ART & CULTURE
+1	ART & CULTURE > Arts
+2	ART & CULTURE > Arts > Architecture
+2	ART & CULTURE > Arts > Art automobile et autres véhicules
+2	ART & CULTURE > Arts > Art contemporain
+2	ART & CULTURE > Arts > Artistes
+2	ART & CULTURE > Arts > Arts du spectacle
+2	ART & CULTURE > Arts > Autres supports et techniques
+2	ART & CULTURE > Arts > Cinéma
+2	ART & CULTURE > Arts > Collections, catalogues et expositions
+2	ART & CULTURE > Arts > Conception graphique
+2	ART & CULTURE > Arts > Conservation et préservation de l'art
+2	ART & CULTURE > Arts > Design et arts décoratifs
+2	ART & CULTURE > Arts > Dessin
+2	ART & CULTURE > Arts > Étude et enseignement
+2	ART & CULTURE > Arts > Histoire et critique
+2	ART & CULTURE > Arts > Marché de l'art
+2	ART & CULTURE > Arts > Mode
+2	ART & CULTURE > Arts > Musique
+2	ART & CULTURE > Arts > Peinture
+2	ART & CULTURE > Arts > Photographie
+2	ART & CULTURE > Arts > Radio
+2	ART & CULTURE > Arts > Sculpture
+2	ART & CULTURE > Arts > Télévision
+1	ART & CULTURE > Économie
+1	ART & CULTURE > Ésotérisme
+2	ART & CULTURE > Ésotérisme > Arts mantiques et divinatoires
+3	ART & CULTURE > Ésotérisme > Arts mantiques et divinatoires > Astrologie
+3	ART & CULTURE > Ésotérisme > Arts mantiques et divinatoires > Canalisation
+3	ART & CULTURE > Ésotérisme > Arts mantiques et divinatoires > Divination
+3	ART & CULTURE > Ésotérisme > Arts mantiques et divinatoires > Yi King
+2	ART & CULTURE > Ésotérisme > Mouvements ésotériques
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > Celtes et druidisme
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > Déités
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > Franc-maçonnerie et compagnonnage
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > Kabbale, gnose et occultisme
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > New Age
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > Spiritualism
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > Théosophie
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > Vaudou, chamanisme et animisme
+3	ART & CULTURE > Ésotérisme > Mouvements ésotériques > Wicca, sorcellerie et paganisme
+2	ART & CULTURE > Ésotérisme > Paranormal et parapsychologie
+3	ART & CULTURE > Ésotérisme > Paranormal et parapsychologie > Atlantide, pyramides et grandes énigmes
+3	ART & CULTURE > Ésotérisme > Paranormal et parapsychologie > Extraterrestres et ovnis
+3	ART & CULTURE > Ésotérisme > Paranormal et parapsychologie > Rose-Croix, Cathares et Templiers
+3	ART & CULTURE > Ésotérisme > Paranormal et parapsychologie > Vampires, fantômes, fées et autres créatures
+2	ART & CULTURE > Ésotérisme > Spiritualité et éveil personnel
+3	ART & CULTURE > Ésotérisme > Spiritualité et éveil personnel > Chakras
+3	ART & CULTURE > Ésotérisme > Spiritualité et éveil personnel > Guérison mentale et spirituelle
+3	ART & CULTURE > Ésotérisme > Spiritualité et éveil personnel > Méditation
+3	ART & CULTURE > Ésotérisme > Spiritualité et éveil personnel > Mysticisme
+3	ART & CULTURE > Ésotérisme > Spiritualité et éveil personnel > Réincarnation
+3	ART & CULTURE > Ésotérisme > Spiritualité et éveil personnel > Sexualité sacrée
+3	ART & CULTURE > Ésotérisme > Spiritualité et éveil personnel > Urantia
+2	ART & CULTURE > Ésotérisme > Vie et mort
+1	ART & CULTURE > Histoire
+2	ART & CULTURE > Histoire > Antiquité et mythologies
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Asie
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Carthage
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Égypte
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Étrurie
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Gaule
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Grèce
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Invasions barbares
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Monde celtique
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Mythes et mythologies
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Phénicie
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Proche et Moyen-Orient
+3	ART & CULTURE > Histoire > Antiquité et mythologies > Rome
+2	ART & CULTURE > Histoire > Atlas
+2	ART & CULTURE > Histoire > Biographies
+2	ART & CULTURE > Histoire > Colonisation
+2	ART & CULTURE > Histoire > Esclavage
+2	ART & CULTURE > Histoire > Généalogie et archéologie
+2	ART & CULTURE > Histoire > Histoire de France
+3	ART & CULTURE > Histoire > Histoire de France > Actualité politique
+3	ART & CULTURE > Histoire > Histoire de France > Gaule et Empire romain
+3	ART & CULTURE > Histoire > Histoire de France > Guerre d'Algérie
+3	ART & CULTURE > Histoire > Histoire de France > Guerre de 1870
+3	ART & CULTURE > Histoire > Histoire de France > Ier Empire
+3	ART & CULTURE > Histoire > Histoire de France > IIe République et IIe Empire
+3	ART & CULTURE > Histoire > Histoire de France > IIIe République
+3	ART & CULTURE > Histoire > Histoire de France > IVe République
+3	ART & CULTURE > Histoire > Histoire de France > Moyen Âge
+3	ART & CULTURE > Histoire > Histoire de France > Première Guerre mondiale
+3	ART & CULTURE > Histoire > Histoire de France > Renaissance - XVIIIe siècle
+3	ART & CULTURE > Histoire > Histoire de France > Révolution
+3	ART & CULTURE > Histoire > Histoire de France > Seconde Guerre mondiale
+3	ART & CULTURE > Histoire > Histoire de France > Ve République
+2	ART & CULTURE > Histoire > Invasions et empires
+2	ART & CULTURE > Histoire > Les guerres du XXème siècle
+2	ART & CULTURE > Histoire > Monde
+3	ART & CULTURE > Histoire > Monde > Afrique
+3	ART & CULTURE > Histoire > Monde > Amériques
+3	ART & CULTURE > Histoire > Monde > Asie
+3	ART & CULTURE > Histoire > Monde > Europe
+3	ART & CULTURE > Histoire > Monde > Océanie et pôles
+3	ART & CULTURE > Histoire > Monde > Pays
+2	ART & CULTURE > Histoire > Moyen Âge
+2	ART & CULTURE > Histoire > Préhistoire
+2	ART & CULTURE > Histoire > Renaissance - XVIIIe siècle
+2	ART & CULTURE > Histoire > XIXe siècle
+1	ART & CULTURE > Philosophie & Sciences humaines
+2	ART & CULTURE > Philosophie & Sciences humaines > Essais
+2	ART & CULTURE > Philosophie & Sciences humaines > Ethnologie et anthropologie
+2	ART & CULTURE > Philosophie & Sciences humaines > Géographie et urbanisme
+2	ART & CULTURE > Philosophie & Sciences humaines > Linguistique
+2	ART & CULTURE > Philosophie & Sciences humaines > Philosophie
+2	ART & CULTURE > Philosophie & Sciences humaines > Sociologie
+1	ART & CULTURE > Politique et actualités
+2	ART & CULTURE > Politique et actualités > Actualité
+2	ART & CULTURE > Politique et actualités > Géopolitique
+2	ART & CULTURE > Politique et actualités > Médias
+2	ART & CULTURE > Politique et actualités > Politique
+2	ART & CULTURE > Politique et actualités > Société
+3	ART & CULTURE > Politique et actualités > Société > Addictions
+3	ART & CULTURE > Politique et actualités > Société > Anorexie et boulimie
+3	ART & CULTURE > Politique et actualités > Société > Conflits
+3	ART & CULTURE > Politique et actualités > Société > Culture
+3	ART & CULTURE > Politique et actualités > Société > Délinquance
+3	ART & CULTURE > Politique et actualités > Société > Dépression
+3	ART & CULTURE > Politique et actualités > Société > Euthanasie
+3	ART & CULTURE > Politique et actualités > Société > Famille
+3	ART & CULTURE > Politique et actualités > Société > Immigration
+3	ART & CULTURE > Politique et actualités > Société > Manipulation
+3	ART & CULTURE > Politique et actualités > Société > Opinion publique
+3	ART & CULTURE > Politique et actualités > Société > Personnes âgées
+3	ART & CULTURE > Politique et actualités > Société > Société française
+3	ART & CULTURE > Politique et actualités > Société > Terrorisme
+3	ART & CULTURE > Politique et actualités > Société > Travail
+3	ART & CULTURE > Politique et actualités > Société > Violence
+2	ART & CULTURE > Politique et actualités > Urbanisme
+1	ART & CULTURE > Psychologie
+1	ART & CULTURE > Religions
+2	ART & CULTURE > Religions > Art religieux
+2	ART & CULTURE > Religions > Bible
+2	ART & CULTURE > Religions > Bouddhisme
+2	ART & CULTURE > Religions > Catholicisme
+2	ART & CULTURE > Religions > Christianisme
+2	ART & CULTURE > Religions > Cultures et religions
+2	ART & CULTURE > Religions > Dialogue interreligieux
+2	ART & CULTURE > Religions > Dictionnaires et encyclopédies
+2	ART & CULTURE > Religions > Egypte et le Livre des Morts
+2	ART & CULTURE > Religions > Exégèse
+2	ART & CULTURE > Religions > Feng-Shui
+2	ART & CULTURE > Religions > Hindouisme
+2	ART & CULTURE > Religions > Histoire des religions
+2	ART & CULTURE > Religions > Islam
+2	ART & CULTURE > Religions > Judaïsme
+2	ART & CULTURE > Religions > Orthodoxie et Églises d'Orient
+2	ART & CULTURE > Religions > Protestantisme
+2	ART & CULTURE > Religions > Religion et société
+2	ART & CULTURE > Religions > Sagesses orientales
+2	ART & CULTURE > Religions > Shinto
+2	ART & CULTURE > Religions > Taoïsme et Confucianisme
+2	ART & CULTURE > Religions > Théologie
+0	BANDE DESSINÉE
+1	BANDE DESSINÉE > BD
+2	BANDE DESSINÉE > BD > BD adulte
+2	BANDE DESSINÉE > BD > BD aventure
+2	BANDE DESSINÉE > BD > BD classiques
+2	BANDE DESSINÉE > BD > BD fantastique
+2	BANDE DESSINÉE > BD > BD historique
+2	BANDE DESSINÉE > BD > BD humour
+2	BANDE DESSINÉE > BD > BD policière
+2	BANDE DESSINÉE > BD > BD SF
+2	BANDE DESSINÉE > BD > BD western
+2	BANDE DESSINÉE > BD > Études BD
+2	BANDE DESSINÉE > BD > Romans graphiques
+1	BANDE DESSINÉE > BD franco-belge
+1	BANDE DESSINÉE > Comics
+1	BANDE DESSINÉE > Humour
+2	BANDE DESSINÉE > Humour > Blagues
+2	BANDE DESSINÉE > Humour > Dessins de presse
+2	BANDE DESSINÉE > Humour > Humoristes
+2	BANDE DESSINÉE > Humour > Humour coquin
+2	BANDE DESSINÉE > Humour > Humour famille
+2	BANDE DESSINÉE > Humour > Satire
+1	BANDE DESSINÉE > Mangas européens
+1	BANDE DESSINÉE > Webcomics
+0	BIEN-ÊTRE & VIE PRATIQUE
+1	BIEN-ÊTRE & VIE PRATIQUE > Calendriers et Agendas
+1	BIEN-ÊTRE & VIE PRATIQUE > Cuisine
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Apprendre à cuisiner
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Café & Thé
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Chef célèbre
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Cocktails
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Cuisine enfant
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Cuisine facile
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Cuisine française
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Cuisine saison
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Cuisines du monde
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Desserts
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Entrées
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Fromages
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Gastronomie
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Légumes
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Pâtes
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Pâtisserie
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Poisson
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Recevoir
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Régime
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Sauces
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Végétarien
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Viande
+2	BIEN-ÊTRE & VIE PRATIQUE > Cuisine > Vins
+1	BIEN-ÊTRE & VIE PRATIQUE > Développement personnel
+1	BIEN-ÊTRE & VIE PRATIQUE > Érotisme
+2	BIEN-ÊTRE & VIE PRATIQUE > Érotisme > BDSM
+2	BIEN-ÊTRE & VIE PRATIQUE > Érotisme > Guide sexe
+2	BIEN-ÊTRE & VIE PRATIQUE > Érotisme > Kama Sutra
+2	BIEN-ÊTRE & VIE PRATIQUE > Érotisme > LGBT+
+2	BIEN-ÊTRE & VIE PRATIQUE > Érotisme > Littérature érotique
+2	BIEN-ÊTRE & VIE PRATIQUE > Érotisme > Photo érotique
+1	BIEN-ÊTRE & VIE PRATIQUE > Parentalité
+1	BIEN-ÊTRE & VIE PRATIQUE > Santé
+1	BIEN-ÊTRE & VIE PRATIQUE > Sexualité
+0	BONNES AFFAIRES
+1	BONNES AFFAIRES > Déstockage
+1	BONNES AFFAIRES > Livres à 1€
+1	BONNES AFFAIRES > Lots de livres
+1	BONNES AFFAIRES > Moins de 5€
+0	DÉPARTS IMMINENTS
+1	DÉPARTS IMMINENTS > Derniers exemplaires
+1	DÉPARTS IMMINENTS > Plus que 2 en stock
+1	DÉPARTS IMMINENTS > Vente flash 48h
+0	DERNIERS ARRIVAGES
+1	DERNIERS ARRIVAGES > Bientôt en rayon
+1	DERNIERS ARRIVAGES > Nouveaux livres cette semaine
+1	DERNIERS ARRIVAGES > Réservations possibles
+0	ENFANTS
+1	ENFANTS > Activités et jeux
+2	ENFANTS > Activités et jeux > Créativité
+2	ENFANTS > Activités et jeux > Fêtes
+1	ENFANTS > Albums illustrés
+1	ENFANTS > Albums jeunesse vintage
+1	ENFANTS > Animaux
+2	ENFANTS > Animaux > Animaux de la ferme
+2	ENFANTS > Animaux > Animaux domestiques
+2	ENFANTS > Animaux > Animaux sauvages
+2	ENFANTS > Animaux > Bébés animaux
+2	ENFANTS > Animaux > Chevaux
+2	ENFANTS > Animaux > Dinosaures
+2	ENFANTS > Animaux > Oiseaux
+2	ENFANTS > Animaux > Ours
+2	ENFANTS > Animaux > Petites bêtes
+2	ENFANTS > Animaux > Vie marine
+1	ENFANTS > BD enfants
+1	ENFANTS > Contes et légendes
+2	ENFANTS > Contes et légendes > Chevaliers et châteaux
+2	ENFANTS > Contes et légendes > Contes du monde
+2	ENFANTS > Contes et légendes > Créatures fantastiques
+2	ENFANTS > Contes et légendes > Mythologie
+2	ENFANTS > Contes et légendes > Sirènes
+1	ENFANTS > Découvertes et sciences
+2	ENFANTS > Découvertes et sciences > Apprendre
+2	ENFANTS > Découvertes et sciences > Corps humain
+2	ENFANTS > Découvertes et sciences > Espace
+2	ENFANTS > Découvertes et sciences > Géographie
+2	ENFANTS > Découvertes et sciences > Histoire
+2	ENFANTS > Découvertes et sciences > Inventions
+2	ENFANTS > Découvertes et sciences > Nature & Écologie
+2	ENFANTS > Découvertes et sciences > Numérique
+2	ENFANTS > Découvertes et sciences > Sports
+2	ENFANTS > Découvertes et sciences > Véhicules
+1	ENFANTS > Documentaires
+1	ENFANTS > Émotions et confiance
+1	ENFANTS > Histoires et contes
+2	ENFANTS > Histoires et contes > Aventures
+2	ENFANTS > Histoires et contes > Enquêtes
+2	ENFANTS > Histoires et contes > Fantastique enfant
+2	ENFANTS > Histoires et contes > Poésie enfantine
+2	ENFANTS > Histoires et contes > Premières lectures
+1	ENFANTS > Licences & Personnages
+1	ENFANTS > Livres d'autocollants
+1	ENFANTS > Livres scolaires primaire
+1	ENFANTS > Livres sonores
+1	ENFANTS > Tout-petits
+2	ENFANTS > Tout-petits > 5 sens
+2	ENFANTS > Tout-petits > Comptines
+2	ENFANTS > Tout-petits > Corps humain
+2	ENFANTS > Tout-petits > Couleurs
+2	ENFANTS > Tout-petits > Formes
+2	ENFANTS > Tout-petits > Lettres
+2	ENFANTS > Tout-petits > Nombres
+2	ENFANTS > Tout-petits > Premiers mots
+2	ENFANTS > Tout-petits > Saisons
+0	FORMATS SPÉCIAUX
+1	FORMATS SPÉCIAUX > Coffrets
+1	FORMATS SPÉCIAUX > Intégrales
+1	FORMATS SPÉCIAUX > Livres audio (CD)
+1	FORMATS SPÉCIAUX > Livres de poche
+1	FORMATS SPÉCIAUX > Livres grand format
+0	JEUNES ADULTES (16-25 ans)
+1	JEUNES ADULTES (16-25 ans) > BD jeunes adultes
+1	JEUNES ADULTES (16-25 ans) > Bien-être & Spiritualité
+1	JEUNES ADULTES (16-25 ans) > Classiques jeunes adultes
+1	JEUNES ADULTES (16-25 ans) > Dystopie
+2	JEUNES ADULTES (16-25 ans) > Dystopie > Space opera
+2	JEUNES ADULTES (16-25 ans) > Dystopie > Steampunk
+1	JEUNES ADULTES (16-25 ans) > Fantastique urbain
+1	JEUNES ADULTES (16-25 ans) > Grandir
+1	JEUNES ADULTES (16-25 ans) > Puberté
+1	JEUNES ADULTES (16-25 ans) > Réalisme social
+1	JEUNES ADULTES (16-25 ans) > Romance
+2	JEUNES ADULTES (16-25 ans) > Romance > LGBT
+2	JEUNES ADULTES (16-25 ans) > Romance > Paranormale
+2	JEUNES ADULTES (16-25 ans) > Romance > Romance Contemporaine
+2	JEUNES ADULTES (16-25 ans) > Romance > Romance dystopique
+1	JEUNES ADULTES (16-25 ans) > Santé mentale
+1	JEUNES ADULTES (16-25 ans) > Sexualité
+0	LITTÉRATURE
+1	LITTÉRATURE > Folio/Poche
+1	LITTÉRATURE > Pléiade
+1	LITTÉRATURE > Romance
+2	LITTÉRATURE > Romance > Dark romance
+2	LITTÉRATURE > Romance > Feel good
+2	LITTÉRATURE > Romance > LGBT
+2	LITTÉRATURE > Romance > New Romance
+2	LITTÉRATURE > Romance > Roman érotique
+2	LITTÉRATURE > Romance > Romance contemporaine
+2	LITTÉRATURE > Romance > Romance historique
+2	LITTÉRATURE > Romance > Romance paranormale
+2	LITTÉRATURE > Romance > Romantasy
+1	LITTÉRATURE > Romans
+2	LITTÉRATURE > Romans > Biographies
+2	LITTÉRATURE > Romans > Humour
+2	LITTÉRATURE > Romans > Récit de voyage
+2	LITTÉRATURE > Romans > Romans africains
+2	LITTÉRATURE > Romans > Romans allemands
+2	LITTÉRATURE > Romans > Romans anglais
+2	LITTÉRATURE > Romans > Romans asiatiques
+2	LITTÉRATURE > Romans > Romans du terroir
+2	LITTÉRATURE > Romans > Romans espagnols
+2	LITTÉRATURE > Romans > Romans français
+2	LITTÉRATURE > Romans > Romans historiques
+2	LITTÉRATURE > Romans > Romans italiens
+2	LITTÉRATURE > Romans > Romans portugais
+2	LITTÉRATURE > Romans > Romans russes
+1	LITTÉRATURE > Théâtre & Poésie
+2	LITTÉRATURE > Théâtre & Poésie > Antiquité
+2	LITTÉRATURE > Théâtre & Poésie > Essai
+2	LITTÉRATURE > Théâtre & Poésie > Moyen Âge
+2	LITTÉRATURE > Théâtre & Poésie > Poésie
+2	LITTÉRATURE > Théâtre & Poésie > Théâtre
+1	LITTÉRATURE > Thriller
+2	LITTÉRATURE > Thriller > Cosy mystery
+2	LITTÉRATURE > Thriller > Polar historique
+2	LITTÉRATURE > Thriller > Policier féminin
+2	LITTÉRATURE > Thriller > Roman noir
+2	LITTÉRATURE > Thriller > Roman policier
+2	LITTÉRATURE > Thriller > Thriller
+0	LIVRES RARES & COLLECTION
+1	LIVRES RARES & COLLECTION > Beaux livres épuisés
+1	LIVRES RARES & COLLECTION > Collections complètes
+1	LIVRES RARES & COLLECTION > Éditions originales
+1	LIVRES RARES & COLLECTION > Livres anciens (avant 1900)
+1	LIVRES RARES & COLLECTION > Livres de bibliophilie
+1	LIVRES RARES & COLLECTION > Livres signés/dédicacés
+0	LOISIRS & VOYAGES
+1	LOISIRS & VOYAGES > Bricolage
+2	LOISIRS & VOYAGES > Bricolage > Décoration intérieure
+2	LOISIRS & VOYAGES > Bricolage > Électricité
+2	LOISIRS & VOYAGES > Bricolage > Menuiserie
+2	LOISIRS & VOYAGES > Bricolage > Plomberie
+2	LOISIRS & VOYAGES > Bricolage > Travaux maison
+1	LOISIRS & VOYAGES > Collections
+1	LOISIRS & VOYAGES > Jardinage
+2	LOISIRS & VOYAGES > Jardinage > Arbres et arbustes
+2	LOISIRS & VOYAGES > Jardinage > Jardin d'ornement
+2	LOISIRS & VOYAGES > Jardinage > Jardinage bio
+2	LOISIRS & VOYAGES > Jardinage > Potager
+1	LOISIRS & VOYAGES > Jeux
+2	LOISIRS & VOYAGES > Jeux > Échecs
+2	LOISIRS & VOYAGES > Jeux > Jeux de cartes
+2	LOISIRS & VOYAGES > Jeux > Jeux de société
+2	LOISIRS & VOYAGES > Jeux > Puzzles
+1	LOISIRS & VOYAGES > Loisirs créatifs
+2	LOISIRS & VOYAGES > Loisirs créatifs > Couture et tricot
+2	LOISIRS & VOYAGES > Loisirs créatifs > Création bijoux
+2	LOISIRS & VOYAGES > Loisirs créatifs > DIY déco
+2	LOISIRS & VOYAGES > Loisirs créatifs > Peinture et dessin
+2	LOISIRS & VOYAGES > Loisirs créatifs > Poterie et céramique
+2	LOISIRS & VOYAGES > Loisirs créatifs > Scrapbooking
+2	LOISIRS & VOYAGES > Loisirs créatifs > Travail du bois
+1	LOISIRS & VOYAGES > Nature
+2	LOISIRS & VOYAGES > Nature > Animaux
+2	LOISIRS & VOYAGES > Nature > Environnement
+2	LOISIRS & VOYAGES > Nature > Montagne
+2	LOISIRS & VOYAGES > Nature > Oiseaux
+2	LOISIRS & VOYAGES > Nature > Plantes et fleurs
+1	LOISIRS & VOYAGES > Sports
+2	LOISIRS & VOYAGES > Sports > Arts martiaux
+2	LOISIRS & VOYAGES > Sports > Basketball
+2	LOISIRS & VOYAGES > Sports > Cyclisme
+2	LOISIRS & VOYAGES > Sports > Équitation
+2	LOISIRS & VOYAGES > Sports > Fitness et musculation
+2	LOISIRS & VOYAGES > Sports > Football
+2	LOISIRS & VOYAGES > Sports > Golf
+2	LOISIRS & VOYAGES > Sports > Pêche et chasse
+2	LOISIRS & VOYAGES > Sports > Rugby
+2	LOISIRS & VOYAGES > Sports > Sports aériens
+2	LOISIRS & VOYAGES > Sports > Sports d'hiver
+2	LOISIRS & VOYAGES > Sports > Sports mécaniques
+2	LOISIRS & VOYAGES > Sports > Sports nautiques
+2	LOISIRS & VOYAGES > Sports > Tennis et sports raquette
+2	LOISIRS & VOYAGES > Sports > Yoga
+1	LOISIRS & VOYAGES > Voyage
+2	LOISIRS & VOYAGES > Voyage > Beaux livres voyage
+2	LOISIRS & VOYAGES > Voyage > Cartes routières
+2	LOISIRS & VOYAGES > Voyage > Croisières
+2	LOISIRS & VOYAGES > Voyage > Guide Europe
+2	LOISIRS & VOYAGES > Voyage > Guide France
+2	LOISIRS & VOYAGES > Voyage > Guide Monde
+2	LOISIRS & VOYAGES > Voyage > Récits de voyages
+2	LOISIRS & VOYAGES > Voyage > Tourisme aventure
+0	MANGA
+1	MANGA > Artbook
+1	MANGA > Hentai
+1	MANGA > Isekai
+1	MANGA > Josei - Femmes
+1	MANGA > Light Novel
+1	MANGA > Manga humour
+1	MANGA > Mecha
+1	MANGA > Seinen - Adulte
+1	MANGA > Shōjo - Romance
+1	MANGA > Shōnen - Action
+1	MANGA > Slice of life
+1	MANGA > Sport
+1	MANGA > Thriller & Horreur
+1	MANGA > Webtoon
+1	MANGA > Yaoi & Yuri
+0	OCCASIONS DU MOMENT
+1	OCCASIONS DU MOMENT > Best-sellers d'hier
+1	OCCASIONS DU MOMENT > Coups de cœur libraire
+1	OCCASIONS DU MOMENT > Prix littéraires années précédentes
+1	OCCASIONS DU MOMENT > Rentrée littéraire
+0	PAR BUDGET
+1	PAR BUDGET > 10€ à 20€
+1	PAR BUDGET > 3€ à 5€
+1	PAR BUDGET > 5€ à 10€
+1	PAR BUDGET > Moins de 3€
+1	PAR BUDGET > Plus de 20€
+0	SAVOIRS
+1	SAVOIRS > Agriculture
+1	SAVOIRS > Biologie
+2	SAVOIRS > Biologie > Anatomie
+2	SAVOIRS > Biologie > Biochimie
+2	SAVOIRS > Biologie > Biologie animale
+2	SAVOIRS > Biologie > Biologie cellulaire
+2	SAVOIRS > Biologie > Biologie moléculaire
+2	SAVOIRS > Biologie > Biologie végétale
+2	SAVOIRS > Biologie > Biostatistique
+2	SAVOIRS > Biologie > Botanique
+2	SAVOIRS > Biologie > Écologie
+2	SAVOIRS > Biologie > Entomologie
+2	SAVOIRS > Biologie > Évolution
+2	SAVOIRS > Biologie > Génétique
+2	SAVOIRS > Biologie > Immunologie
+2	SAVOIRS > Biologie > Microbiologie
+2	SAVOIRS > Biologie > Neurobiologie
+2	SAVOIRS > Biologie > Paléontologie
+2	SAVOIRS > Biologie > Physiologie
+2	SAVOIRS > Biologie > Zoologie
+1	SAVOIRS > BTP
+1	SAVOIRS > Business
+2	SAVOIRS > Business > Carrière
+2	SAVOIRS > Business > Communication
+2	SAVOIRS > Business > Économie
+2	SAVOIRS > Business > Finance
+2	SAVOIRS > Business > Gestion
+2	SAVOIRS > Business > IT Business
+2	SAVOIRS > Business > Management
+2	SAVOIRS > Business > Marketing
+2	SAVOIRS > Business > PME
+2	SAVOIRS > Business > Secteurs
+2	SAVOIRS > Business > Stratégie
+1	SAVOIRS > Chimie
+1	SAVOIRS > Droit
+2	SAVOIRS > Droit > Codes
+2	SAVOIRS > Droit > Dictionnaire juridique
+2	SAVOIRS > Droit > Droit civil
+2	SAVOIRS > Droit > Droit des affaires
+2	SAVOIRS > Droit > Droit des femmes
+2	SAVOIRS > Droit > Droit du travail
+2	SAVOIRS > Droit > Droit international
+2	SAVOIRS > Droit > Droit pénal
+2	SAVOIRS > Droit > Droit pratique
+2	SAVOIRS > Droit > Droit privé
+2	SAVOIRS > Droit > Droit public
+2	SAVOIRS > Droit > Histoire du droit
+2	SAVOIRS > Droit > Institutions
+2	SAVOIRS > Droit > Métiers du droit
+1	SAVOIRS > Industrie
+1	SAVOIRS > Informatique
+2	SAVOIRS > Informatique > Bureautique
+2	SAVOIRS > Informatique > Certifications
+2	SAVOIRS > Informatique > Cyberculture
+2	SAVOIRS > Informatique > Cybersécurité
+2	SAVOIRS > Informatique > Database
+2	SAVOIRS > Informatique > Dictionnaire informatique
+2	SAVOIRS > Informatique > Graphisme
+2	SAVOIRS > Informatique > Hardware
+2	SAVOIRS > Informatique > IA
+2	SAVOIRS > Informatique > Internet
+2	SAVOIRS > Informatique > Jeux vidéo
+2	SAVOIRS > Informatique > Linux
+2	SAVOIRS > Informatique > OS
+2	SAVOIRS > Informatique > Programmation
+2	SAVOIRS > Informatique > Réseaux
+1	SAVOIRS > Langues
+2	SAVOIRS > Langues > Apprendre une langue
+2	SAVOIRS > Langues > Atlas
+2	SAVOIRS > Langues > Dictionnaires techniques
+2	SAVOIRS > Langues > Écriture
+2	SAVOIRS > Langues > Encyclopédie
+2	SAVOIRS > Langues > FLE
+2	SAVOIRS > Langues > Langue française
+2	SAVOIRS > Langues > Langues régionales de France
+1	SAVOIRS > Livres universitaires
+1	SAVOIRS > Manuels techniques années précédentes
+1	SAVOIRS > Mathématiques
+2	SAVOIRS > Mathématiques > Algèbre
+2	SAVOIRS > Mathématiques > Algèbre linéaire
+2	SAVOIRS > Mathématiques > Analyse
+2	SAVOIRS > Mathématiques > Calcul différentiel
+2	SAVOIRS > Mathématiques > Calcul intégral
+2	SAVOIRS > Mathématiques > Géométrie
+2	SAVOIRS > Mathématiques > Logique
+2	SAVOIRS > Mathématiques > Prépa maths
+2	SAVOIRS > Mathématiques > Probabilités
+2	SAVOIRS > Mathématiques > Statistiques
+2	SAVOIRS > Mathématiques > Topologie
+1	SAVOIRS > Médecine
+2	SAVOIRS > Médecine > Dictionnaire médical
+2	SAVOIRS > Médecine > Éthique médicale
+2	SAVOIRS > Médecine > Médecine douce
+3	SAVOIRS > Médecine > Médecine douce > Acupuncture
+3	SAVOIRS > Médecine > Médecine douce > Aromathérapie
+3	SAVOIRS > Médecine > Médecine douce > Ayurveda
+3	SAVOIRS > Médecine > Médecine douce > Chiropraxie
+3	SAVOIRS > Médecine > Médecine douce > Guérison
+3	SAVOIRS > Médecine > Médecine douce > Holistique
+3	SAVOIRS > Médecine > Médecine douce > Homéopathie
+3	SAVOIRS > Médecine > Médecine douce > Hypnothérapie
+3	SAVOIRS > Médecine > Médecine douce > Massages
+3	SAVOIRS > Médecine > Médecine douce > Médecine du corps et de l'esprit
+3	SAVOIRS > Médecine > Médecine douce > Médecine orientale
+3	SAVOIRS > Médecine > Médecine douce > Méditation
+3	SAVOIRS > Médecine > Médecine douce > Musicothérapie
+3	SAVOIRS > Médecine > Médecine douce > Naturopathie
+3	SAVOIRS > Médecine > Médecine douce > Oligothérapie
+3	SAVOIRS > Médecine > Médecine douce > Ostéopathie
+3	SAVOIRS > Médecine > Médecine douce > Phytothérapie
+3	SAVOIRS > Médecine > Médecine douce > Vitamines et compléments
+2	SAVOIRS > Médecine > Paramédical
+3	SAVOIRS > Médecine > Paramédical > Aide-soignant
+3	SAVOIRS > Médecine > Paramédical > Ergothérapie
+3	SAVOIRS > Médecine > Paramédical > Infirmier
+3	SAVOIRS > Médecine > Paramédical > Kinésithérapie
+3	SAVOIRS > Médecine > Paramédical > Orthophonie
+3	SAVOIRS > Médecine > Paramédical > Podologie
+3	SAVOIRS > Médecine > Paramédical > Préparateur pharmacie
+3	SAVOIRS > Médecine > Paramédical > Psychomotricité
+3	SAVOIRS > Médecine > Paramédical > Puériculture
+3	SAVOIRS > Médecine > Paramédical > Sage-femme
+2	SAVOIRS > Médecine > Santé publique
+2	SAVOIRS > Médecine > Sciences fondamentales
+3	SAVOIRS > Médecine > Sciences fondamentales > Anatomie
+3	SAVOIRS > Médecine > Sciences fondamentales > Biochimie
+3	SAVOIRS > Médecine > Sciences fondamentales > Biologie
+3	SAVOIRS > Médecine > Sciences fondamentales > Génétique
+3	SAVOIRS > Médecine > Sciences fondamentales > Immunologie
+3	SAVOIRS > Médecine > Sciences fondamentales > Microbiologie
+3	SAVOIRS > Médecine > Sciences fondamentales > Physiologie
+2	SAVOIRS > Médecine > Spécialités médicales
+3	SAVOIRS > Médecine > Spécialités médicales > Anesthésie - Réanimation
+3	SAVOIRS > Médecine > Spécialités médicales > Cancérologie
+3	SAVOIRS > Médecine > Spécialités médicales > Cardiologie
+3	SAVOIRS > Médecine > Spécialités médicales > Chirurgie
+3	SAVOIRS > Médecine > Spécialités médicales > Dentaire
+3	SAVOIRS > Médecine > Spécialités médicales > Dermatologie
+3	SAVOIRS > Médecine > Spécialités médicales > Endocrinologie
+3	SAVOIRS > Médecine > Spécialités médicales > Gastro
+3	SAVOIRS > Médecine > Spécialités médicales > Gérontologie
+3	SAVOIRS > Médecine > Spécialités médicales > Gynécologie
+3	SAVOIRS > Médecine > Spécialités médicales > Médecine du sport
+3	SAVOIRS > Médecine > Spécialités médicales > Médecine générale
+3	SAVOIRS > Médecine > Spécialités médicales > Médecine interne
+3	SAVOIRS > Médecine > Spécialités médicales > Médecine légale
+3	SAVOIRS > Médecine > Spécialités médicales > Neurologie
+3	SAVOIRS > Médecine > Spécialités médicales > Obstétrique
+3	SAVOIRS > Médecine > Spécialités médicales > Ophtalmologie
+3	SAVOIRS > Médecine > Spécialités médicales > ORL
+3	SAVOIRS > Médecine > Spécialités médicales > Pédiatrie
+3	SAVOIRS > Médecine > Spécialités médicales > Pharmacie
+3	SAVOIRS > Médecine > Spécialités médicales > Pharmacologie
+3	SAVOIRS > Médecine > Spécialités médicales > Psychiatrie
+3	SAVOIRS > Médecine > Spécialités médicales > Radiologie
+3	SAVOIRS > Médecine > Spécialités médicales > Sexologie
+3	SAVOIRS > Médecine > Spécialités médicales > Urgences
+3	SAVOIRS > Médecine > Spécialités médicales > Vétérinaire
+2	SAVOIRS > Médecine > Technologies médicales
+1	SAVOIRS > Physique
+2	SAVOIRS > Physique > Aérodynamique
+2	SAVOIRS > Physique > Astronomie
+2	SAVOIRS > Physique > Chaos
+2	SAVOIRS > Physique > Électricité
+2	SAVOIRS > Physique > Électronique
+2	SAVOIRS > Physique > Hydraulique
+2	SAVOIRS > Physique > Mécanique des fluides
+2	SAVOIRS > Physique > Mécanique des matériaux
+2	SAVOIRS > Physique > Optique
+2	SAVOIRS > Physique > Physique atomique
+2	SAVOIRS > Physique > Physique des particules
+2	SAVOIRS > Physique > Physique nucléaire
+2	SAVOIRS > Physique > Quantique
+2	SAVOIRS > Physique > Relativité
+2	SAVOIRS > Physique > Résistance des matériaux
+2	SAVOIRS > Physique > Thermodynamique
+2	SAVOIRS > Physique > Traitement du signal
+1	SAVOIRS > Sciences de la terre
+2	SAVOIRS > Sciences de la terre > Archéologie
+2	SAVOIRS > Sciences de la terre > Catastrophes naturelles
+2	SAVOIRS > Sciences de la terre > Eau
+2	SAVOIRS > Sciences de la terre > Environnement
+2	SAVOIRS > Sciences de la terre > Géologie
+2	SAVOIRS > Sciences de la terre > Volcanologie
+0	SCOLAIRE
+1	SCOLAIRE > Agendas scolaires
+1	SCOLAIRE > Analyses littéraires
+1	SCOLAIRE > Cahiers de vacances
+1	SCOLAIRE > Collège
+1	SCOLAIRE > Dictionnaires
+1	SCOLAIRE > Études supérieures
+2	SCOLAIRE > Études supérieures > BTS/DUT
+2	SCOLAIRE > Études supérieures > Concours
+2	SCOLAIRE > Études supérieures > FLE
+2	SCOLAIRE > Études supérieures > Formation pro
+2	SCOLAIRE > Études supérieures > Orientation
+2	SCOLAIRE > Études supérieures > Prépa
+2	SCOLAIRE > Études supérieures > Université
+1	SCOLAIRE > Lycée
+1	SCOLAIRE > Maternelle
+1	SCOLAIRE > Pédagogie
+1	SCOLAIRE > Primaire

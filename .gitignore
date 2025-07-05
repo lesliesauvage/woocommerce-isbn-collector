@@ -1,0 +1,30 @@
+# Credentials et secrets
+config/credentials.sh
+config/secrets.sh
+credentials.sh
+
+# Logs
+logs/
+*.log
+
+# Temporaires
+test_*.sh
+*.tmp
+*.bak
+*~
+
+# Base de données
+*.sql
+backups/
+db_backups/
+
+# Système
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Autres
+fix_*.sh

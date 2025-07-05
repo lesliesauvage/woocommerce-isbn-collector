@@ -1,0 +1,713 @@
+BONNES AFFAIRES
+├── Moins de 5€
+├── Lots de livres
+├── Déstockage
+└── Livres à 1€
+
+PAR BUDGET
+├── Moins de 3€
+├── 3€ à 5€
+├── 5€ à 10€
+├── 10€ à 20€
+└── Plus de 20€
+
+OCCASIONS DU MOMENT
+├── Rentrée littéraire
+├── Prix littéraires années précédentes
+├── Best-sellers d'hier
+└── Coups de cœur libraire
+
+DERNIERS ARRIVAGES
+├── Nouveaux livres cette semaine
+├── Bientôt en rayon
+└── Réservations possibles
+
+DÉPARTS IMMINENTS
+├── Derniers exemplaires
+├── Plus que 2 en stock
+└── Vente flash 48h
+
+LIVRES RARES & COLLECTION
+├── Éditions originales
+├── Livres anciens (avant 1900)
+├── Livres signés/dédicacés
+├── Beaux livres épuisés
+├── Collections complètes
+└── Livres de bibliophilie
+
+FORMATS SPÉCIAUX
+├── Livres grand format
+├── Livres de poche
+├── Livres audio (CD)
+├── Coffrets
+└── Intégrales
+
+ADOS 
+├── Apprendre 
+│   ├── Art, musique et photographie 
+│   ├── Histoire 
+│   ├── Informatique 
+│   └── Sciences 
+├── BD ados
+│   ├── BD franco-belge 
+│   ├── Comics 
+│   └── Manga 
+├── Classiques ado 
+│   ├── Biographie jeunesse 
+│   ├── Classique 
+│   ├── Humour 
+│   ├── Nouvelles 
+│   ├── Poésie 
+│   ├── Religion 
+│   ├── Sport, loisirs et jeux 
+│   ├── Théâtre 
+│   ├── Voyages 
+│   └── Westerns 
+├── Fantasy & Aventure 
+│   ├── Chair de poule 
+│   ├── Contes modernes 
+│   ├── Fantastique 
+│   ├── Fantasy 
+│   ├── Heroic fantasy 
+│   ├── Histoires de fantômes 
+│   ├── Loups-garous 
+│   ├── Magie & Sorcellerie 
+│   ├── Pirates 
+│   ├── Récits de survie 
+│   ├── Saga 
+│   ├── Super-héros 
+│   ├── Vampires 
+│   └── Zombies 
+├── Fiction historique 
+├── Mythologie 
+├── Romance ado 
+│   ├── Comédie romantique 
+│   ├── Fantastique 
+│   └── Historique 
+├── Science-fiction 
+│   ├── Extraterrestres 
+│   ├── Uchronie 
+│   └── Voyage dans le temps 
+└── Suspense 
+    ├── Policier ado 
+    └── Thriller ado 
+
+ART & CULTURE 
+├── Arts 
+│   ├── Architecture 
+│   ├── Art automobile et autres véhicules 
+│   ├── Art contemporain 
+│   ├── Artistes 
+│   ├── Arts du spectacle 
+│   ├── Autres supports et techniques 
+│   ├── Cinéma 
+│   ├── Collections, catalogues et expositions 
+│   ├── Conception graphique 
+│   ├── Conservation et préservation de l'art 
+│   ├── Design et arts décoratifs 
+│   ├── Dessin 
+│   ├── Étude et enseignement 
+│   ├── Histoire et critique 
+│   ├── Marché de l'art 
+│   ├── Mode 
+│   ├── Musique 
+│   ├── Peinture 
+│   ├── Photographie 
+│   ├── Radio 
+│   ├── Sculpture 
+│   └── Télévision 
+├── Économie 
+├── Ésotérisme 
+│   ├── Arts mantiques et divinatoires 
+│   │   ├── Astrologie 
+│   │   ├── Canalisation 
+│   │   ├── Divination 
+│   │   └── Yi King 
+│   ├── Mouvements ésotériques 
+│   │   ├── Celtes et druidisme 
+│   │   ├── Déités 
+│   │   ├── Franc-maçonnerie et compagnonnage 
+│   │   ├── Kabbale, gnose et occultisme 
+│   │   ├── New Age 
+│   │   ├── Spiritualism 
+│   │   ├── Théosophie 
+│   │   ├── Vaudou, chamanisme et animisme 
+│   │   └── Wicca, sorcellerie et paganisme 
+│   ├── Paranormal et parapsychologie 
+│   │   ├── Atlantide, pyramides et grandes énigmes 
+│   │   ├── Extraterrestres et ovnis 
+│   │   ├── Rose-Croix, Cathares et Templiers 
+│   │   └── Vampires, fantômes, fées et autres créatures 
+│   ├── Spiritualité et éveil personnel 
+│   │   ├── Chakras 
+│   │   ├── Guérison mentale et spirituelle 
+│   │   ├── Méditation 
+│   │   ├── Mysticisme 
+│   │   ├── Réincarnation 
+│   │   ├── Sexualité sacrée 
+│   │   └── Urantia 
+│   └── Vie et mort 
+├── Histoire 
+│   ├── Antiquité et mythologies 
+│   │   ├── Asie 
+│   │   ├── Carthage 
+│   │   ├── Égypte 
+│   │   ├── Étrurie 
+│   │   ├── Gaule 
+│   │   ├── Grèce 
+│   │   ├── Invasions barbares 
+│   │   ├── Monde celtique 
+│   │   ├── Mythes et mythologies 
+│   │   ├── Phénicie 
+│   │   ├── Proche et Moyen-Orient 
+│   │   └── Rome 
+│   ├── Atlas 
+│   ├── Biographies 
+│   ├── Colonisation 
+│   ├── Esclavage 
+│   ├── Généalogie et archéologie 
+│   ├── Histoire de France 
+│   │   ├── Actualité politique 
+│   │   ├── Gaule et Empire romain 
+│   │   ├── Guerre d'Algérie 
+│   │   ├── Guerre de 1870 
+│   │   ├── Ier Empire 
+│   │   ├── IIe République et IIe Empire 
+│   │   ├── IIIe République 
+│   │   ├── IVe République 
+│   │   ├── Moyen Âge 
+│   │   ├── Première Guerre mondiale 
+│   │   ├── Renaissance - XVIIIe siècle 
+│   │   ├── Révolution 
+│   │   ├── Seconde Guerre mondiale 
+│   │   └── Ve République 
+│   ├── Invasions et empires 
+│   ├── Les guerres du XXème siècle 
+│   ├── Monde 
+│   │   ├── Afrique 
+│   │   ├── Amériques 
+│   │   ├── Asie 
+│   │   ├── Europe 
+│   │   ├── Océanie et pôles 
+│   │   └── Pays 
+│   ├── Moyen Âge 
+│   ├── Préhistoire 
+│   ├── Renaissance - XVIIIe siècle 
+│   └── XIXe siècle 
+├── Philosophie & Sciences humaines 
+│   ├── Essais 
+│   ├── Ethnologie et anthropologie 
+│   ├── Géographie et urbanisme 
+│   ├── Linguistique 
+│   ├── Philosophie 
+│   └── Sociologie 
+├── Politique et actualités 
+│   ├── Actualité 
+│   ├── Géopolitique 
+│   ├── Médias 
+│   ├── Politique 
+│   ├── Société 
+│   │   ├── Addictions 
+│   │   ├── Anorexie et boulimie 
+│   │   ├── Conflits 
+│   │   ├── Culture 
+│   │   ├── Délinquance 
+│   │   ├── Dépression 
+│   │   ├── Euthanasie 
+│   │   ├── Famille 
+│   │   ├── Immigration 
+│   │   ├── Manipulation 
+│   │   ├── Opinion publique 
+│   │   ├── Personnes âgées 
+│   │   ├── Société française 
+│   │   ├── Terrorisme 
+│   │   ├── Travail 
+│   │   └── Violence 
+│   └── Urbanisme 
+├── Psychologie 
+└── Religions 
+    ├── Art religieux 
+    ├── Bible 
+    ├── Bouddhisme 
+    ├── Catholicisme 
+    ├── Christianisme 
+    ├── Cultures et religions 
+    ├── Dialogue interreligieux 
+    ├── Dictionnaires et encyclopédies 
+    ├── Egypte et le Livre des Morts 
+    ├── Exégèse 
+    ├── Feng-Shui 
+    ├── Hindouisme 
+    ├── Histoire des religions 
+    ├── Islam 
+    ├── Judaïsme 
+    ├── Orthodoxie et Églises d'Orient 
+    ├── Protestantisme 
+    ├── Religion et société 
+    ├── Sagesses orientales 
+    ├── Shinto 
+    ├── Taoïsme et Confucianisme 
+    └── Théologie 
+
+BANDE DESSINÉE 
+├── BD 
+│   ├── BD adulte 
+│   ├── BD aventure 
+│   ├── BD classiques 
+│   ├── BD fantastique 
+│   ├── BD historique 
+│   ├── BD humour 
+│   ├── BD policière 
+│   ├── BD SF 
+│   ├── BD western 
+│   ├── Études BD 
+│   └── Romans graphiques 
+├── BD franco-belge 
+├── Comics 
+├── Humour 
+│   ├── Blagues 
+│   ├── Dessins de presse 
+│   ├── Humour coquin 
+│   ├── Humour famille 
+│   ├── Humoristes 
+│   └── Satire 
+├── Mangas européens 
+└── Webcomics 
+
+BIEN-ÊTRE & VIE PRATIQUE 
+├── Calendriers et Agendas 
+├── Cuisine 
+│   ├── Apprendre à cuisiner 
+│   ├── Café & Thé 
+│   ├── Chef célèbre 
+│   ├── Cocktails 
+│   ├── Cuisine enfant 
+│   ├── Cuisine facile 
+│   ├── Cuisine française 
+│   ├── Cuisine saison 
+│   ├── Cuisines du monde 
+│   ├── Desserts 
+│   ├── Entrées 
+│   ├── Fromages 
+│   ├── Gastronomie 
+│   ├── Légumes 
+│   ├── Pâtes 
+│   ├── Pâtisserie 
+│   ├── Poisson 
+│   ├── Recevoir 
+│   ├── Régime 
+│   ├── Sauces 
+│   ├── Végétarien 
+│   ├── Viande 
+│   └── Vins 
+├── Développement personnel 
+├── Érotisme 
+│   ├── BDSM 
+│   ├── Guide sexe 
+│   ├── Kama Sutra 
+│   ├── LGBT+ 
+│   ├── Littérature érotique 
+│   └── Photo érotique 
+├── Parentalité 
+├── Santé 
+└── Sexualité 
+
+ENFANTS 
+├── Activités et jeux 
+│   ├── Créativité 
+│   └── Fêtes 
+├── Albums illustrés 
+├── Albums jeunesse vintage
+├── Animaux 
+│   ├── Animaux de la ferme 
+│   ├── Animaux domestiques 
+│   ├── Animaux sauvages 
+│   ├── Bébés animaux 
+│   ├── Chevaux 
+│   ├── Dinosaures 
+│   ├── Oiseaux 
+│   ├── Ours 
+│   ├── Petites bêtes 
+│   └── Vie marine 
+├── BD enfants 
+├── Contes et légendes 
+│   ├── Chevaliers et châteaux 
+│   ├── Contes du monde 
+│   ├── Créatures fantastiques 
+│   ├── Mythologie 
+│   └── Sirènes 
+├── Découvertes et sciences 
+│   ├── Apprendre 
+│   ├── Corps humain 
+│   ├── Espace 
+│   ├── Géographie 
+│   ├── Histoire 
+│   ├── Inventions 
+│   ├── Nature & Écologie 
+│   ├── Numérique 
+│   ├── Sports 
+│   └── Véhicules 
+├── Documentaires 
+├── Émotions et confiance 
+├── Histoires et contes 
+│   ├── Aventures 
+│   ├── Enquêtes 
+│   ├── Fantastique enfant 
+│   ├── Poésie enfantine 
+│   └── Premières lectures 
+├── Licences & Personnages 
+├── Livres d'autocollants 
+├── Livres scolaires primaire
+├── Livres sonores 
+└── Tout-petits 
+    ├── 5 sens 
+    ├── Comptines 
+    ├── Corps humain 
+    ├── Couleurs 
+    ├── Formes 
+    ├── Lettres 
+    ├── Nombres 
+    ├── Premiers mots 
+    └── Saisons 
+
+JEUNES ADULTES (16-25 ans)
+├── BD jeunes adultes 
+├── Bien-être & Spiritualité 
+├── Classiques jeunes adultes 
+├── Dystopie 
+│   ├── Space opera 
+│   └── Steampunk 
+├── Fantastique urbain 
+├── Grandir 
+├── Puberté 
+├── Réalisme social 
+├── Romance 
+│   ├── LGBT 
+│   ├── Paranormale 
+│   ├── Romance Contemporaine 
+│   └── Romance dystopique 
+├── Santé mentale 
+└── Sexualité 
+
+LITTÉRATURE 
+├── Folio/Poche
+├── Pléiade
+├── Romance 
+│   ├── Dark romance 
+│   ├── Feel good 
+│   ├── LGBT 
+│   ├── New Romance 
+│   ├── Roman érotique 
+│   ├── Romance contemporaine 
+│   ├── Romance historique 
+│   ├── Romance paranormale 
+│   └── Romantasy 
+├── Romans 
+│   ├── Biographies 
+│   ├── Humour 
+│   ├── Récit de voyage 
+│   ├── Romans africains 
+│   ├── Romans allemands 
+│   ├── Romans anglais 
+│   ├── Romans asiatiques 
+│   ├── Romans du terroir 
+│   ├── Romans espagnols 
+│   ├── Romans français 
+│   ├── Romans historiques 
+│   ├── Romans italiens 
+│   ├── Romans portugais 
+│   └── Romans russes 
+├── Théâtre & Poésie 
+│   ├── Antiquité 
+│   ├── Essai 
+│   ├── Moyen Âge 
+│   ├── Poésie 
+│   └── Théâtre 
+└── Thriller 
+    ├── Cosy mystery 
+    ├── Polar historique 
+    ├── Policier féminin 
+    ├── Roman noir 
+    ├── Roman policier 
+    └── Thriller 
+
+LOISIRS & VOYAGES 
+├── Bricolage 
+│   ├── Décoration intérieure 
+│   ├── Électricité 
+│   ├── Menuiserie 
+│   ├── Plomberie 
+│   └── Travaux maison 
+├── Collections 
+├── Jardinage 
+│   ├── Arbres et arbustes 
+│   ├── Jardin d'ornement 
+│   ├── Jardinage bio 
+│   └── Potager 
+├── Jeux 
+│   ├── Échecs 
+│   ├── Jeux de cartes 
+│   ├── Jeux de société 
+│   └── Puzzles 
+├── Loisirs créatifs 
+│   ├── Couture et tricot 
+│   ├── Création bijoux 
+│   ├── DIY déco 
+│   ├── Peinture et dessin 
+│   ├── Poterie et céramique 
+│   ├── Scrapbooking 
+│   └── Travail du bois 
+├── Nature 
+│   ├── Animaux 
+│   ├── Environnement 
+│   ├── Montagne 
+│   ├── Oiseaux 
+│   └── Plantes et fleurs 
+├── Sports 
+│   ├── Arts martiaux 
+│   ├── Basketball 
+│   ├── Cyclisme 
+│   ├── Équitation 
+│   ├── Fitness et musculation 
+│   ├── Football 
+│   ├── Golf 
+│   ├── Pêche et chasse 
+│   ├── Rugby 
+│   ├── Sports aériens 
+│   ├── Sports d'hiver 
+│   ├── Sports mécaniques 
+│   ├── Sports nautiques 
+│   ├── Tennis et sports raquette 
+│   └── Yoga 
+└── Voyage 
+    ├── Beaux livres voyage 
+    ├── Cartes routières 
+    ├── Croisières 
+    ├── Guide Europe 
+    ├── Guide France 
+    ├── Guide Monde 
+    ├── Récits de voyages 
+    └── Tourisme aventure 
+
+MANGA 
+├── Artbook 
+├── Hentai 
+├── Isekai 
+├── Josei - Femmes 
+├── Light Novel 
+├── Manga humour 
+├── Mecha 
+├── Seinen - Adulte 
+├── Shōjo - Romance 
+├── Shōnen - Action 
+├── Slice of life 
+├── Sport 
+├── Thriller & Horreur 
+├── Webtoon 
+└── Yaoi & Yuri 
+
+SAVOIRS 
+├── Agriculture 
+├── Biologie 
+│   ├── Anatomie 
+│   ├── Biochimie 
+│   ├── Biologie 
+│   ├── Biologie animale 
+│   ├── Biologie cellulaire 
+│   ├── Biologie moléculaire 
+│   ├── Biologie végétale 
+│   ├── Biostatistique 
+│   ├── Botanique 
+│   ├── Écologie 
+│   ├── Entomologie 
+│   ├── Évolution 
+│   ├── Génétique 
+│   ├── Immunologie 
+│   ├── Microbiologie 
+│   ├── Neurobiologie 
+│   ├── Paléontologie 
+│   ├── Physiologie 
+│   └── Zoologie 
+├── BTP 
+├── Business 
+│   ├── Carrière 
+│   ├── Communication 
+│   ├── Économie 
+│   ├── Finance 
+│   ├── Gestion 
+│   ├── IT Business 
+│   ├── Management 
+│   ├── Marketing 
+│   ├── PME 
+│   ├── Secteurs 
+│   └── Stratégie 
+├── Chimie 
+├── Droit 
+│   ├── Codes 
+│   ├── Dictionnaire juridique 
+│   ├── Droit civil 
+│   ├── Droit des affaires 
+│   ├── Droit des femmes 
+│   ├── Droit du travail 
+│   ├── Droit international 
+│   ├── Droit pénal 
+│   ├── Droit pratique 
+│   ├── Droit privé 
+│   ├── Droit public 
+│   ├── Histoire du droit 
+│   ├── Institutions 
+│   └── Métiers du droit 
+├── Industrie 
+├── Informatique 
+│   ├── Bureautique 
+│   ├── Certifications 
+│   ├── Cyberculture 
+│   ├── Cybersécurité 
+│   ├── Database 
+│   ├── Dictionnaire informatique 
+│   ├── Graphisme 
+│   ├── Hardware 
+│   ├── IA 
+│   ├── Internet 
+│   ├── Jeux vidéo 
+│   ├── Linux 
+│   ├── OS 
+│   ├── Programmation 
+│   └── Réseaux 
+├── Langues 
+│   ├── Apprendre une langue 
+│   ├── Atlas 
+│   ├── Dictionnaires techniques 
+│   ├── Écriture 
+│   ├── Encyclopédie 
+│   ├── FLE 
+│   ├── Langue française 
+│   └── Langues régionales de France 
+├── Livres universitaires
+├── Manuels techniques années précédentes
+├── Mathématiques 
+│   ├── Algèbre 
+│   ├── Algèbre linéaire 
+│   ├── Analyse 
+│   ├── Calcul différentiel 
+│   ├── Calcul intégral 
+│   ├── Géométrie 
+│   ├── Logique 
+│   ├── Prépa maths 
+│   ├── Probabilités 
+│   ├── Statistiques 
+│   └── Topologie 
+├── Médecine 
+│   ├── Dictionnaire médical 
+│   ├── Éthique médicale 
+│   ├── Médecine douce 
+│   │   ├── Acupuncture 
+│   │   ├── Aromathérapie 
+│   │   ├── Ayurveda 
+│   │   ├── Chiropraxie 
+│   │   ├── Guérison 
+│   │   ├── Holistique 
+│   │   ├── Homéopathie 
+│   │   ├── Hypnothérapie 
+│   │   ├── Massages 
+│   │   ├── Médecine du corps et de l'esprit 
+│   │   ├── Médecine orientale 
+│   │   ├── Méditation 
+│   │   ├── Musicothérapie 
+│   │   ├── Naturopathie 
+│   │   ├── Oligothérapie 
+│   │   ├── Ostéopathie 
+│   │   ├── Phytothérapie 
+│   │   └── Vitamines et compléments 
+│   ├── Paramédical 
+│   │   ├── Aide-soignant 
+│   │   ├── Ergothérapie 
+│   │   ├── Infirmier 
+│   │   ├── Kinésithérapie 
+│   │   ├── Orthophonie 
+│   │   ├── Podologie 
+│   │   ├── Préparateur pharmacie 
+│   │   ├── Psychomotricité 
+│   │   ├── Puériculture 
+│   │   └── Sage-femme 
+│   ├── Santé publique 
+│   ├── Sciences fondamentales 
+│   │   ├── Anatomie 
+│   │   ├── Biochimie 
+│   │   ├── Biologie 
+│   │   ├── Génétique 
+│   │   ├── Immunologie 
+│   │   ├── Microbiologie 
+│   │   └── Physiologie 
+│   ├── Spécialités médicales 
+│   │   ├── Anesthésie - Réanimation 
+│   │   ├── Cancérologie 
+│   │   ├── Cardiologie 
+│   │   ├── Chirurgie 
+│   │   ├── Dentaire 
+│   │   ├── Dermatologie 
+│   │   ├── Endocrinologie 
+│   │   ├── Gastro 
+│   │   ├── Gérontologie 
+│   │   ├── Gynécologie 
+│   │   ├── Médecine du sport 
+│   │   ├── Médecine générale 
+│   │   ├── Médecine interne 
+│   │   ├── Médecine légale 
+│   │   ├── Neurologie 
+│   │   ├── Obstétrique 
+│   │   ├── Ophtalmologie 
+│   │   ├── ORL 
+│   │   ├── Pédiatrie 
+│   │   ├── Pharmacie 
+│   │   ├── Pharmacologie 
+│   │   ├── Psychiatrie 
+│   │   ├── Radiologie 
+│   │   ├── Sexologie 
+│   │   ├── Urgences 
+│   │   └── Vétérinaire 
+│   └── Technologies médicales 
+├── Physique 
+│   ├── Aérodynamique 
+│   ├── Astronomie 
+│   ├── Chaos 
+│   ├── Électricité 
+│   ├── Électronique 
+│   ├── Hydraulique 
+│   ├── Mécanique des fluides 
+│   ├── Mécanique des matériaux 
+│   ├── Optique 
+│   ├── Physique atomique 
+│   ├── Physique des particules 
+│   ├── Physique nucléaire 
+│   ├── Quantique 
+│   ├── Relativité 
+│   ├── Résistance des matériaux 
+│   ├── Thermodynamique 
+│   └── Traitement du signal 
+└── Sciences de la terre 
+    ├── Archéologie 
+    ├── Catastrophes naturelles 
+    ├── Eau 
+    ├── Environnement 
+    ├── Géologie 
+    └── Volcanologie 
+
+SCOLAIRE 
+├── Agendas scolaires 
+├── Analyses littéraires 
+├── Cahiers de vacances 
+├── Collège 
+├── Dictionnaires 
+├── Études supérieures 
+│   ├── BTS/DUT 
+│   ├── Concours 
+│   ├── FLE 
+│   ├── Formation pro 
+│   ├── Orientation 
+│   ├── Prépa 
+│   └── Université 
+├── Lycée 
+├── Maternelle 
+├── Pédagogie 
+└── Primaire

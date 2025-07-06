@@ -35,3 +35,4 @@ config/*.bak.*
 *.bak.*
 *secret*
 *.key
+config/api_keys.sh

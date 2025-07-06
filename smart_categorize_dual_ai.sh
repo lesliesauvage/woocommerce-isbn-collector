@@ -23,28 +23,29 @@ get_category_with_parent() {
     local cat_id=$1
     [ -z "$cat_id" ] && return
     
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    if [ -n "$result" ]; then
-        local cat_name=$(echo "$result" | cut -f1)
-        local parent_name=$(echo "$result" | cut -f2)
+    # Fonction récursive pour remonter toute la hiérarchie
+    get_full_path() {
+        local id=$1
+        local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT t.name, tt.parent
+        FROM wp_${SITE_ID}_terms t
+        JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
+        WHERE t.term_id = $id" 2>/dev/null)
         
-        if [ -n "$parent_name" ]; then
-            echo "$parent_name > $cat_name"
-        else
-            echo "$cat_name"
+        if [ -n "$result" ]; then
+            local name=$(echo "$result" | cut -f1)
+            local parent=$(echo "$result" | cut -f2)
+            
+            if [ "$parent" != "0" ] && [ -n "$parent" ]; then
+                local parent_path=$(get_full_path $parent)
+                echo "$parent_path > $name"
+            else
+                echo "$name"
+            fi
         fi
-    else
-        echo "Catégorie inconnue"
-    fi
+    }
+    
+    get_full_path $cat_id
 }
 
 # Demander à Gemini

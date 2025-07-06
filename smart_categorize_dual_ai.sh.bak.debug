@@ -7,7 +7,7 @@ source "$SCRIPT_DIR/config/settings.sh"
 source "$SCRIPT_DIR/lib/safe_functions.sh"
 
 # Mode debug
-SHOW_PROMPTS="1"
+SHOW_PROMPTS="${SHOW_PROMPTS:-0}"
 
 # Obtenir toutes les catégories finales disponibles
 get_all_categories() {
@@ -126,7 +126,6 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     
     # Extraire la réponse
     local extracted_text=$(echo "$response" | python3 -c "
-    echo "[DEBUG] Texte extrait Gemini : $extracted_text" >&2
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -214,7 +213,6 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     
     # Extraire la réponse
     echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | grep -o '[0-9]\+' | head -1
-    echo "[DEBUG] Réponse Claude brute : $(echo "$response" | head -50)" >&2
 }
 
 # Fonction principale de catégorisation

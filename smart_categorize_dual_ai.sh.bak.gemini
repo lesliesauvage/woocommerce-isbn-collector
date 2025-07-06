@@ -19,7 +19,6 @@ get_all_categories() {
 }
 
 # Demander à Gemini
-# Demander à Gemini
 ask_gemini() {
     local title="$1"
     local authors="$2"
@@ -69,27 +68,8 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
             }
         }" 2>/dev/null)
     
-    # DEBUG pour voir la réponse
-    [ "$DEBUG" = "1" ] && echo "[DEBUG] Réponse Gemini: $response" >&2
-    
-    # Extraire la réponse - NOUVELLE MÉTHODE
-    local extracted_text=$(echo "$response" | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    text = data['candidates'][0]['content']['parts'][0]['text']
-    print(text.strip())
-except:
-    pass
-" 2>/dev/null)
-    
-    # Si python échoue, méthode alternative
-    if [ -z "$extracted_text" ]; then
-        extracted_text=$(echo "$response" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' | head -1)
-    fi
-    
-    # Extraire uniquement les chiffres
-    echo "$extracted_text" | grep -o '[0-9]\+' | head -1
+    # Extraire la réponse
+    echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | grep -o '[0-9]\+' | head -1
 }
 
 # Demander à Claude

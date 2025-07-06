@@ -11,7 +11,8 @@ SHOW_PROMPTS="1"  # FORCÉ EN DEBUG
 
 # Obtenir toutes les catégories finales disponibles
 get_all_categories() {
-    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+    echo "[DEBUG] Récupération des catégories depuis la BDD..." >&2
+    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
     SELECT CONCAT('ID:', t.term_id, ' - ', t.name) 
     FROM wp_${SITE_ID}_terms t
     JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
@@ -23,13 +24,17 @@ get_all_categories() {
         AND tt2.taxonomy = 'product_cat'
     )
     ORDER BY t.name
-    " 2>/dev/null
+    " 2>/dev/null)
+    
+    echo "[DEBUG] Nombre de catégories trouvées : $(echo "$result" | wc -l)" >&2
+    echo "$result"
 }
 
 # Obtenir la hiérarchie complète d'une catégorie
 get_category_with_parent() {
     local cat_id=$1
-    [ -z "$cat_id" ] && return
+    echo "[DEBUG] Recherche hiérarchie pour cat_id='$cat_id'" >&2
+    [ -z "$cat_id" ] && { echo "[DEBUG] ERREUR : cat_id vide !" >&2; return; }
     
     # Fonction récursive pour remonter toute la hiérarchie
     get_full_path() {
@@ -53,16 +58,26 @@ get_category_with_parent() {
         fi
     }
     
-    get_full_path $cat_id
+    local full_path=$(get_full_path $cat_id)
+    echo "[DEBUG] Hiérarchie trouvée : '$full_path'" >&2
+    echo "$full_path"
 }
 
 # Demander à Gemini
 ask_gemini() {
+    echo "[DEBUG] === DÉBUT ask_gemini ===" >&2
     local title="$1"
     local authors="$2"
     local description="$3"
     local categories_list="$4"
     local previous_claude_response="${5:-}"
+    
+    echo "[DEBUG] Paramètres reçus :" >&2
+    echo "[DEBUG]   title='${title:0:50}...'" >&2
+    echo "[DEBUG]   authors='$authors'" >&2
+    echo "[DEBUG]   description length=$(echo "$description" | wc -c)" >&2
+    echo "[DEBUG]   categories count=$(echo "$categories_list" | wc -l)" >&2
+    echo "[DEBUG]   previous_claude='$previous_claude_response'" >&2
     
     # Préparer le prompt
     local prompt="Tu dois catégoriser ce livre dans LA catégorie la plus appropriée.
@@ -100,9 +115,14 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     fi
 
     # Échapper pour JSON
+    echo "[DEBUG] Échappement du prompt pour JSON..." >&2
     local prompt_escaped=$(echo "$prompt" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+    echo "[DEBUG] Prompt échappé (50 car) : ${prompt_escaped:0:50}..." >&2
     
     # Appel à Gemini
+    echo "[DEBUG] Appel curl vers Gemini API..." >&2
+    echo "[DEBUG] URL : ${GEMINI_API_URL}?key=${GEMINI_API_KEY:0:10}..." >&2
+    
     local response=$(curl -s -X POST "${GEMINI_API_URL}?key=${GEMINI_API_KEY}" \
         -H "Content-Type: application/json" \
         -d "{
@@ -115,7 +135,11 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
                 \"temperature\": 0.3,
                 \"maxOutputTokens\": 10
             }
-        }" 2>/dev/null)
+        }" 2>&1)
+    
+    local curl_status=$?
+    echo "[DEBUG] Statut curl : $curl_status" >&2
+    echo "[DEBUG] Taille réponse : $(echo "$response" | wc -c) caractères" >&2
     
     # DEBUG : afficher la réponse brute
     if [ "$SHOW_PROMPTS" = "1" ]; then
@@ -124,44 +148,72 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
         echo ""
     fi
     
+    # Vérifier si c'est une erreur
+    if echo "$response" | grep -q '"error"'; then
+        echo "[DEBUG] ERREUR détectée dans la réponse Gemini !" >&2
+        echo "[DEBUG] Erreur : $(echo "$response" | grep -o '"message":"[^"]*"')" >&2
+        return 1
+    fi
+    
     # Extraire la réponse avec une méthode robuste
+    echo "[DEBUG] Extraction de l'ID depuis la réponse..." >&2
     local extracted_id=""
     
     # Méthode 1 : Python
+    echo "[DEBUG] Tentative extraction Python..." >&2
     extracted_id=$(echo "$response" | python3 -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
     text = data['candidates'][0]['content']['parts'][0]['text']
+    print('DEBUG Python : text =', text, file=sys.stderr)
     # Extraire les chiffres
     import re
     numbers = re.findall(r'\d+', text)
     if numbers:
         print(numbers[0])
-except:
-    pass
-" 2>/dev/null)
+except Exception as e:
+    print('ERREUR Python :', str(e), file=sys.stderr)
+" 2>&1)
+    
+    echo "[DEBUG] Résultat Python : '$extracted_id'" >&2
     
     # Méthode 2 : Si Python échoue, utiliser sed
-    if [ -z "$extracted_id" ]; then
-        extracted_id=$(echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | grep -o '[0-9]\+' | head -1)
+    if [ -z "$extracted_id" ] || echo "$extracted_id" | grep -q "ERREUR\|DEBUG"; then
+        echo "[DEBUG] Python a échoué, tentative avec sed..." >&2
+        # Nettoyer extracted_id
+        extracted_id=""
+        # Extraire avec sed
+        local text_content=$(echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//')
+        echo "[DEBUG] Contenu text extrait : '$text_content'" >&2
+        extracted_id=$(echo "$text_content" | grep -o '[0-9]\+' | head -1)
+        echo "[DEBUG] ID extrait avec sed : '$extracted_id'" >&2
     fi
     
     if [ "$SHOW_PROMPTS" = "1" ] && [ -n "$extracted_id" ]; then
-        echo "🔢 ID extrait de Gemini : $extracted_id"
+        echo "🔢 ID final extrait de Gemini : $extracted_id"
         echo ""
     fi
     
+    echo "[DEBUG] === FIN ask_gemini, retour : '$extracted_id' ===" >&2
     echo "$extracted_id"
 }
 
 # Demander à Claude
 ask_claude() {
+    echo "[DEBUG] === DÉBUT ask_claude ===" >&2
     local title="$1"
     local authors="$2"
     local description="$3"
     local categories_list="$4"
     local previous_gemini_response="${5:-}"
+    
+    echo "[DEBUG] Paramètres reçus :" >&2
+    echo "[DEBUG]   title='${title:0:50}...'" >&2
+    echo "[DEBUG]   authors='$authors'" >&2
+    echo "[DEBUG]   description length=$(echo "$description" | wc -c)" >&2
+    echo "[DEBUG]   categories count=$(echo "$categories_list" | wc -l)" >&2
+    echo "[DEBUG]   previous_gemini='$previous_gemini_response'" >&2
     
     # Préparer le prompt
     local prompt="Tu dois catégoriser ce livre dans LA catégorie la plus appropriée.
@@ -199,9 +251,15 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     fi
 
     # Échapper pour JSON
+    echo "[DEBUG] Échappement du prompt pour JSON..." >&2
     local prompt_escaped=$(echo "$prompt" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+    echo "[DEBUG] Prompt échappé (50 car) : ${prompt_escaped:0:50}..." >&2
     
     # Appel à Claude
+    echo "[DEBUG] Appel curl vers Claude API..." >&2
+    echo "[DEBUG] URL : $CLAUDE_API_URL" >&2
+    echo "[DEBUG] API Key : ${CLAUDE_API_KEY:0:10}..." >&2
+    
     local response=$(curl -s -X POST "$CLAUDE_API_URL" \
         -H "x-api-key: $CLAUDE_API_KEY" \
         -H "anthropic-version: 2023-06-01" \
@@ -213,7 +271,11 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
                 \"content\": \"$prompt_escaped\"
             }],
             \"max_tokens\": 20
-        }" 2>/dev/null)
+        }" 2>&1)
+    
+    local curl_status=$?
+    echo "[DEBUG] Statut curl : $curl_status" >&2
+    echo "[DEBUG] Taille réponse : $(echo "$response" | wc -c) caractères" >&2
     
     # DEBUG : afficher la réponse brute
     if [ "$SHOW_PROMPTS" = "1" ]; then
@@ -222,45 +284,65 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
         echo ""
     fi
     
+    # Vérifier si c'est une erreur
+    if echo "$response" | grep -q '"error"'; then
+        echo "[DEBUG] ERREUR détectée dans la réponse Claude !" >&2
+        echo "[DEBUG] Erreur : $(echo "$response" | grep -o '"message":"[^"]*"')" >&2
+        return 1
+    fi
+    
     # Extraire la réponse
+    echo "[DEBUG] Extraction de l'ID depuis la réponse..." >&2
     local extracted_id=""
     
     # Méthode 1 : Python
+    echo "[DEBUG] Tentative extraction Python..." >&2
     local claude_text=$(echo "$response" | python3 -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
-    print(data['content'][0]['text'])
-except:
-    pass
-" 2>/dev/null)
+    text = data['content'][0]['text']
+    print(text)
+except Exception as e:
+    print('ERREUR Python :', str(e), file=sys.stderr)
+" 2>&1)
+    
+    echo "[DEBUG] Texte extrait par Python : '$claude_text'" >&2
     
     # Si Claude dit qu'il est d'accord, prendre la suggestion
     if echo "$claude_text" | grep -qi "accord\|agree"; then
+        echo "[DEBUG] Claude est d'accord avec Gemini" >&2
         extracted_id="$previous_gemini_response"
     else
         # Extraire les chiffres
+        echo "[DEBUG] Extraction des chiffres du texte..." >&2
         extracted_id=$(echo "$claude_text" | grep -o '[0-9]\+' | head -1)
+        echo "[DEBUG] ID extrait : '$extracted_id'" >&2
     fi
     
     # Méthode 2 : Si extraction échoue
-    if [ -z "$extracted_id" ]; then
+    if [ -z "$extracted_id" ] || echo "$extracted_id" | grep -q "ERREUR"; then
+        echo "[DEBUG] Méthode 1 échouée, tentative avec sed..." >&2
         extracted_id=$(echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | grep -o '[0-9]\+' | head -1)
+        echo "[DEBUG] ID extrait avec sed : '$extracted_id'" >&2
     fi
     
     if [ "$SHOW_PROMPTS" = "1" ] && [ -n "$extracted_id" ]; then
-        echo "🔢 ID extrait de Claude : $extracted_id"
+        echo "🔢 ID final extrait de Claude : $extracted_id"
         echo ""
     fi
     
+    echo "[DEBUG] === FIN ask_claude, retour : '$extracted_id' ===" >&2
     echo "$extracted_id"
 }
 
 # Fonction principale de catégorisation
 categorize_with_dual_ai() {
     local post_id="$1"
+    echo "[DEBUG] === DÉBUT categorize_with_dual_ai pour post_id=$post_id ===" >&2
     
     # Récupérer les infos du livre
+    echo "[DEBUG] Récupération des infos du livre ID $post_id..." >&2
     local book_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
     SELECT 
         p.post_title,
@@ -276,13 +358,21 @@ categorize_with_dual_ai() {
     WHERE p.ID = $post_id
     " 2>/dev/null)
     
+    echo "[DEBUG] book_info trouvé : $(echo "$book_info" | wc -c) caractères" >&2
+    
     if [ -z "$book_info" ]; then
+        echo "[DEBUG] ERREUR : Aucune info trouvée pour ID $post_id" >&2
         echo "❌ Livre ID $post_id non trouvé"
         return 1
     fi
     
     # Parser les infos
     IFS=$'\t' read -r title isbn authors description <<< "$book_info"
+    echo "[DEBUG] Infos parsées :" >&2
+    echo "[DEBUG]   title='$title'" >&2
+    echo "[DEBUG]   isbn='$isbn'" >&2
+    echo "[DEBUG]   authors='$authors'" >&2
+    echo "[DEBUG]   description length=$(echo "$description" | wc -c)" >&2
     
     echo ""
     echo "📚 LIVRE : $title"
@@ -302,32 +392,42 @@ categorize_with_dual_ai() {
     local categories_list=$(get_all_categories)
     local cat_count=$(echo "$categories_list" | wc -l)
     echo "   $cat_count catégories disponibles"
+    echo "[DEBUG] Premières catégories : $(echo "$categories_list" | head -3)" >&2
     
     # Premier round : demander aux deux IA
     echo ""
     echo "🤖 ROUND 1 - Première analyse..."
     
     echo -n "   Gemini analyse... "
+    echo "[DEBUG] Appel ask_gemini Round 1..." >&2
     local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
+    echo "[DEBUG] Retour ask_gemini Round 1 : '$gemini_choice_1'" >&2
+    
     if [ -n "$gemini_choice_1" ]; then
         local gemini_cat_1=$(get_category_with_parent "$gemini_choice_1")
         echo "Gemini choisit : $gemini_cat_1"
     else
+        echo "[DEBUG] ERREUR : gemini_choice_1 est VIDE !" >&2
         echo "Gemini ne répond pas !"
         return 1
     fi
     
     echo -n "   Claude analyse... "
+    echo "[DEBUG] Appel ask_claude Round 1..." >&2
     local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
+    echo "[DEBUG] Retour ask_claude Round 1 : '$claude_choice_1'" >&2
+    
     if [ -n "$claude_choice_1" ]; then
         local claude_cat_1=$(get_category_with_parent "$claude_choice_1")
         echo "Claude choisit : $claude_cat_1"
     else
+        echo "[DEBUG] ERREUR : claude_choice_1 est VIDE !" >&2
         echo "Claude ne répond pas !"
         return 1
     fi
     
     # Vérifier si accord
+    echo "[DEBUG] Comparaison : gemini='$gemini_choice_1' vs claude='$claude_choice_1'" >&2
     if [ "$gemini_choice_1" = "$claude_choice_1" ]; then
         echo ""
         echo "✅ ACCORD IMMÉDIAT sur : $gemini_cat_1"
@@ -338,7 +438,10 @@ categorize_with_dual_ai() {
         echo "❌ DÉSACCORD ! Round 2..."
         
         echo -n "   Gemini reconsidère... "
+        echo "[DEBUG] Appel ask_gemini Round 2 avec suggestion Claude=$claude_choice_1..." >&2
         local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
+        echo "[DEBUG] Retour ask_gemini Round 2 : '$gemini_choice_2'" >&2
+        
         if [ -n "$gemini_choice_2" ]; then
             local gemini_cat_2=$(get_category_with_parent "$gemini_choice_2")
             echo "Gemini change pour : $gemini_cat_2"
@@ -349,7 +452,10 @@ categorize_with_dual_ai() {
         fi
         
         echo -n "   Claude reconsidère... "
+        echo "[DEBUG] Appel ask_claude Round 2 avec suggestion Gemini=$gemini_choice_1..." >&2
         local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
+        echo "[DEBUG] Retour ask_claude Round 2 : '$claude_choice_2'" >&2
+        
         if [ -n "$claude_choice_2" ]; then
             local claude_cat_2=$(get_category_with_parent "$claude_choice_2")
             echo "Claude change pour : $claude_cat_2"
@@ -360,6 +466,7 @@ categorize_with_dual_ai() {
         fi
         
         # Résultat final
+        echo "[DEBUG] Comparaison Round 2 : gemini='$gemini_choice_2' vs claude='$claude_choice_2'" >&2
         if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
             echo ""
             echo "✅ CONSENSUS TROUVÉ sur : $gemini_cat_2"
@@ -375,6 +482,8 @@ categorize_with_dual_ai() {
         fi
     fi
     
+    echo "[DEBUG] Choix final : ID=$final_choice" >&2
+    
     # Récupérer le nom complet de la catégorie finale
     local final_cat_name=$(get_category_with_parent "$final_choice")
     
@@ -385,17 +494,22 @@ categorize_with_dual_ai() {
     echo -n "💾 Application... "
     
     # Obtenir le term_taxonomy_id
+    echo "[DEBUG] Recherche term_taxonomy_id pour term_id=$final_choice..." >&2
     local term_taxonomy_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
     SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy 
     WHERE term_id = $final_choice AND taxonomy = 'product_cat'
     " 2>/dev/null)
     
+    echo "[DEBUG] term_taxonomy_id trouvé : '$term_taxonomy_id'" >&2
+    
     if [ -z "$term_taxonomy_id" ]; then
+        echo "[DEBUG] ERREUR : term_taxonomy_id non trouvé pour term_id=$final_choice" >&2
         echo "❌ Catégorie introuvable !"
         return 1
     fi
     
     # Supprimer anciennes catégories
+    echo "[DEBUG] Suppression des anciennes catégories..." >&2
     mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
     DELETE FROM wp_${SITE_ID}_term_relationships 
     WHERE object_id = $post_id 
@@ -406,6 +520,7 @@ categorize_with_dual_ai() {
     " 2>/dev/null
     
     # Ajouter nouvelle catégorie
+    echo "[DEBUG] Ajout de la nouvelle catégorie term_taxonomy_id=$term_taxonomy_id..." >&2
     mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
     INSERT IGNORE INTO wp_${SITE_ID}_term_relationships (object_id, term_taxonomy_id)
     VALUES ($post_id, $term_taxonomy_id)
@@ -416,15 +531,21 @@ categorize_with_dual_ai() {
     # Log
     mkdir -p "$LOG_DIR"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name" >> "$LOG_DIR/dual_ai_categorize.log"
+    
+    echo "[DEBUG] === FIN categorize_with_dual_ai ===" >&2
 }
 
 # Programme principal
 clear
 echo "=== SMART CATEGORIZE - DUAL AI MODE ==="
 echo "Gemini + Claude débattent pour trouver la meilleure catégorie"
-echo "════════════════════════════════════════════════════"
+echo "════════════════════════════════════════════════════════════════════════════"
 
 # Vérifier les clés
+echo "[DEBUG] Vérification des clés API..." >&2
+echo "[DEBUG] GEMINI_API_KEY : ${GEMINI_API_KEY:0:10}..." >&2
+echo "[DEBUG] CLAUDE_API_KEY : ${CLAUDE_API_KEY:0:10}..." >&2
+
 if [ -z "$GEMINI_API_KEY" ] || [ -z "$CLAUDE_API_KEY" ]; then
     echo "❌ ERREUR : Les deux clés API sont requises"
     echo "Lancez : ./setup_dual_ai.sh"
@@ -454,14 +575,18 @@ else
     input="$1"
 fi
 
+echo "[DEBUG] Input reçu : '$input'" >&2
+
 # Traiter l'input
 case "$input" in
     -id)
+        echo "[DEBUG] Mode ID direct : ID=$2" >&2
         categorize_with_dual_ai "$2"
         ;;
     -batch)
         limit="${2:-5}"
         echo "Catégorisation de $limit livres..."
+        echo "[DEBUG] Recherche de $limit livres sans catégorie..." >&2
         mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT DISTINCT p.ID
         FROM wp_${SITE_ID}_posts p
@@ -472,18 +597,22 @@ case "$input" in
         AND (tt.taxonomy != 'product_cat' OR tt.taxonomy IS NULL)
         LIMIT $limit
         " 2>/dev/null | while read post_id; do
+            echo "[DEBUG] Traitement du livre ID=$post_id" >&2
             categorize_with_dual_ai "$post_id"
-            echo "════════════════════════════════════════════════════"
+            echo "════════════════════════════════════════════════════════════════════════════"
             sleep 2  # Pause entre chaque livre
         done
         ;;
     *)
         # Chercher par ISBN
+        echo "[DEBUG] Recherche par ISBN : '$input'" >&2
         post_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT post_id FROM wp_${SITE_ID}_postmeta 
         WHERE meta_key = '_isbn' AND meta_value = '$input'
         LIMIT 1
         " 2>/dev/null)
+        
+        echo "[DEBUG] Post ID trouvé : '$post_id'" >&2
         
         if [ -n "$post_id" ]; then
             categorize_with_dual_ai "$post_id"

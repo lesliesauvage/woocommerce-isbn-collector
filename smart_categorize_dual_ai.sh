@@ -7,14 +7,6 @@ source "$SCRIPT_DIR/config/settings.sh"
 source "$SCRIPT_DIR/lib/safe_functions.sh"
 
 # Obtenir toutes les catégories disponibles
-# Obtenir juste le nom de la catégorie
-get_category_name() {
-    local id=$1
-    [ -z "$id" ] && return
-    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT name FROM wp_${SITE_ID}_terms WHERE term_id = $id" 2>/dev/null
-}
-
 get_all_categories() {
     mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
     SELECT CONCAT('ID:', t.term_id, ' - ', t.name) 
@@ -26,7 +18,35 @@ get_all_categories() {
     " 2>/dev/null
 }
 
-# Demander à Gemini
+# Obtenir le nom de catégorie avec parent
+get_category_with_parent() {
+    local cat_id=$1
+    [ -z "$cat_id" ] && return
+    
+    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+    SELECT 
+        t.name,
+        IFNULL(pt.name, '')
+    FROM wp_${SITE_ID}_terms t
+    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
+    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
+    WHERE t.term_id = $cat_id
+    " 2>/dev/null)
+    
+    if [ -n "$result" ]; then
+        local cat_name=$(echo "$result" | cut -f1)
+        local parent_name=$(echo "$result" | cut -f2)
+        
+        if [ -n "$parent_name" ]; then
+            echo "$parent_name > $cat_name"
+        else
+            echo "$cat_name"
+        fi
+    else
+        echo "Catégorie inconnue"
+    fi
+}
+
 # Demander à Gemini
 ask_gemini() {
     local title="$1"
@@ -163,11 +183,12 @@ categorize_with_dual_ai() {
         p.post_title,
         IFNULL(pm_isbn.meta_value, '') as isbn,
         IFNULL(pm_authors.meta_value, '') as authors,
-        IFNULL(pm_desc.meta_value, '') as description
+        IFNULL(pm_desc.meta_value, IFNULL(pm_desc2.meta_value, '')) as description
     FROM wp_${SITE_ID}_posts p
     LEFT JOIN wp_${SITE_ID}_postmeta pm_isbn ON p.ID = pm_isbn.post_id AND pm_isbn.meta_key = '_isbn'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_authors ON p.ID = pm_authors.post_id AND pm_authors.meta_key = '_best_authors'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_desc ON p.ID = pm_desc.post_id AND pm_desc.meta_key = '_best_description'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_desc2 ON p.ID = pm_desc2.post_id AND pm_desc2.meta_key = '_g_description'
     WHERE p.ID = $post_id
     " 2>/dev/null)
     
@@ -183,6 +204,13 @@ categorize_with_dual_ai() {
     echo "📚 LIVRE : $title"
     echo "   ISBN : ${isbn:-N/A}"
     echo "   Auteurs : ${authors:-N/A}"
+    
+    # Afficher la description
+    if [ -n "$description" ] && [ "$description" != "NULL" ]; then
+        echo "   Description : $(echo "$description" | sed 's/<[^>]*>//g' | cut -c1-150)..."
+    else
+        echo "   Description : Non disponible"
+    fi
     echo ""
     
     # Obtenir la liste des catégories
@@ -197,53 +225,55 @@ categorize_with_dual_ai() {
     
     echo -n "   Gemini analyse... "
     local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
-    echo "   Gemini choisit : $(get_category_name $gemini_choice_1)"
+    local gemini_cat_1=$(get_category_with_parent "$gemini_choice_1")
+    echo "Gemini choisit : $gemini_cat_1"
     
     echo -n "   Claude analyse... "
     local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
-    echo "   Claude choisit : $(get_category_name $claude_choice_1)"
+    local claude_cat_1=$(get_category_with_parent "$claude_choice_1")
+    echo "Claude choisit : $claude_cat_1"
     
     # Vérifier si accord
     if [ "$gemini_choice_1" = "$claude_choice_1" ]; then
         echo ""
-        echo "✅ ACCORD IMMÉDIAT sur : $(get_category_name $gemini_choice_1)"
+        echo "✅ ACCORD IMMÉDIAT sur : $gemini_cat_1"
         local final_choice=$gemini_choice_1
     else
         # Désaccord - Round 2
         echo ""
         echo "❌ DÉSACCORD ! Round 2..."
         
-        echo -n "   Gemini reconsidère (sachant que Claude propose ID:$claude_choice_1)... "
+        echo -n "   Gemini reconsidère... "
         local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
-        echo "   Gemini change pour : $(get_category_name $gemini_choice_2)"
+        local gemini_cat_2=$(get_category_with_parent "$gemini_choice_2")
+        echo "Gemini change pour : $gemini_cat_2"
         
-        echo -n "   Claude reconsidère (sachant que Gemini propose ID:$gemini_choice_1)... "
+        echo -n "   Claude reconsidère... "
         local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
-        echo "   Claude change pour : $(get_category_name $claude_choice_2)"
+        local claude_cat_2=$(get_category_with_parent "$claude_choice_2")
+        echo "Claude change pour : $claude_cat_2"
         
         # Résultat final
         if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
             echo ""
-            echo "✅ CONSENSUS TROUVÉ sur : $(get_category_name $gemini_choice_2)"
+            echo "✅ CONSENSUS TROUVÉ sur : $gemini_cat_2"
             local final_choice=$gemini_choice_2
         else
             echo ""
             echo "⚠️  PAS DE CONSENSUS"
-            echo "   Choix final de Gemini : ID:$gemini_choice_2"
-            echo "   Choix final de Claude : ID:$claude_choice_2"
-            # En cas de désaccord persistant, prendre Gemini (ou Claude selon préférence)
+            echo "   Choix final de Gemini : $gemini_cat_2"
+            echo "   Choix final de Claude : $claude_cat_2"
+            # En cas de désaccord persistant, prendre Claude
             local final_choice=$claude_choice_2
-            echo "   → Choix retenu : ID:$final_choice (Claude)"
+            echo "   → Choix retenu : $claude_cat_2 (Claude)"
         fi
     fi
     
-    # Récupérer le nom de la catégorie
-    local category_name=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT name FROM wp_${SITE_ID}_terms WHERE term_id = $final_choice
-    " 2>/dev/null)
+    # Récupérer le nom complet de la catégorie finale
+    local final_cat_name=$(get_category_with_parent "$final_choice")
     
     echo ""
-    echo "📌 CATÉGORIE FINALE : $(get_category_name $final_choice)"
+    echo "📌 CATÉGORIE FINALE : $final_cat_name"
     
     # Appliquer la catégorie
     echo -n "💾 Application... "
@@ -273,7 +303,7 @@ categorize_with_dual_ai() {
     echo "✅ Fait!"
     
     # Log
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $category_name (Gemini:$gemini_choice_1→$gemini_choice_2, Claude:$claude_choice_1→$claude_choice_2)" >> logs/dual_ai_categorize.log
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name" >> logs/dual_ai_categorize.log
 }
 
 # Programme principal

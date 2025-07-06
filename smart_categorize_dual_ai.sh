@@ -7,255 +7,23 @@ source "$SCRIPT_DIR/config/settings.sh"
 source "$SCRIPT_DIR/lib/safe_functions.sh"
 
 # Obtenir toutes les catégories disponibles
-get_all_categories() {
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
+# Obtenir juste le nom de la catégorie
+get_category_name() {
+    local id=$1
+    [ -z "$id" ] && return
     mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
+    SELECT name FROM wp_${SITE_ID}_terms WHERE term_id = $id" 2>/dev/null
 }
+
+get_all_categories() {
+    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
     SELECT CONCAT('ID:', t.term_id, ' - ', t.name) 
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
     FROM wp_${SITE_ID}_terms t
     JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
-    FROM wp_${SITE_ID}_terms t
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
     WHERE tt.taxonomy = 'product_cat'
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
     AND t.term_id NOT IN (15, 16)
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
     ORDER BY t.name
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
     " 2>/dev/null
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
-}
-
-# Obtenir nom de catégorie avec parent
-get_category_with_parent() {
-    local cat_id=$1
-    [ -z "$cat_id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $cat_id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
 }
 
 # Demander à Gemini
@@ -429,16 +197,16 @@ categorize_with_dual_ai() {
     
     echo -n "   Gemini analyse... "
     local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
-    echo "Choix: ID:$gemini_choice_1 - $(get_category_with_parent $gemini_choice_1)"
+    echo "   Gemini choisit : $(get_category_name $gemini_choice_1)"
     
     echo -n "   Claude analyse... "
     local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
-    echo "Choix: ID:$claude_choice_1 - $(get_category_with_parent $claude_choice_1)"
+    echo "   Claude choisit : $(get_category_name $claude_choice_1)"
     
     # Vérifier si accord
     if [ "$gemini_choice_1" = "$claude_choice_1" ]; then
         echo ""
-        echo "✅ ACCORD IMMÉDIAT ! Catégorie ID:$gemini_choice_1"
+        echo "✅ ACCORD IMMÉDIAT sur : $(get_category_name $gemini_choice_1)"
         local final_choice=$gemini_choice_1
     else
         # Désaccord - Round 2
@@ -447,17 +215,16 @@ categorize_with_dual_ai() {
         
         echo -n "   Gemini reconsidère (sachant que Claude propose ID:$claude_choice_1)... "
         local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
-        echo "Nouveau choix: ID:$gemini_choice_2 - $(get_category_with_parent $gemini_choice_2)"
+        echo "   Gemini change pour : $(get_category_name $gemini_choice_2)"
         
         echo -n "   Claude reconsidère (sachant que Gemini propose ID:$gemini_choice_1)... "
         local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
-        echo "Nouveau choix: ID:$claude_choice_2 - $(get_category_with_parent $claude_choice_2)"
+        echo "   Claude change pour : $(get_category_name $claude_choice_2)"
         
         # Résultat final
         if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
             echo ""
-            echo "✅ CONSENSUS TROUVÉ !"
-    echo "   Catégorie : $(get_category_with_parent $gemini_choice_2) (ID:$gemini_choice_2)"
+            echo "✅ CONSENSUS TROUVÉ sur : $(get_category_name $gemini_choice_2)"
             local final_choice=$gemini_choice_2
         else
             echo ""
@@ -476,7 +243,7 @@ categorize_with_dual_ai() {
     " 2>/dev/null)
     
     echo ""
-    echo "📌 CATÉGORIE FINALE : $(get_category_with_parent $final_choice) (ID:$final_choice)"
+    echo "📌 CATÉGORIE FINALE : $(get_category_name $final_choice)"
     
     # Appliquer la catégorie
     echo -n "💾 Application... "

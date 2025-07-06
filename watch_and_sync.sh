@@ -14,6 +14,19 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+# Fonction de nettoyage des fichiers sensibles
+clean_sensitive_files() {
+    # Supprimer tous les backups de credentials
+    find "$SCRIPT_DIR" -name "credentials.sh.bak*" -type f -delete 2>/dev/null
+    find "$SCRIPT_DIR" -name "*.bak.*" -type f -delete 2>/dev/null
+    find "$SCRIPT_DIR" -name "*secret*" -type f -not -path "*/.git/*" -delete 2>/dev/null
+    
+    # Supprimer de l'index git si présent
+    cd "$SCRIPT_DIR"
+    git rm --cached config/credentials.sh.bak.* 2>/dev/null || true
+    git rm --cached config/*.bak 2>/dev/null || true
+}
+
 # Vérifier si inotify-tools est installé
 if ! command -v inotifywait &> /dev/null; then
     log "❌ inotify-tools n'est pas installé"
@@ -35,9 +48,41 @@ sync_to_github() {
     # Lancer la sync après un délai
     (
         sleep $SYNC_DELAY
+        log "🧹 Nettoyage des fichiers sensibles..."
+        clean_sensitive_files
+        
         log "🔄 Synchronisation suite aux changements..."
+        cd "$SCRIPT_DIR"
         ./sync_to_github.sh "Auto-sync: changements détectés" >> "$LOG_FILE" 2>&1
-        log "✅ Synchronisation terminée"
+        SYNC_RESULT=$?
+        
+        if [ $SYNC_RESULT -eq 0 ]; then
+            log "✅ Synchronisation terminée avec succès"
+        else
+            log "❌ Erreur lors de la synchronisation (code: $SYNC_RESULT)"
+            log "Tentative de résolution automatique..."
+            
+            # Si erreur de push à cause de secrets
+            if grep -q "secret" "$LOG_FILE" || grep -q "declined" "$LOG_FILE"; then
+                log "🔧 Détection de secrets, nettoyage de l'historique Git..."
+                cd "$SCRIPT_DIR"
+                
+                # Nettoyer l'historique
+                git filter-branch --force --index-filter \
+                    "git rm --cached --ignore-unmatch config/credentials.sh.bak.* config/*.bak" \
+                    --prune-empty --tag-name-filter cat -- --all 2>/dev/null
+                
+                # Forcer le push
+                git push origin main --force 2>&1 | tee -a "$LOG_FILE"
+                
+                if [ ${PIPESTATUS[0]} -eq 0 ]; then
+                    log "✅ Historique nettoyé et synchronisé"
+                else
+                    log "❌ Impossible de nettoyer l'historique automatiquement"
+                    log "Action manuelle requise : voir $LOG_FILE"
+                fi
+            fi
+        fi
     ) &
     SYNC_PID=$!
 }
@@ -54,21 +99,30 @@ cleanup() {
 # Capturer les signaux pour un arrêt propre
 trap cleanup SIGINT SIGTERM
 
+# Nettoyage initial
+log "🧹 Nettoyage initial des fichiers sensibles..."
+clean_sensitive_files
+
 log "👁️  Démarrage de la surveillance du répertoire ISBN"
 log "📁 Répertoire surveillé : $SCRIPT_DIR"
 log "⏱️  Délai avant sync : ${SYNC_DELAY}s"
-log "🚫 Fichiers ignorés : test_*.sh, *.log, .git/"
+log "🚫 Fichiers ignorés : test_*.sh, *.log, .git/, *.bak*, credentials.sh"
 log "Appuyez sur Ctrl+C pour arrêter"
 
-# Surveiller les changements
+# Surveiller les changements avec exclusions améliorées
 inotifywait -mr \
-    --exclude '(\.git/|logs/|test_.*\.sh|.*\.log|.*\.swp|.*\.tmp)' \
+    --exclude '(\.git/|logs/|test_.*\.sh|.*\.log|.*\.swp|.*\.tmp|.*\.bak.*|credentials\.sh|.*secret.*)' \
     --event modify,create,delete,move \
     --format '%w%f %e' \
     "$SCRIPT_DIR" | while read file event
 do
-    # Ignorer certains fichiers
-    if [[ "$file" =~ test_.*\.sh$ ]] || [[ "$file" =~ \.log$ ]] || [[ "$file" =~ \.git/ ]]; then
+    # Ignorer certains fichiers (double vérification)
+    if [[ "$file" =~ test_.*\.sh$ ]] || \
+       [[ "$file" =~ \.log$ ]] || \
+       [[ "$file" =~ \.git/ ]] || \
+       [[ "$file" =~ \.bak ]] || \
+       [[ "$file" =~ credentials\.sh ]] || \
+       [[ "$file" =~ secret ]]; then
         continue
     fi
     

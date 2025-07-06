@@ -7,7 +7,7 @@ source "$SCRIPT_DIR/config/settings.sh"
 source "$SCRIPT_DIR/lib/safe_functions.sh"
 
 # Mode debug
-SHOW_PROMPTS="${SHOW_PROMPTS:-0}"
+SHOW_PROMPTS="1"  # FORCÉ EN DEBUG
 
 # Obtenir toutes les catégories finales disponibles
 get_all_categories() {

@@ -14,6 +14,11 @@ get_all_categories() {
     JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
     WHERE tt.taxonomy = 'product_cat'
     AND t.term_id NOT IN (15, 16)
+    AND NOT EXISTS (
+        SELECT 1 FROM wp_${SITE_ID}_term_taxonomy tt2 
+        WHERE tt2.parent = t.term_id 
+        AND tt2.taxonomy = 'product_cat'
+    )
     ORDER BY t.name
     " 2>/dev/null
 }

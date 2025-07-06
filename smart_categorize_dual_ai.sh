@@ -7,7 +7,7 @@ source "$SCRIPT_DIR/config/settings.sh"
 source "$SCRIPT_DIR/lib/safe_functions.sh"
 
 # Mode debug
-SHOW_PROMPTS="1"
+SHOW_PROMPTS="${SHOW_PROMPTS:-0}"
 
 # Obtenir toutes les catégories finales disponibles
 get_all_categories() {
@@ -119,30 +119,40 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     
     # DEBUG : afficher la réponse brute
     if [ "$SHOW_PROMPTS" = "1" ]; then
-        echo "📥 RÉPONSE GEMINI :"
-        echo "$response" | python3 -m json.tool | head -20
+        echo "📥 RÉPONSE GEMINI (brute) :"
+        echo "$response" | python3 -m json.tool 2>/dev/null | head -20 || echo "$response" | head -100
         echo ""
     fi
     
-    # Extraire la réponse
-    local extracted_text=$(echo "$response" | python3 -c "
-    echo "[DEBUG] Texte extrait Gemini : $extracted_text" >&2
+    # Extraire la réponse avec une méthode robuste
+    local extracted_id=""
+    
+    # Méthode 1 : Python
+    extracted_id=$(echo "$response" | python3 -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
     text = data['candidates'][0]['content']['parts'][0]['text']
-    print(text.strip())
+    # Extraire les chiffres
+    import re
+    numbers = re.findall(r'\d+', text)
+    if numbers:
+        print(numbers[0])
 except:
     pass
 " 2>/dev/null)
     
-    # Si python échoue, méthode alternative
-    if [ -z "$extracted_text" ]; then
-        extracted_text=$(echo "$response" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' | head -1)
+    # Méthode 2 : Si Python échoue, utiliser sed
+    if [ -z "$extracted_id" ]; then
+        extracted_id=$(echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | grep -o '[0-9]\+' | head -1)
     fi
     
-    # Extraire uniquement les chiffres
-    echo "$extracted_text" | grep -o '[0-9]\+' | head -1
+    if [ "$SHOW_PROMPTS" = "1" ] && [ -n "$extracted_id" ]; then
+        echo "🔢 ID extrait de Gemini : $extracted_id"
+        echo ""
+    fi
+    
+    echo "$extracted_id"
 }
 
 # Demander à Claude
@@ -202,19 +212,48 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
                 \"role\": \"user\",
                 \"content\": \"$prompt_escaped\"
             }],
-            \"max_tokens\": 10
+            \"max_tokens\": 20
         }" 2>/dev/null)
     
     # DEBUG : afficher la réponse brute
     if [ "$SHOW_PROMPTS" = "1" ]; then
-        echo "📥 RÉPONSE CLAUDE :"
-        echo "$response" | python3 -m json.tool | head -20
+        echo "📥 RÉPONSE CLAUDE (brute) :"
+        echo "$response" | python3 -m json.tool 2>/dev/null | head -20 || echo "$response" | head -100
         echo ""
     fi
     
     # Extraire la réponse
-    echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | grep -o '[0-9]\+' | head -1
-    echo "[DEBUG] Réponse Claude brute : $(echo "$response" | head -50)" >&2
+    local extracted_id=""
+    
+    # Méthode 1 : Python
+    local claude_text=$(echo "$response" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    print(data['content'][0]['text'])
+except:
+    pass
+" 2>/dev/null)
+    
+    # Si Claude dit qu'il est d'accord, prendre la suggestion
+    if echo "$claude_text" | grep -qi "accord\|agree"; then
+        extracted_id="$previous_gemini_response"
+    else
+        # Extraire les chiffres
+        extracted_id=$(echo "$claude_text" | grep -o '[0-9]\+' | head -1)
+    fi
+    
+    # Méthode 2 : Si extraction échoue
+    if [ -z "$extracted_id" ]; then
+        extracted_id=$(echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | grep -o '[0-9]\+' | head -1)
+    fi
+    
+    if [ "$SHOW_PROMPTS" = "1" ] && [ -n "$extracted_id" ]; then
+        echo "🔢 ID extrait de Claude : $extracted_id"
+        echo ""
+    fi
+    
+    echo "$extracted_id"
 }
 
 # Fonction principale de catégorisation
@@ -270,13 +309,23 @@ categorize_with_dual_ai() {
     
     echo -n "   Gemini analyse... "
     local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
-    local gemini_cat_1=$(get_category_with_parent "$gemini_choice_1")
-    echo "Gemini choisit : $gemini_cat_1"
+    if [ -n "$gemini_choice_1" ]; then
+        local gemini_cat_1=$(get_category_with_parent "$gemini_choice_1")
+        echo "Gemini choisit : $gemini_cat_1"
+    else
+        echo "Gemini ne répond pas !"
+        return 1
+    fi
     
     echo -n "   Claude analyse... "
     local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
-    local claude_cat_1=$(get_category_with_parent "$claude_choice_1")
-    echo "Claude choisit : $claude_cat_1"
+    if [ -n "$claude_choice_1" ]; then
+        local claude_cat_1=$(get_category_with_parent "$claude_choice_1")
+        echo "Claude choisit : $claude_cat_1"
+    else
+        echo "Claude ne répond pas !"
+        return 1
+    fi
     
     # Vérifier si accord
     if [ "$gemini_choice_1" = "$claude_choice_1" ]; then
@@ -290,13 +339,25 @@ categorize_with_dual_ai() {
         
         echo -n "   Gemini reconsidère... "
         local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
-        local gemini_cat_2=$(get_category_with_parent "$gemini_choice_2")
-        echo "Gemini change pour : $gemini_cat_2"
+        if [ -n "$gemini_choice_2" ]; then
+            local gemini_cat_2=$(get_category_with_parent "$gemini_choice_2")
+            echo "Gemini change pour : $gemini_cat_2"
+        else
+            echo "Gemini ne change pas d'avis"
+            gemini_choice_2=$gemini_choice_1
+            gemini_cat_2=$gemini_cat_1
+        fi
         
         echo -n "   Claude reconsidère... "
         local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
-        local claude_cat_2=$(get_category_with_parent "$claude_choice_2")
-        echo "Claude change pour : $claude_cat_2"
+        if [ -n "$claude_choice_2" ]; then
+            local claude_cat_2=$(get_category_with_parent "$claude_choice_2")
+            echo "Claude change pour : $claude_cat_2"
+        else
+            echo "Claude ne change pas d'avis"
+            claude_choice_2=$claude_choice_1
+            claude_cat_2=$claude_cat_1
+        fi
         
         # Résultat final
         if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
@@ -328,6 +389,11 @@ categorize_with_dual_ai() {
     SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy 
     WHERE term_id = $final_choice AND taxonomy = 'product_cat'
     " 2>/dev/null)
+    
+    if [ -z "$term_taxonomy_id" ]; then
+        echo "❌ Catégorie introuvable !"
+        return 1
+    fi
     
     # Supprimer anciennes catégories
     mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "

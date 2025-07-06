@@ -88,6 +88,16 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     # Échapper pour JSON
     local prompt_escaped=$(echo "$prompt" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
     
+    # Afficher le prompt si DEBUG
+    if [ "$DEBUG" = "1" ] || [ "$SHOW_PROMPTS" = "1" ]; then
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📤 PROMPT ENVOYÉ À GEMINI :"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "$prompt"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+    fi
     # Appel à Gemini
     local response=$(curl -s -X POST "${GEMINI_API_URL}?key=${GEMINI_API_KEY}" \
         -H "Content-Type: application/json" \
@@ -161,6 +171,16 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     # Échapper pour JSON
     local prompt_escaped=$(echo "$prompt" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
     
+    # Afficher le prompt si DEBUG
+    if [ "$DEBUG" = "1" ] || [ "$SHOW_PROMPTS" = "1" ]; then
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📤 PROMPT ENVOYÉ À CLAUDE :"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "$prompt"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+    fi
     # Appel à Claude
     local response=$(curl -s -X POST "$CLAUDE_API_URL" \
         -H "x-api-key: $CLAUDE_API_KEY" \

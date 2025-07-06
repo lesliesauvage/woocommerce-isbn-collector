@@ -8,31 +8,7 @@ source "$SCRIPT_DIR/lib/safe_functions.sh"
 
 # Obtenir toutes les catégories disponibles
 # Obtenir juste le nom de la catégorie
-get_category_hierarchy() {
-
-# Obtenir catégorie avec parent
-get_category_hierarchy() {
-    local id=$1
-    [ -z "$id" ] && return
-    
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT 
-        t.name,
-        IFNULL(pt.name, '')
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    LEFT JOIN wp_${SITE_ID}_terms pt ON tt.parent = pt.term_id
-    WHERE t.term_id = $id
-    " 2>/dev/null)
-    
-    IFS=$'\t' read -r name parent <<< "$result"
-    
-    if [ -n "$parent" ]; then
-        echo "$parent > $name"
-    else
-        echo "$name"
-    fi
-}
+get_category_name() {
     local id=$1
     [ -z "$id" ] && return
     mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
@@ -207,13 +183,6 @@ categorize_with_dual_ai() {
     echo "📚 LIVRE : $title"
     echo "   ISBN : ${isbn:-N/A}"
     echo "   Auteurs : ${authors:-N/A}"
-    
-    # Afficher la description (tronquée)
-    if [ -n "$description" ]; then
-        echo "   Description : $(echo "$description" | cut -c1-150)..."
-    else
-        echo "   Description : Non disponible"
-    fi
     echo ""
     
     # Obtenir la liste des catégories
@@ -228,34 +197,34 @@ categorize_with_dual_ai() {
     
     echo -n "   Gemini analyse... "
     local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
-    echo "   Gemini choisit : $(get_category_hierarchy $gemini_choice_1)"
+    echo "   Gemini choisit : $(get_category_name $gemini_choice_1)"
     
     echo -n "   Claude analyse... "
     local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
-    echo "   Claude choisit : $(get_category_hierarchy $claude_choice_1)"
+    echo "   Claude choisit : $(get_category_name $claude_choice_1)"
     
     # Vérifier si accord
     if [ "$gemini_choice_1" = "$claude_choice_1" ]; then
         echo ""
-        echo "✅ ACCORD IMMÉDIAT sur : $(get_category_hierarchy $gemini_choice_1)"
+        echo "✅ ACCORD IMMÉDIAT sur : $(get_category_name $gemini_choice_1)"
         local final_choice=$gemini_choice_1
     else
         # Désaccord - Round 2
         echo ""
         echo "❌ DÉSACCORD ! Round 2..."
         
-        echo -n "   Gemini reconsidère (sachant le choix de Claude$claude_choice_1)... "
+        echo -n "   Gemini reconsidère (sachant que Claude propose ID:$claude_choice_1)... "
         local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
-        echo "   Gemini change pour : $(get_category_hierarchy $gemini_choice_2)"
+        echo "   Gemini change pour : $(get_category_name $gemini_choice_2)"
         
-        echo -n "   Claude reconsidère (sachant le choix de Gemini$gemini_choice_1)... "
+        echo -n "   Claude reconsidère (sachant que Gemini propose ID:$gemini_choice_1)... "
         local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
-        echo "   Claude change pour : $(get_category_hierarchy $claude_choice_2)"
+        echo "   Claude change pour : $(get_category_name $claude_choice_2)"
         
         # Résultat final
         if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
             echo ""
-            echo "✅ CONSENSUS TROUVÉ sur : $(get_category_hierarchy $gemini_choice_2)"
+            echo "✅ CONSENSUS TROUVÉ sur : $(get_category_name $gemini_choice_2)"
             local final_choice=$gemini_choice_2
         else
             echo ""
@@ -274,7 +243,7 @@ categorize_with_dual_ai() {
     " 2>/dev/null)
     
     echo ""
-    echo "📌 CATÉGORIE FINALE : $(get_category_hierarchy $final_choice)"
+    echo "📌 CATÉGORIE FINALE : $(get_category_name $final_choice)"
     
     # Appliquer la catégorie
     echo -n "💾 Application... "

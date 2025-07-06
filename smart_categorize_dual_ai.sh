@@ -6,7 +6,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config/settings.sh"
 source "$SCRIPT_DIR/lib/safe_functions.sh"
 
-# Obtenir toutes les catégories disponibles
+# Mode debug
+SHOW_PROMPTS="${SHOW_PROMPTS:-0}"
+
+# Obtenir toutes les catégories finales disponibles
 get_all_categories() {
     mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
     SELECT CONCAT('ID:', t.term_id, ' - ', t.name) 
@@ -23,7 +26,7 @@ get_all_categories() {
     " 2>/dev/null
 }
 
-# Obtenir le nom de catégorie avec parent
+# Obtenir la hiérarchie complète d'une catégorie
 get_category_with_parent() {
     local cat_id=$1
     [ -z "$cat_id" ] && return
@@ -85,19 +88,20 @@ Note: Claude a suggéré la catégorie ID:$previous_claude_response
 Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     fi
 
+    # Afficher le prompt si DEBUG
+    if [ "$SHOW_PROMPTS" = "1" ]; then
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📤 PROMPT ENVOYÉ À GEMINI :"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "$prompt"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+    fi
+
     # Échapper pour JSON
     local prompt_escaped=$(echo "$prompt" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
     
-    # Afficher le prompt si DEBUG
-    if [ "$DEBUG" = "1" ] || [ "$SHOW_PROMPTS" = "1" ]; then
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "📤 PROMPT ENVOYÉ À GEMINI :"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "$prompt"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo ""
-    fi
     # Appel à Gemini
     local response=$(curl -s -X POST "${GEMINI_API_URL}?key=${GEMINI_API_KEY}" \
         -H "Content-Type: application/json" \
@@ -113,10 +117,14 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
             }
         }" 2>/dev/null)
     
-    # DEBUG pour voir la réponse
-    [ "$DEBUG" = "1" ] && echo "[DEBUG] Réponse Gemini: $response" >&2
+    # DEBUG : afficher la réponse brute
+    if [ "$SHOW_PROMPTS" = "1" ]; then
+        echo "📥 RÉPONSE GEMINI :"
+        echo "$response" | python3 -m json.tool | head -20
+        echo ""
+    fi
     
-    # Extraire la réponse - NOUVELLE MÉTHODE
+    # Extraire la réponse
     local extracted_text=$(echo "$response" | python3 -c "
 import json, sys
 try:
@@ -168,19 +176,20 @@ Note: Gemini a suggéré la catégorie ID:$previous_gemini_response
 Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     fi
 
+    # Afficher le prompt si DEBUG
+    if [ "$SHOW_PROMPTS" = "1" ]; then
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📤 PROMPT ENVOYÉ À CLAUDE :"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "$prompt"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+    fi
+
     # Échapper pour JSON
     local prompt_escaped=$(echo "$prompt" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
     
-    # Afficher le prompt si DEBUG
-    if [ "$DEBUG" = "1" ] || [ "$SHOW_PROMPTS" = "1" ]; then
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "📤 PROMPT ENVOYÉ À CLAUDE :"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "$prompt"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo ""
-    fi
     # Appel à Claude
     local response=$(curl -s -X POST "$CLAUDE_API_URL" \
         -H "x-api-key: $CLAUDE_API_KEY" \
@@ -195,6 +204,13 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
             \"max_tokens\": 10
         }" 2>/dev/null)
     
+    # DEBUG : afficher la réponse brute
+    if [ "$SHOW_PROMPTS" = "1" ]; then
+        echo "📥 RÉPONSE CLAUDE :"
+        echo "$response" | python3 -m json.tool | head -20
+        echo ""
+    fi
+    
     # Extraire la réponse
     echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | grep -o '[0-9]\+' | head -1
 }
@@ -208,11 +224,12 @@ categorize_with_dual_ai() {
     SELECT 
         p.post_title,
         IFNULL(pm_isbn.meta_value, '') as isbn,
-        IFNULL(pm_authors.meta_value, '') as authors,
+        IFNULL(pm_authors.meta_value, IFNULL(pm_authors2.meta_value, '')) as authors,
         IFNULL(pm_desc.meta_value, IFNULL(pm_desc2.meta_value, '')) as description
     FROM wp_${SITE_ID}_posts p
     LEFT JOIN wp_${SITE_ID}_postmeta pm_isbn ON p.ID = pm_isbn.post_id AND pm_isbn.meta_key = '_isbn'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_authors ON p.ID = pm_authors.post_id AND pm_authors.meta_key = '_best_authors'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_authors2 ON p.ID = pm_authors2.post_id AND pm_authors2.meta_key = '_g_authors'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_desc ON p.ID = pm_desc.post_id AND pm_desc.meta_key = '_best_description'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_desc2 ON p.ID = pm_desc2.post_id AND pm_desc2.meta_key = '_g_description'
     WHERE p.ID = $post_id
@@ -329,7 +346,8 @@ categorize_with_dual_ai() {
     echo "✅ Fait!"
     
     # Log
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name" >> logs/dual_ai_categorize.log
+    mkdir -p "$LOG_DIR"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name" >> "$LOG_DIR/dual_ai_categorize.log"
 }
 
 # Programme principal
@@ -345,6 +363,13 @@ if [ -z "$GEMINI_API_KEY" ] || [ -z "$CLAUDE_API_KEY" ]; then
     exit 1
 fi
 
+# Si mode debug
+if [ "$SHOW_PROMPTS" = "1" ]; then
+    echo ""
+    echo "🔍 MODE DEBUG ACTIVÉ - Les prompts seront affichés"
+    echo ""
+fi
+
 # Menu
 if [ -z "$1" ]; then
     echo ""
@@ -352,6 +377,8 @@ if [ -z "$1" ]; then
     echo "  ./smart_categorize_dual_ai.sh ISBN"
     echo "  ./smart_categorize_dual_ai.sh -id ID"
     echo "  ./smart_categorize_dual_ai.sh -batch N"
+    echo ""
+    echo "Mode debug : SHOW_PROMPTS=1 ./smart_categorize_dual_ai.sh ISBN"
     echo ""
     echo -n "ISBN ou ID du livre : "
     read input
@@ -399,4 +426,4 @@ case "$input" in
 esac
 
 echo ""
-echo "📊 Logs : logs/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"

@@ -28,3 +28,10 @@ Thumbs.db
 
 # Autres
 fix_*.sh
+
+# Fichiers backup sensibles - IMPORTANT
+config/credentials.sh.bak*
+config/*.bak.*
+*.bak.*
+*secret*
+*.key

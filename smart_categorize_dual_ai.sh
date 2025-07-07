@@ -15,6 +15,7 @@ extract_text_from_json() {
     local api_type="$2"  # "gemini" ou "claude"
     
     echo "[DEBUG] Extraction pour $api_type..." >&2
+    echo "[DEBUG] JSON length: ${#json}" >&2
     
     # Essayer Python en premier
     local result
@@ -40,10 +41,15 @@ except Exception as e:
 " 2>/dev/null)
     fi
     
+    echo "[DEBUG] Result before cleaning: '$result'" >&2
+    echo "[DEBUG] Result length: ${#result}" >&2
+    
     # Nettoyer le résultat - garder uniquement les chiffres
-    result=$(echo "$result" | grep -o '[0-9]\+' | head -1)
+    result=$(echo "$result" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
     
     echo "[DEBUG] Résultat extrait et nettoyé : '$result'" >&2
+    echo "[DEBUG] Final length: ${#result}" >&2
+    
     echo "$result"
 }
 
@@ -226,8 +232,9 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     fi
     
     # Extraire la réponse avec la fonction
-    echo "[DEBUG] Extraction de l'ID depuis la réponse..." >&2
+    echo "[DEBUG] Appel extract_text_from_json..." >&2
     local extracted_id=$(extract_text_from_json "$response" "gemini")
+    echo "[DEBUG] ID extrait par la fonction : '$extracted_id'" >&2
     
     if [ "$SHOW_PROMPTS" = "1" ] && [ -n "$extracted_id" ]; then
         echo "🔢 ID final extrait de Gemini : $extracted_id"
@@ -337,8 +344,9 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     fi
     
     # Extraire la réponse avec la fonction
-    echo "[DEBUG] Extraction de l'ID depuis la réponse..." >&2
+    echo "[DEBUG] Appel extract_text_from_json..." >&2
     local extracted_id=$(extract_text_from_json "$response" "claude")
+    echo "[DEBUG] ID extrait par la fonction : '$extracted_id'" >&2
     
     # Si Claude dit qu'il est d'accord, prendre la suggestion
     local claude_text=$(echo "$response" | python3 -c "
@@ -349,10 +357,13 @@ try:
 except:
     pass" 2>/dev/null)
     
+    echo "[DEBUG] Texte complet de Claude : '$claude_text'" >&2
+    
     if echo "$claude_text" | grep -qi "d'accord\|agree\|oui\|yes"; then
         echo "[DEBUG] Claude semble d'accord avec Gemini" >&2
         if [ -n "$previous_gemini_response" ]; then
             extracted_id="$previous_gemini_response"
+            echo "[DEBUG] Utilisation de la suggestion Gemini : '$extracted_id'" >&2
         fi
     fi
     
@@ -449,9 +460,18 @@ categorize_with_dual_ai() {
     echo -n "   Gemini analyse... "
     echo "[DEBUG] Appel ask_gemini Round 1..." >&2
     local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
-    echo "[DEBUG] Retour ask_gemini Round 1 : '$gemini_choice_1'" >&2
+    echo "[DEBUG] *** RETOUR ask_gemini Round 1 ***" >&2
+    echo "[DEBUG] *** VALEUR BRUTE : '$gemini_choice_1'" >&2
+    echo "[DEBUG] *** LONGUEUR : ${#gemini_choice_1}" >&2
+    echo "[DEBUG] *** CODE ASCII premier char : $(printf '%d' "'$gemini_choice_1'" 2>/dev/null || echo 'N/A')" >&2
+    
+    # Nettoyer au cas où
+    gemini_choice_1=$(echo "$gemini_choice_1" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
+    echo "[DEBUG] *** APRÈS NETTOYAGE : '$gemini_choice_1'" >&2
+    echo "[DEBUG] *** LONGUEUR APRÈS : ${#gemini_choice_1}" >&2
     
     if [ -n "$gemini_choice_1" ] && [[ "$gemini_choice_1" =~ ^[0-9]+$ ]]; then
+        echo "[DEBUG] Gemini choice valide : '$gemini_choice_1'" >&2
         local gemini_cat_1=$(get_category_with_parent "$gemini_choice_1")
         echo "Gemini choisit : $gemini_cat_1"
     else
@@ -463,9 +483,17 @@ categorize_with_dual_ai() {
     echo -n "   Claude analyse... "
     echo "[DEBUG] Appel ask_claude Round 1..." >&2
     local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
-    echo "[DEBUG] Retour ask_claude Round 1 : '$claude_choice_1'" >&2
+    echo "[DEBUG] *** RETOUR ask_claude Round 1 ***" >&2
+    echo "[DEBUG] *** VALEUR BRUTE : '$claude_choice_1'" >&2
+    echo "[DEBUG] *** LONGUEUR : ${#claude_choice_1}" >&2
+    
+    # Nettoyer au cas où
+    claude_choice_1=$(echo "$claude_choice_1" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
+    echo "[DEBUG] *** APRÈS NETTOYAGE : '$claude_choice_1'" >&2
+    echo "[DEBUG] *** LONGUEUR APRÈS : ${#claude_choice_1}" >&2
     
     if [ -n "$claude_choice_1" ] && [[ "$claude_choice_1" =~ ^[0-9]+$ ]]; then
+        echo "[DEBUG] Claude choice valide : '$claude_choice_1'" >&2
         local claude_cat_1=$(get_category_with_parent "$claude_choice_1")
         echo "Claude choisit : $claude_cat_1"
     else
@@ -484,109 +512,116 @@ categorize_with_dual_ai() {
         # Désaccord - Round 2
         echo ""
         echo "❌ DÉSACCORD ! Round 2..."
-		echo -n "   Gemini reconsidère... "
-       echo "[DEBUG] Appel ask_gemini Round 2 avec suggestion Claude=$claude_choice_1..." >&2
-       local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
-       echo "[DEBUG] Retour ask_gemini Round 2 : '$gemini_choice_2'" >&2
-       
-       if [ -n "$gemini_choice_2" ] && [[ "$gemini_choice_2" =~ ^[0-9]+$ ]]; then
-           local gemini_cat_2=$(get_category_with_parent "$gemini_choice_2")
-           echo "Gemini change pour : $gemini_cat_2"
-       else
-           echo "Gemini garde son choix"
-           gemini_choice_2=$gemini_choice_1
-           gemini_cat_2=$gemini_cat_1
-       fi
-       
-       echo -n "   Claude reconsidère... "
-       echo "[DEBUG] Appel ask_claude Round 2 avec suggestion Gemini=$gemini_choice_1..." >&2
-       local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
-       echo "[DEBUG] Retour ask_claude Round 2 : '$claude_choice_2'" >&2
-       
-       if [ -n "$claude_choice_2" ] && [[ "$claude_choice_2" =~ ^[0-9]+$ ]]; then
-           local claude_cat_2=$(get_category_with_parent "$claude_choice_2")
-           echo "Claude change pour : $claude_cat_2"
-       else
-           echo "Claude garde son choix"
-           claude_choice_2=$claude_choice_1
-           claude_cat_2=$claude_cat_1
-       fi
-       
-       # Résultat final
-       echo "[DEBUG] Comparaison Round 2 : gemini='$gemini_choice_2' vs claude='$claude_choice_2'" >&2
-       if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
-           echo ""
-           echo "✅ CONSENSUS TROUVÉ sur : $gemini_cat_2"
-           local final_choice=$gemini_choice_2
-       else
-           echo ""
-           echo "⚠️  PAS DE CONSENSUS"
-           echo "   Choix final de Gemini : $gemini_cat_2"
-           echo "   Choix final de Claude : $claude_cat_2"
-           # En cas de désaccord persistant, prendre Claude
-           local final_choice=$claude_choice_2
-           echo "   → Choix retenu : $claude_cat_2 (Claude)"
-       fi
-   fi
-   
-   echo "[DEBUG] Choix final : ID=$final_choice" >&2
-   
-   # Vérifier que final_choice est valide
-   if [ -z "$final_choice" ] || ! [[ "$final_choice" =~ ^[0-9]+$ ]]; then
-       echo "[DEBUG] ERREUR : final_choice invalide : '$final_choice'" >&2
-       echo "❌ Erreur : Aucune catégorie valide choisie"
-       return 1
-   fi
-   
-   # Récupérer le nom complet de la catégorie finale
-   local final_cat_name=$(get_category_with_parent "$final_choice")
-   
-   echo ""
-   echo "📌 CATÉGORIE FINALE : $final_cat_name"
-   
-   # Appliquer la catégorie
-   echo -n "💾 Application... "
-   
-   # Obtenir le term_taxonomy_id
-   echo "[DEBUG] Recherche term_taxonomy_id pour term_id=$final_choice..." >&2
-   local term_taxonomy_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-   SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy 
-   WHERE term_id = $final_choice AND taxonomy = 'product_cat'
-   " 2>/dev/null)
-   
-   echo "[DEBUG] term_taxonomy_id trouvé : '$term_taxonomy_id'" >&2
-   
-   if [ -z "$term_taxonomy_id" ]; then
-       echo "[DEBUG] ERREUR : term_taxonomy_id non trouvé pour term_id=$final_choice" >&2
-       echo "❌ Catégorie introuvable !"
-       return 1
-   fi
-   
-   # Supprimer anciennes catégories
-   echo "[DEBUG] Suppression des anciennes catégories..." >&2
-   mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
-   DELETE FROM wp_${SITE_ID}_term_relationships 
-   WHERE object_id = $post_id 
-   AND term_taxonomy_id IN (
-       SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy 
-       WHERE taxonomy = 'product_cat'
-   )
-   " 2>/dev/null
-   
-   # Ajouter nouvelle catégorie
-   echo "[DEBUG] Ajout de la nouvelle catégorie term_taxonomy_id=$term_taxonomy_id..." >&2
-   mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
-   INSERT IGNORE INTO wp_${SITE_ID}_term_relationships (object_id, term_taxonomy_id)
-   VALUES ($post_id, $term_taxonomy_id)
-   " 2>/dev/null
-   
-   echo "✅ Fait!"
-   
-   # Log
-   mkdir -p "$LOG_DIR"
-   echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name" >> "$LOG_DIR/dual_ai_categorize.log"
-   
-   echo "[DEBUG] === FIN categorize_with_dual_ai ===" >&2
+        
+        echo -n "   Gemini reconsidère... "
+        echo "[DEBUG] Appel ask_gemini Round 2 avec suggestion Claude=$claude_choice_1..." >&2
+        local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
+        echo "[DEBUG] Retour ask_gemini Round 2 : '$gemini_choice_2'" >&2
+        
+        # Nettoyer
+        gemini_choice_2=$(echo "$gemini_choice_2" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
+        
+        if [ -n "$gemini_choice_2" ] && [[ "$gemini_choice_2" =~ ^[0-9]+$ ]]; then
+            local gemini_cat_2=$(get_category_with_parent "$gemini_choice_2")
+            echo "Gemini change pour : $gemini_cat_2"
+        else
+            echo "Gemini garde son choix"
+            gemini_choice_2=$gemini_choice_1
+            gemini_cat_2=$gemini_cat_1
+        fi
+        
+        echo -n "   Claude reconsidère... "
+        echo "[DEBUG] Appel ask_claude Round 2 avec suggestion Gemini=$gemini_choice_1..." >&2
+        local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
+        echo "[DEBUG] Retour ask_claude Round 2 : '$claude_choice_2'" >&2
+        
+        # Nettoyer
+        claude_choice_2=$(echo "$claude_choice_2" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
+        
+        if [ -n "$claude_choice_2" ] && [[ "$claude_choice_2" =~ ^[0-9]+$ ]]; then
+            local claude_cat_2=$(get_category_with_parent "$claude_choice_2")
+            echo "Claude change pour : $claude_cat_2"
+        else
+            echo "Claude garde son choix"
+            claude_choice_2=$claude_choice_1
+            claude_cat_2=$claude_cat_1
+        fi
+        
+        # Résultat final
+        echo "[DEBUG] Comparaison Round 2 : gemini='$gemini_choice_2' vs claude='$claude_choice_2'" >&2
+        if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
+            echo ""
+            echo "✅ CONSENSUS TROUVÉ sur : $gemini_cat_2"
+            local final_choice=$gemini_choice_2
+        else
+            echo ""
+            echo "⚠️  PAS DE CONSENSUS"
+            echo "   Choix final de Gemini : $gemini_cat_2"
+            echo "   Choix final de Claude : $claude_cat_2"
+            # En cas de désaccord persistant, prendre Claude
+            local final_choice=$claude_choice_2
+            echo "   → Choix retenu : $claude_cat_2 (Claude)"
+        fi
+    fi
+    
+    echo "[DEBUG] Choix final : ID=$final_choice" >&2
+    
+    # Vérifier que final_choice est valide
+    if [ -z "$final_choice" ] || ! [[ "$final_choice" =~ ^[0-9]+$ ]]; then
+        echo "[DEBUG] ERREUR : final_choice invalide : '$final_choice'" >&2
+        echo "❌ Erreur : Aucune catégorie valide choisie"
+        return 1
+    fi
+    
+    # Récupérer le nom complet de la catégorie finale
+    local final_cat_name=$(get_category_with_parent "$final_choice")
+    
+    echo ""
+    echo "📌 CATÉGORIE FINALE : $final_cat_name"
+    
+    # Appliquer la catégorie
+    echo -n "💾 Application... "
+    
+    # Obtenir le term_taxonomy_id
+    echo "[DEBUG] Recherche term_taxonomy_id pour term_id=$final_choice..." >&2
+    local term_taxonomy_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+    SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy 
+    WHERE term_id = $final_choice AND taxonomy = 'product_cat'
+    " 2>/dev/null)
+    
+    echo "[DEBUG] term_taxonomy_id trouvé : '$term_taxonomy_id'" >&2
+    
+    if [ -z "$term_taxonomy_id" ]; then
+        echo "[DEBUG] ERREUR : term_taxonomy_id non trouvé pour term_id=$final_choice" >&2
+        echo "❌ Catégorie introuvable !"
+        return 1
+    fi
+    
+    # Supprimer anciennes catégories
+    echo "[DEBUG] Suppression des anciennes catégories..." >&2
+    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+    DELETE FROM wp_${SITE_ID}_term_relationships 
+    WHERE object_id = $post_id 
+    AND term_taxonomy_id IN (
+        SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy 
+        WHERE taxonomy = 'product_cat'
+    )
+    " 2>/dev/null
+    
+    # Ajouter nouvelle catégorie
+    echo "[DEBUG] Ajout de la nouvelle catégorie term_taxonomy_id=$term_taxonomy_id..." >&2
+    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+    INSERT IGNORE INTO wp_${SITE_ID}_term_relationships (object_id, term_taxonomy_id)
+    VALUES ($post_id, $term_taxonomy_id)
+    " 2>/dev/null
+    
+    echo "✅ Fait!"
+    
+    # Log
+    mkdir -p "$LOG_DIR"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name" >> "$LOG_DIR/dual_ai_categorize.log"
+    
+    echo "[DEBUG] === FIN categorize_with_dual_ai ===" >&2
 }
 
 # Programme principal
@@ -601,79 +636,79 @@ echo "[DEBUG] GEMINI_API_KEY : ${GEMINI_API_KEY:0:10}..." >&2
 echo "[DEBUG] CLAUDE_API_KEY : ${CLAUDE_API_KEY:0:10}..." >&2
 
 if [ -z "$GEMINI_API_KEY" ] || [ -z "$CLAUDE_API_KEY" ]; then
-   echo "❌ ERREUR : Les deux clés API sont requises"
-   echo "Lancez : ./setup_dual_ai.sh"
-   exit 1
+    echo "❌ ERREUR : Les deux clés API sont requises"
+    echo "Lancez : ./setup_dual_ai.sh"
+    exit 1
 fi
 
 # Si mode debug
 if [ "$SHOW_PROMPTS" = "1" ]; then
-   echo ""
-   echo "🔍 MODE DEBUG ACTIVÉ - Les prompts seront affichés"
-   echo ""
+    echo ""
+    echo "🔍 MODE DEBUG ACTIVÉ - Les prompts seront affichés"
+    echo ""
 fi
 
 # Menu
 if [ -z "$1" ]; then
-   echo ""
-   echo "Usage :"
-   echo "  ./smart_categorize_dual_ai.sh ISBN"
-   echo "  ./smart_categorize_dual_ai.sh -id ID"
-   echo "  ./smart_categorize_dual_ai.sh -batch N"
-   echo ""
-   echo "Mode debug : SHOW_PROMPTS=1 ./smart_categorize_dual_ai.sh ISBN"
-   echo ""
-   echo -n "ISBN ou ID du livre : "
-   read input
+    echo ""
+    echo "Usage :"
+    echo "  ./smart_categorize_dual_ai.sh ISBN"
+    echo "  ./smart_categorize_dual_ai.sh -id ID"
+    echo "  ./smart_categorize_dual_ai.sh -batch N"
+    echo ""
+    echo "Mode debug : SHOW_PROMPTS=1 ./smart_categorize_dual_ai.sh ISBN"
+    echo ""
+    echo -n "ISBN ou ID du livre : "
+    read input
 else
-   input="$1"
+    input="$1"
 fi
 
 echo "[DEBUG] Input reçu : '$input'" >&2
 
 # Traiter l'input
 case "$input" in
-   -id)
-       echo "[DEBUG] Mode ID direct : ID=$2" >&2
-       categorize_with_dual_ai "$2"
-       ;;
-   -batch)
-       limit="${2:-5}"
-       echo "Catégorisation de $limit livres..."
-       echo "[DEBUG] Recherche de $limit livres sans catégorie..." >&2
-       mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-       SELECT DISTINCT p.ID
-       FROM wp_${SITE_ID}_posts p
-       LEFT JOIN wp_${SITE_ID}_term_relationships tr ON p.ID = tr.object_id
-       LEFT JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-       WHERE p.post_type = 'product'
-       AND p.post_status = 'publish'
-       AND (tt.taxonomy != 'product_cat' OR tt.taxonomy IS NULL)
-       LIMIT $limit
-       " 2>/dev/null | while read post_id; do
-           echo "[DEBUG] Traitement du livre ID=$post_id" >&2
-           categorize_with_dual_ai "$post_id"
-           echo "════════════════════════════════════════════════════════════════════════════"
-           sleep 2  # Pause entre chaque livre
-       done
-       ;;
-   *)
-       # Chercher par ISBN
-       echo "[DEBUG] Recherche par ISBN : '$input'" >&2
-       post_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-       SELECT post_id FROM wp_${SITE_ID}_postmeta 
-       WHERE meta_key = '_isbn' AND meta_value = '$input'
-       LIMIT 1
-       " 2>/dev/null)
-       
-       echo "[DEBUG] Post ID trouvé : '$post_id'" >&2
-       
-       if [ -n "$post_id" ]; then
-           categorize_with_dual_ai "$post_id"
-       else
-           echo "❌ ISBN '$input' non trouvé"
-       fi
-       ;;
+    -id)
+        echo "[DEBUG] Mode ID direct : ID=$2" >&2
+        categorize_with_dual_ai "$2"
+        ;;
+    -batch)
+        limit="${2:-5}"
+        echo "Catégorisation de $limit livres..."
+        echo "[DEBUG] Recherche de $limit livres sans catégorie..." >&2
+        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT DISTINCT p.ID
+        FROM wp_${SITE_ID}_posts p
+        LEFT JOIN wp_${SITE_ID}_term_relationships tr ON p.ID = tr.object_id
+        LEFT JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+        WHERE p.post_type = 'product'
+        AND p.post_status = 'publish'
+        AND (tt.taxonomy != 'product_cat' OR tt.taxonomy IS NULL)
+        LIMIT $limit
+        " 2>/dev/null | while read post_id; do
+            echo "[DEBUG] Traitement du livre ID=$post_id" >&2
+            categorize_with_dual_ai "$post_id"
+            echo "════════════════════════════════════════════════════════════════════════════"
+            sleep 2  # Pause entre chaque livre
+        done
+        ;;
+    *)
+        # Chercher par ISBN
+        echo "[DEBUG] Recherche par ISBN : '$input'" >&2
+        post_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT post_id FROM wp_${SITE_ID}_postmeta 
+        WHERE meta_key = '_isbn' AND meta_value = '$input'
+        LIMIT 1
+        " 2>/dev/null)
+        
+        echo "[DEBUG] Post ID trouvé : '$post_id'" >&2
+        
+        if [ -n "$post_id" ]; then
+            categorize_with_dual_ai "$post_id"
+        else
+            echo "❌ ISBN '$input' non trouvé"
+        fi
+        ;;
 esac
 
 echo ""

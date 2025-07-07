@@ -195,3 +195,4 @@ filter_relevant_categories() {
     debug_echo "[DEBUG] Catégories filtrées : $final_count (au lieu de 619)"
     
     echo "$filtered_categories"
+}

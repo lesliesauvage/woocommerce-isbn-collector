@@ -6,37 +6,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config/settings.sh"
 source "$SCRIPT_DIR/lib/safe_functions.sh"
 
-# Fonction pour extraire le texte des réponses JSON des IA
-extract_text_from_json() {
-    local json="$1"
-    local api_type="$2"  # "gemini" ou "claude"
-    
-    # Essayer Python en premier
-    local result
-    if [ "$api_type" = "gemini" ]; then
-        result=$(echo "$json" | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    print(data['candidates'][0]['content']['parts'][0]['text'].strip())
-except: pass" 2>/dev/null)
-    else  # claude
-        result=$(echo "$json" | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    print(data['content'][0]['text'].strip())
-except: pass" 2>/dev/null)
-    fi
-    
-    # Si vide, essayer grep
-    if [ -z "$result" ]; then
-        result=$(echo "$json" | grep -oP '(?<="text"\s*:\s*")[^"]*' | head -1 | sed 's/\\n//g')
-    fi
-    
-    echo "$result"
-}
-
 # Mode debug
 SHOW_PROMPTS="1"  # FORCÉ EN DEBUG
 
@@ -223,7 +192,7 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     local extracted_id=""
     
     # Chercher le pattern "text":"XXX" et extraire XXX
-    local text_content=$(extract_text_from_json "$response" "gemini")
+    local text_content=$(echo "$response" | grep -o '"text":"[^"]*"' | head -1 | sed 's/"text":"//;s/"//')
     echo "[DEBUG] Contenu text brut : '$text_content'" >&2
     
     # Nettoyer et extraire uniquement les chiffres
@@ -342,7 +311,7 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     local extracted_id=""
     
     # Chercher le pattern "text":"XXX" et extraire XXX
-    local claude_text=$(extract_text_from_json "$response" "claude")
+    local claude_text=$(echo "$response" | grep -o '"text":"[^"]*"' | head -1 | sed 's/"text":"//;s/"//')
     echo "[DEBUG] Texte extrait : '$claude_text'" >&2
     
     # Si Claude dit qu'il est d'accord, prendre la suggestion

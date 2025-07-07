@@ -80,6 +80,47 @@ except Exception as e:
     echo "$result"
 }
 
+# Fonction pour analyser les erreurs API
+analyze_api_error() {
+    local response="$1"
+    local api_name="$2"
+    
+    # Vérifier quota dépassé
+    if echo "$response" | grep -q "quota\|RESOURCE_EXHAUSTED\|exceeded"; then
+        echo -e "${RED}❌ ERREUR : Quota $api_name dépassé !${NC}"
+        if echo "$response" | grep -q "quotaValue"; then
+            local quota=$(echo "$response" | grep -o '"quotaValue":[^,}]*' | cut -d'"' -f4)
+            echo -e "${YELLOW}   Limite : $quota requêtes/jour${NC}"
+        fi
+        return 1
+    fi
+    
+    # Vérifier rate limit
+    if echo "$response" | grep -q "rate_limit\|too_many_requests"; then
+        echo -e "${YELLOW}⚠️  ERREUR : Rate limit $api_name atteint${NC}"
+        if echo "$response" | grep -q "retryDelay"; then
+            local delay=$(echo "$response" | grep -o '"retryDelay":[^,}]*' | cut -d'"' -f4)
+            echo -e "${YELLOW}   Attendre : $delay${NC}"
+        fi
+        return 1
+    fi
+    
+    # Vérifier clé invalide
+    if echo "$response" | grep -q "invalid_api_key\|authentication_error"; then
+        echo -e "${RED}❌ ERREUR : Clé API $api_name invalide !${NC}"
+        return 1
+    fi
+    
+    # Autres erreurs
+    if echo "$response" | grep -q '"error"'; then
+        echo -e "${RED}❌ ERREUR $api_name non identifiée${NC}"
+        debug_echo "[DEBUG] Erreur : $response"
+        return 1
+    fi
+    
+    return 0
+}
+
 # Obtenir toutes les catégories avec leur hiérarchie
 get_all_categories_with_hierarchy() {
     debug_echo "[DEBUG] Récupération des catégories AVEC hiérarchie..."
@@ -255,10 +296,9 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
         } >&2
     fi
     
-    # Vérifier si c'est une erreur
-    if echo "$response" | grep -q '"error"'; then
-        debug_echo "[DEBUG] ERREUR détectée dans la réponse Gemini !"
-        debug_echo "[DEBUG] Erreur : $(echo "$response" | grep -o '"message":"[^"]*"')"
+    # Analyser les erreurs AVANT d'extraire
+    if ! analyze_api_error "$response" "Gemini"; then
+        debug_echo "[DEBUG] === FIN ask_gemini avec ERREUR ==="
         return 1
     fi
     
@@ -372,10 +412,9 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
         } >&2
     fi
     
-    # Vérifier si c'est une erreur
-    if echo "$response" | grep -q '"error"'; then
-        debug_echo "[DEBUG] ERREUR détectée dans la réponse Claude !"
-        debug_echo "[DEBUG] Erreur : $(echo "$response" | grep -o '"message":"[^"]*"')"
+    # Analyser les erreurs AVANT d'extraire
+    if ! analyze_api_error "$response" "Claude"; then
+        debug_echo "[DEBUG] === FIN ask_claude avec ERREUR ==="
         return 1
     fi
     
@@ -496,32 +535,112 @@ categorize_with_dual_ai() {
     echo ""
     echo -e "${BOLD}🤖 ROUND 1 - Première analyse...${NC}"
     
+    # Variables pour stocker les statuts
+    local gemini_success=0
+    local claude_success=0
+    
     echo -n "   Gemini analyse... "
     debug_echo "[DEBUG] Appel ask_gemini Round 1..."
     local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
-    debug_echo "[DEBUG] Retour ask_gemini Round 1 : '$gemini_choice_1'"
+    local gemini_status=$?
+    debug_echo "[DEBUG] Retour ask_gemini Round 1 : '$gemini_choice_1' (status=$gemini_status)"
     
-    if [ -n "$gemini_choice_1" ] && [[ "$gemini_choice_1" =~ ^[0-9]+$ ]]; then
+    if [ $gemini_status -eq 0 ] && [ -n "$gemini_choice_1" ] && [[ "$gemini_choice_1" =~ ^[0-9]+$ ]]; then
         local gemini_cat_1=$(get_category_with_parent "$gemini_choice_1")
         echo -e "${GREEN}Gemini choisit : ${BOLD}$gemini_cat_1${NC}"
+        gemini_success=1
     else
         debug_echo "[DEBUG] ERREUR : gemini_choice_1 invalide : '$gemini_choice_1'"
         echo -e "${RED}Gemini ne répond pas correctement !${NC}"
-        return 1
     fi
     
     echo -n "   Claude analyse... "
     debug_echo "[DEBUG] Appel ask_claude Round 1..."
     local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
-    debug_echo "[DEBUG] Retour ask_claude Round 1 : '$claude_choice_1'"
+    local claude_status=$?
+    debug_echo "[DEBUG] Retour ask_claude Round 1 : '$claude_choice_1' (status=$claude_status)"
     
-    if [ -n "$claude_choice_1" ] && [[ "$claude_choice_1" =~ ^[0-9]+$ ]]; then
+    if [ $claude_status -eq 0 ] && [ -n "$claude_choice_1" ] && [[ "$claude_choice_1" =~ ^[0-9]+$ ]]; then
         local claude_cat_1=$(get_category_with_parent "$claude_choice_1")
         echo -e "${BLUE}Claude choisit : ${BOLD}$claude_cat_1${NC}"
+        claude_success=1
     else
         debug_echo "[DEBUG] ERREUR : claude_choice_1 invalide : '$claude_choice_1'"
         echo -e "${RED}Claude ne répond pas correctement !${NC}"
+    fi
+    
+    # VÉRIFIER SI LES IA ONT RÉPONDU - NOUVELLE RÈGLE
+    if [ $claude_success -eq 0 ]; then
+        # Claude n'a pas répondu = toujours échec
+        echo ""
+        echo -e "${RED}${BOLD}❌ ÉCHEC : Claude n'a pas répondu${NC}"
+        echo -e "${YELLOW}La catégorisation nécessite au minimum Claude${NC}"
         return 1
+    elif [ $gemini_success -eq 0 ] && [ $claude_success -eq 1 ]; then
+        # Seulement Claude a répondu = on prend Claude
+        echo ""
+        echo -e "${YELLOW}${BOLD}⚠️  Seul Claude a répondu - on prend son choix${NC}"
+        local final_choice=$claude_choice_1
+        local final_cat_name=$(get_category_with_parent "$final_choice")
+        echo -e "${BLUE}Catégorie Claude : ${BOLD}$final_cat_name${NC}"
+        
+        # Passer directement à l'application
+        echo ""
+        echo -e "\n${RED}${BOLD}📌 CATÉGORIE FINALE : $final_cat_name${NC}\n"
+        
+        # Appliquer la catégorie (copier le code d'application ici)
+        echo -n "💾 Application... "
+        
+        # Obtenir le term_taxonomy_id
+        debug_echo "[DEBUG] Recherche term_taxonomy_id pour term_id=$final_choice..."
+        local term_taxonomy_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy 
+        WHERE term_id = $final_choice AND taxonomy = 'product_cat'
+        " 2>/dev/null)
+        
+        debug_echo "[DEBUG] term_taxonomy_id trouvé : '$term_taxonomy_id'"
+        
+        if [ -z "$term_taxonomy_id" ]; then
+            debug_echo "[DEBUG] ERREUR : term_taxonomy_id non trouvé pour term_id=$final_choice"
+            echo -e "${RED}❌ Catégorie introuvable !${NC}"
+            return 1
+        fi
+        
+        # Supprimer anciennes catégories
+        debug_echo "[DEBUG] Suppression des anciennes catégories..."
+        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+        DELETE FROM wp_${SITE_ID}_term_relationships 
+        WHERE object_id = $post_id 
+        AND term_taxonomy_id IN (
+            SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy 
+            WHERE taxonomy = 'product_cat'
+        )
+        " 2>/dev/null
+        
+        # Ajouter nouvelle catégorie
+        debug_echo "[DEBUG] Ajout de la nouvelle catégorie term_taxonomy_id=$term_taxonomy_id..."
+        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+        INSERT IGNORE INTO wp_${SITE_ID}_term_relationships (object_id, term_taxonomy_id)
+        VALUES ($post_id, $term_taxonomy_id)
+        " 2>/dev/null
+        
+        echo -e "${GREEN}✅ Fait!${NC}"
+        
+        # Stocker la catégorie de référence Google Books
+        local g_category=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id = $post_id AND meta_key = '_g_categories' LIMIT 1" 2>/dev/null)
+        
+        if [ -n "$g_category" ] && [ "$g_category" != "NULL" ]; then
+            safe_store_meta "$post_id" "_g_categorie_reference" "$g_category"
+            debug_echo "[DEBUG] Catégorie Google Books stockée pour référence : $g_category"
+        fi
+        
+        # Log
+        mkdir -p "$LOG_DIR"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name (Claude seul)" >> "$LOG_DIR/dual_ai_categorize.log"
+        
+        return 0
     fi
     
     # Vérifier si accord
@@ -535,48 +654,82 @@ categorize_with_dual_ai() {
         echo ""
         echo -e "\n${RED}${BOLD}❌ DÉSACCORD ! Round 2...${NC}"
         
+        # Reset des statuts pour le round 2
+        gemini_success=0
+        claude_success=0
+        
         echo -n "   Gemini reconsidère... "
         debug_echo "[DEBUG] Appel ask_gemini Round 2 avec suggestion Claude=$claude_choice_1..."
         local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
-        debug_echo "[DEBUG] Retour ask_gemini Round 2 : '$gemini_choice_2'"
+        local gemini_status_2=$?
+        debug_echo "[DEBUG] Retour ask_gemini Round 2 : '$gemini_choice_2' (status=$gemini_status_2)"
         
-        if [ -n "$gemini_choice_2" ] && [[ "$gemini_choice_2" =~ ^[0-9]+$ ]]; then
+        if [ $gemini_status_2 -eq 0 ] && [ -n "$gemini_choice_2" ] && [[ "$gemini_choice_2" =~ ^[0-9]+$ ]]; then
             local gemini_cat_2=$(get_category_with_parent "$gemini_choice_2")
             echo -e "${GREEN}Gemini change pour : ${BOLD}$gemini_cat_2${NC}"
+            gemini_success=1
         else
-            echo "Gemini garde son choix"
+            echo -e "${RED}Gemini échoue au round 2${NC}"
             gemini_choice_2=$gemini_choice_1
             gemini_cat_2=$gemini_cat_1
+            if [ -n "$gemini_choice_1" ]; then
+                gemini_success=1  # On garde son premier choix
+            fi
         fi
         
         echo -n "   Claude reconsidère... "
         debug_echo "[DEBUG] Appel ask_claude Round 2 avec suggestion Gemini=$gemini_choice_1..."
         local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
-        debug_echo "[DEBUG] Retour ask_claude Round 2 : '$claude_choice_2'"
+        local claude_status_2=$?
+        debug_echo "[DEBUG] Retour ask_claude Round 2 : '$claude_choice_2' (status=$claude_status_2)"
         
-        if [ -n "$claude_choice_2" ] && [[ "$claude_choice_2" =~ ^[0-9]+$ ]]; then
+        if [ $claude_status_2 -eq 0 ] && [ -n "$claude_choice_2" ] && [[ "$claude_choice_2" =~ ^[0-9]+$ ]]; then
             local claude_cat_2=$(get_category_with_parent "$claude_choice_2")
             echo -e "${BLUE}Claude change pour : ${BOLD}$claude_cat_2${NC}"
+            claude_success=1
         else
-            echo "Claude garde son choix"
+            echo -e "${RED}Claude échoue au round 2${NC}"
             claude_choice_2=$claude_choice_1
             claude_cat_2=$claude_cat_1
+            if [ -n "$claude_choice_1" ]; then
+                claude_success=1  # On garde son premier choix
+            fi
         fi
         
-        # Résultat final
-        debug_echo "[DEBUG] Comparaison Round 2 : gemini='$gemini_choice_2' vs claude='$claude_choice_2'"
-        if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
+        # Vérifier à nouveau avec la nouvelle règle
+        if [ $claude_success -eq 0 ]; then
+            # Claude doit toujours répondre
             echo ""
-            echo -e "\n${GREEN}${BOLD}✅ CONSENSUS TROUVÉ sur : $gemini_cat_2${NC}"
-            local final_choice=$gemini_choice_2
-        else
+            echo -e "${RED}${BOLD}❌ ÉCHEC AU ROUND 2 : Claude n'a pas répondu${NC}"
+            return 1
+        elif [ $gemini_success -eq 0 ] && [ $claude_success -eq 1 ]; then
+            # Si seulement Claude répond au round 2, on prend son choix
             echo ""
-            echo -e "${YELLOW}⚠️  PAS DE CONSENSUS${NC}"
-            echo -e "   Choix final de Gemini : ${GREEN}$gemini_cat_2${NC}"
-            echo -e "   Choix final de Claude : ${BLUE}$claude_cat_2${NC}"
-            # En cas de désaccord persistant, prendre Claude
+            echo -e "${YELLOW}${BOLD}⚠️  Seul Claude répond au round 2 - on prend son choix${NC}"
             local final_choice=$claude_choice_2
-            echo -e "   → Choix retenu : ${BOLD}$claude_cat_2 (Claude)${NC}"
+            local final_cat_name=$(get_category_with_parent "$final_choice")
+        else
+            # Les deux ont répondu, continuer normalement
+            debug_echo "[DEBUG] Les deux IA ont des choix valides au round 2"
+        fi
+        
+        # Suite du traitement seulement si les deux IA ont répondu
+        if [ $gemini_success -eq 1 ] && [ $claude_success -eq 1 ]; then
+            # Résultat final avec débat normal
+            debug_echo "[DEBUG] Comparaison Round 2 : gemini='$gemini_choice_2' vs claude='$claude_choice_2'"
+            if [ "$gemini_choice_2" = "$claude_choice_2" ]; then
+                echo ""
+                echo -e "\n${GREEN}${BOLD}✅ CONSENSUS TROUVÉ sur : $gemini_cat_2${NC}"
+                local final_choice=$gemini_choice_2
+            else
+                echo ""
+                echo -e "${YELLOW}⚠️  PAS DE CONSENSUS${NC}"
+                echo -e "   Choix final de Gemini : ${GREEN}$gemini_cat_2${NC}"
+                echo -e "   Choix final de Claude : ${BLUE}$claude_cat_2${NC}"
+                # En cas de désaccord persistant, prendre Claude
+                local final_choice=$claude_choice_2
+                echo -e "   → Choix retenu : ${BOLD}$claude_cat_2 (Claude)${NC}"
+            fi
         fi
     fi
     

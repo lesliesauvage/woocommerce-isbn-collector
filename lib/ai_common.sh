@@ -76,8 +76,8 @@ analyze_api_error() {
             local quota=$(echo "$response" | grep -o '"quotaValue":[^,}]*' | cut -d'"' -f4)
             echo -e "${YELLOW}   Limite : $quota requêtes/jour${NC}"
         fi
-        # Afficher le message d'erreur complet
-        if echo "$response" | grep -q '"message"'; then
+        # Afficher le message d'erreur complet pour Claude
+        if [ "$api_name" = "Claude" ] && echo "$response" | grep -q '"message"'; then
             local error_msg=$(echo "$response" | grep -o '"message":"[^"]*"' | cut -d':' -f2- | tr -d '"')
             echo -e "${YELLOW}   Message : $error_msg${NC}"
         fi
@@ -91,10 +91,22 @@ analyze_api_error() {
             local delay=$(echo "$response" | grep -o '"retryDelay":[^,}]*' | cut -d'"' -f4)
             echo -e "${YELLOW}   Attendre : $delay${NC}"
         fi
-        # Message spécifique pour Claude
+        # Message spécifique pour Claude avec détection du rate limit de tokens
         if [ "$api_name" = "Claude" ]; then
             local error_detail=$(echo "$response" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('error',{}).get('message',''))" 2>/dev/null)
             [ -n "$error_detail" ] && echo -e "${YELLOW}   Détail : $error_detail${NC}"
+            
+            # Si c'est un rate limit de tokens, attendre 60 secondes
+            if echo "$response" | grep -q "50,000 input tokens per minute"; then
+                echo -e "${YELLOW}⏳ Pause automatique de 60 secondes pour respecter la limite...${NC}"
+                for i in {60..1}; do
+                    printf "\r${YELLOW}   Reprise dans : %02d secondes${NC}" $i
+                    sleep 1
+                done
+                echo -e "\r${GREEN}✅ Reprise !                                        ${NC}"
+                # Retourner un code spécial pour réessayer
+                return 2
+            fi
         fi
         return 1
     fi
@@ -110,19 +122,6 @@ analyze_api_error() {
         echo -e "${RED}❌ ERREUR : Crédits $api_name insuffisants !${NC}"
         echo -e "${YELLOW}   Vérifier : https://console.anthropic.com/billing${NC}"
         return 1
-    fi
-    
-    # CORRECTION : Vérifier si c'est une réponse valide AVANT de chercher error
-    # Claude retourne un format avec "type":"message" quand tout va bien
-    if [ "$api_name" = "Claude" ] && echo "$response" | grep -q '"type":"message"'; then
-        debug_echo "[DEBUG] Réponse Claude valide détectée"
-        return 0
-    fi
-    
-    # Gemini retourne "candidates" quand tout va bien
-    if [ "$api_name" = "Gemini" ] && echo "$response" | grep -q '"candidates"'; then
-        debug_echo "[DEBUG] Réponse Gemini valide détectée"
-        return 0
     fi
     
     # Autres erreurs - TOUJOURS afficher pour comprendre
@@ -145,8 +144,8 @@ except:
         return 1
     fi
     
-    # Si on arrive ici et qu'on n'a pas détecté de format valide
-    if ! echo "$response" | grep -q '"type":"message"\|"candidates"'; then
+    # Si aucune erreur détectée mais pas de contenu valide
+    if ! echo "$response" | grep -q '"content"\|"candidates"'; then
         echo -e "${RED}❌ ERREUR $api_name : Réponse invalide${NC}"
         echo -e "${YELLOW}   Réponse: ${response:0:200}...${NC}"
         return 1

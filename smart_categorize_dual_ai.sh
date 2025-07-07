@@ -56,20 +56,34 @@ categorize_with_dual_ai() {
         return 0
     fi
     
-    # Récupérer les infos du livre
-    debug_echo "[DEBUG] Récupération des infos du livre ID $post_id..."
+    # Récupérer TOUTES les infos du livre incluant Google Books
+    debug_echo "[DEBUG] Récupération des infos complètes du livre ID $post_id..."
     local book_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
     SELECT 
         p.post_title,
         IFNULL(pm_isbn.meta_value, '') as isbn,
         IFNULL(pm_authors.meta_value, IFNULL(pm_authors2.meta_value, '')) as authors,
-        IFNULL(pm_desc.meta_value, IFNULL(pm_desc2.meta_value, '')) as description
+        IFNULL(pm_desc.meta_value, IFNULL(pm_desc2.meta_value, '')) as description,
+        IFNULL(pm_g_cat.meta_value, '') as google_categories,
+        IFNULL(pm_g_lang.meta_value, '') as google_language,
+        IFNULL(pm_g_pages.meta_value, '') as google_pages,
+        IFNULL(pm_g_date.meta_value, '') as google_pubdate,
+        IFNULL(pm_i_binding.meta_value, '') as binding,
+        IFNULL(pm_i_subjects.meta_value, '') as isbndb_subjects,
+        IFNULL(pm_o_subjects.meta_value, '') as ol_subjects
     FROM wp_${SITE_ID}_posts p
     LEFT JOIN wp_${SITE_ID}_postmeta pm_isbn ON p.ID = pm_isbn.post_id AND pm_isbn.meta_key = '_isbn'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_authors ON p.ID = pm_authors.post_id AND pm_authors.meta_key = '_best_authors'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_authors2 ON p.ID = pm_authors2.post_id AND pm_authors2.meta_key = '_g_authors'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_desc ON p.ID = pm_desc.post_id AND pm_desc.meta_key = '_best_description'
     LEFT JOIN wp_${SITE_ID}_postmeta pm_desc2 ON p.ID = pm_desc2.post_id AND pm_desc2.meta_key = '_g_description'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_g_cat ON p.ID = pm_g_cat.post_id AND pm_g_cat.meta_key = '_g_categories'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_g_lang ON p.ID = pm_g_lang.post_id AND pm_g_lang.meta_key = '_g_language'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_g_pages ON p.ID = pm_g_pages.post_id AND pm_g_pages.meta_key = '_g_pageCount'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_g_date ON p.ID = pm_g_date.post_id AND pm_g_date.meta_key = '_g_publishedDate'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_i_binding ON p.ID = pm_i_binding.post_id AND pm_i_binding.meta_key = '_i_binding'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_i_subjects ON p.ID = pm_i_subjects.post_id AND pm_i_subjects.meta_key = '_i_subjects'
+    LEFT JOIN wp_${SITE_ID}_postmeta pm_o_subjects ON p.ID = pm_o_subjects.post_id AND pm_o_subjects.meta_key = '_o_subjects'
     WHERE p.ID = $post_id
     " 2>/dev/null)
     
@@ -81,13 +95,16 @@ categorize_with_dual_ai() {
         return 1
     fi
     
-    # Parser les infos
-    IFS=$'\t' read -r title isbn authors description <<< "$book_info"
+    # Parser toutes les infos
+    IFS=$'\t' read -r title isbn authors description google_categories google_language google_pages google_pubdate binding isbndb_subjects ol_subjects <<< "$book_info"
+    
     debug_echo "[DEBUG] Infos parsées :"
     debug_echo "[DEBUG]   title='$title'"
     debug_echo "[DEBUG]   isbn='$isbn'"
     debug_echo "[DEBUG]   authors='$authors'"
     debug_echo "[DEBUG]   description length=$(echo "$description" | wc -c)"
+    debug_echo "[DEBUG]   google_categories='$google_categories'"
+    debug_echo "[DEBUG]   binding='$binding'"
     
     # Nettoyer le titre s'il commence par "Livre ISBN"
     if [[ "$title" =~ ^Livre[[:space:]]+[0-9]+ ]]; then
@@ -105,14 +122,59 @@ categorize_with_dual_ai() {
         fi
     fi
     
+    # Affichage enrichi avec toutes les infos
     echo ""
     echo -e "📚 LIVRE : ${RED}${BOLD}$title${NC}"
     echo -e "   ISBN : ${CYAN}${isbn:-N/A}${NC}"
     echo -e "   Auteurs : ${BLUE}${authors:-N/A}${NC}"
     
-    # Afficher la description
-    if [ -n "$description" ] && [ "$description" != "NULL" ]; then
-        echo -e "   Description : ${YELLOW}$(echo "$description" | sed 's/<[^>]*>//g' | cut -c1-150)...${NC}"
+    # NOUVEAU : Afficher la catégorie Google Books en couleur
+    if [ -n "$google_categories" ] && [ "$google_categories" != "NULL" ]; then
+        echo -e "   ${PURPLE}Google Books suggère : ${BOLD}$google_categories${NC}"
+        
+        # Stocker dans _g_categorie_reference
+        safe_store_meta "$post_id" "_g_categorie_reference" "$google_categories"
+        debug_echo "[DEBUG] Catégorie Google Books stockée pour référence future"
+    fi
+    
+    # Afficher plus d'infos enrichies
+    if [ -n "$binding" ] && [ "$binding" != "NULL" ]; then
+        echo -e "   Format : ${GREEN}$binding${NC}"
+    fi
+    
+    if [ -n "$google_pages" ] && [ "$google_pages" != "NULL" ] && [ "$google_pages" != "0" ]; then
+        echo -e "   Pages : ${YELLOW}$google_pages${NC}"
+    fi
+    
+    if [ -n "$google_pubdate" ] && [ "$google_pubdate" != "NULL" ]; then
+        echo -e "   Date : ${CYAN}$google_pubdate${NC}"
+    fi
+    
+    if [ -n "$google_language" ] && [ "$google_language" != "NULL" ]; then
+        echo -e "   Langue : ${BLUE}$google_language${NC}"
+    fi
+    
+    # Combiner tous les sujets/catégories pour enrichir la description
+    local all_subjects=""
+    [ -n "$google_categories" ] && [ "$google_categories" != "NULL" ] && all_subjects="$all_subjects $google_categories"
+    [ -n "$isbndb_subjects" ] && [ "$isbndb_subjects" != "NULL" ] && all_subjects="$all_subjects $isbndb_subjects"
+    [ -n "$ol_subjects" ] && [ "$ol_subjects" != "NULL" ] && all_subjects="$all_subjects $ol_subjects"
+    
+    # Enrichir la description avec toutes les infos
+    local enriched_description="$description"
+    if [ -n "$all_subjects" ]; then
+        enriched_description="$description. Catégories/Sujets: $all_subjects"
+    fi
+    if [ -n "$binding" ] && [ "$binding" != "NULL" ]; then
+        enriched_description="$enriched_description. Format: $binding"
+    fi
+    if [ -n "$google_pages" ] && [ "$google_pages" != "NULL" ] && [ "$google_pages" != "0" ]; then
+        enriched_description="$enriched_description. $google_pages pages"
+    fi
+    
+    # Afficher la description enrichie
+    if [ -n "$enriched_description" ] && [ "$enriched_description" != "NULL" ]; then
+        echo -e "   Description : ${YELLOW}$(echo "$enriched_description" | sed 's/<[^>]*>//g' | cut -c1-200)...${NC}"
     else
         echo -e "   Description : ${YELLOW}Non disponible${NC}"
     fi
@@ -122,9 +184,10 @@ categorize_with_dual_ai() {
     echo "📋 Récupération des catégories avec hiérarchie..."
     local all_categories=$(get_all_categories_with_hierarchy)
     
-    # NOUVEAU : Filtrer les catégories pertinentes pour réduire les tokens
+    # NOUVEAU : Filtrer les catégories pertinentes en passant toutes les infos
     echo "   🔍 Filtrage intelligent des catégories..."
-    local categories_list=$(filter_relevant_categories "$title" "$authors" "$description" "$all_categories" "$post_id")
+    # Le filtrage utilise maintenant la catégorie Google Books via post_id
+    local categories_list=$(filter_relevant_categories "$title" "$authors" "$enriched_description" "$all_categories" "$post_id")
     
     local cat_count=$(echo "$categories_list" | wc -l)
     echo "   $cat_count catégories pertinentes (filtrées)"
@@ -135,7 +198,7 @@ categorize_with_dual_ai() {
         done
     fi
     
-    # Premier round : demander aux deux IA
+    # Premier round : demander aux deux IA avec la description enrichie
     echo ""
     echo -e "${BOLD}🤖 ROUND 1 - Première analyse...${NC}"
     
@@ -144,8 +207,8 @@ categorize_with_dual_ai() {
     local claude_success=0
     
     echo -n "   Gemini analyse... "
-    debug_echo "[DEBUG] Appel ask_gemini Round 1..."
-    local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
+    debug_echo "[DEBUG] Appel ask_gemini Round 1 avec description enrichie..."
+    local gemini_choice_1=$(ask_gemini "$title" "$authors" "$enriched_description" "$categories_list")
     local gemini_status=$?
     debug_echo "[DEBUG] Retour ask_gemini Round 1 : '$gemini_choice_1' (status=$gemini_status)"
     
@@ -159,8 +222,8 @@ categorize_with_dual_ai() {
     fi
     
     echo -n "   Claude analyse... "
-    debug_echo "[DEBUG] Appel ask_claude Round 1..."
-    local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
+    debug_echo "[DEBUG] Appel ask_claude Round 1 avec description enrichie..."
+    local claude_choice_1=$(ask_claude "$title" "$authors" "$enriched_description" "$categories_list")
     local claude_status=$?
     debug_echo "[DEBUG] Retour ask_claude Round 1 : '$claude_choice_1' (status=$claude_status)"
     
@@ -220,7 +283,7 @@ categorize_with_dual_ai() {
         
         echo -n "   Gemini reconsidère... "
         debug_echo "[DEBUG] Appel ask_gemini Round 2 avec suggestion Claude=$claude_choice_1..."
-        local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
+        local gemini_choice_2=$(ask_gemini "$title" "$authors" "$enriched_description" "$categories_list" "$claude_choice_1")
         local gemini_status_2=$?
         debug_echo "[DEBUG] Retour ask_gemini Round 2 : '$gemini_choice_2' (status=$gemini_status_2)"
         
@@ -239,7 +302,7 @@ categorize_with_dual_ai() {
         
         echo -n "   Claude reconsidère... "
         debug_echo "[DEBUG] Appel ask_claude Round 2 avec suggestion Gemini=$gemini_choice_1..."
-        local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
+        local claude_choice_2=$(ask_claude "$title" "$authors" "$enriched_description" "$categories_list" "$gemini_choice_1")
         local claude_status_2=$?
         debug_echo "[DEBUG] Retour ask_claude Round 2 : '$claude_choice_2' (status=$claude_status_2)"
         

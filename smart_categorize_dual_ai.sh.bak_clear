@@ -289,7 +289,7 @@ categorize_with_dual_ai() {
 }
 
 # Programme principal
-#clear
+clear
 echo -e "${BOLD}=== SMART CATEGORIZE - DUAL AI MODE ===${NC}"
 echo "Gemini + Claude débattent pour trouver la meilleure catégorie"
 echo "════════════════════════════════════════════════════════════════════════════"

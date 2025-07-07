@@ -111,57 +111,58 @@ filter_relevant_categories() {
     # Si pas de catégorie Google ou pas de match, utiliser l'ancienne méthode
     if [ -z "$keywords" ]; then
         debug_echo "[DEBUG] Pas de mapping Google Books, utilisation des mots-clés du titre"
-    
-    # Détection basée sur des mots-clés
-    if echo "$combined_text" | grep -qE "roman|nouvelle|récit|histoire|conte"; then
-        keywords="$keywords|Romans|Nouvelle|Fiction"
-    fi
-    
-    if echo "$combined_text" | grep -qE "enfant|jeune|ado|collège|lycée"; then
-        keywords="$keywords|ADOS|ENFANTS|JEUNES"
-    else
-        excluded_categories="$excluded_categories|ENFANTS|ADOS|JEUNES"
-    fi
-    
-    if echo "$combined_text" | grep -qE "cuisine|recette|gastronomie|chef"; then
-        keywords="$keywords|Cuisine|Gastronomie"
-    fi
-    
-    if echo "$combined_text" | grep -qE "jardin|plante|fleur|arbre|potager"; then
-        keywords="$keywords|Jardin|Nature"
-    fi
-    
-    if echo "$combined_text" | grep -qE "histoire|historique|guerre|bataille|époque"; then
-        keywords="$keywords|Histoire|Historique"
-    fi
-    
-    if echo "$combined_text" | grep -qE "science|biologie|physique|chimie|mathématique"; then
-        keywords="$keywords|Sciences|SAVOIRS"
-    fi
-    
-    if echo "$combined_text" | grep -qE "philosophie|pensée|essai|réflexion"; then
-        keywords="$keywords|Philosophie|Essais"
-    fi
-    
-    if echo "$combined_text" | grep -qE "art|peinture|sculpture|musique|cinéma"; then
-        keywords="$keywords|Arts|ART & CULTURE"
-    fi
-    
-    if echo "$combined_text" | grep -qE "informatique|ordinateur|programmation|internet"; then
-        keywords="$keywords|Informatique"
-    fi
-    
-    if echo "$combined_text" | grep -qE "voyage|guide|tourisme|pays|ville"; then
-        keywords="$keywords|Voyage|LOISIRS & VOYAGES"
-    fi
-    
-    if echo "$combined_text" | grep -qE "manga|bd|bande dessinée|comic"; then
-        keywords="$keywords|MANGA|BANDE DESSINÉE|BD"
-    fi
-    
-    # Si aucun mot-clé spécifique, garder les catégories principales
-    if [ -z "$keywords" ]; then
-        keywords="LITTÉRATURE|ART & CULTURE|SAVOIRS|BIEN-ÊTRE|LOISIRS"
+        
+        # Détection basée sur des mots-clés
+        if echo "$combined_text" | grep -qE "roman|nouvelle|récit|histoire|conte"; then
+            keywords="$keywords|Romans|Nouvelle|Fiction"
+        fi
+        
+        if echo "$combined_text" | grep -qE "enfant|jeune|ado|collège|lycée"; then
+            keywords="$keywords|ADOS|ENFANTS|JEUNES"
+        else
+            excluded_categories="$excluded_categories|ENFANTS|ADOS|JEUNES"
+        fi
+        
+        if echo "$combined_text" | grep -qE "cuisine|recette|gastronomie|chef"; then
+            keywords="$keywords|Cuisine|Gastronomie"
+        fi
+        
+        if echo "$combined_text" | grep -qE "jardin|plante|fleur|arbre|potager"; then
+            keywords="$keywords|Jardin|Nature"
+        fi
+        
+        if echo "$combined_text" | grep -qE "histoire|historique|guerre|bataille|époque"; then
+            keywords="$keywords|Histoire|Historique"
+        fi
+        
+        if echo "$combined_text" | grep -qE "science|biologie|physique|chimie|mathématique"; then
+            keywords="$keywords|Sciences|SAVOIRS"
+        fi
+        
+        if echo "$combined_text" | grep -qE "philosophie|pensée|essai|réflexion"; then
+            keywords="$keywords|Philosophie|Essais"
+        fi
+        
+        if echo "$combined_text" | grep -qE "art|peinture|sculpture|musique|cinéma"; then
+            keywords="$keywords|Arts|ART & CULTURE"
+        fi
+        
+        if echo "$combined_text" | grep -qE "informatique|ordinateur|programmation|internet"; then
+            keywords="$keywords|Informatique"
+        fi
+        
+        if echo "$combined_text" | grep -qE "voyage|guide|tourisme|pays|ville"; then
+            keywords="$keywords|Voyage|LOISIRS & VOYAGES"
+        fi
+        
+        if echo "$combined_text" | grep -qE "manga|bd|bande dessinée|comic"; then
+            keywords="$keywords|MANGA|BANDE DESSINÉE|BD"
+        fi
+        
+        # Si aucun mot-clé spécifique, garder les catégories principales
+        if [ -z "$keywords" ]; then
+            keywords="LITTÉRATURE|ART & CULTURE|SAVOIRS|BIEN-ÊTRE|LOISIRS"
+        fi
     fi
     
     # Supprimer le premier | si présent

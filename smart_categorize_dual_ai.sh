@@ -85,12 +85,19 @@ analyze_api_error() {
     local response="$1"
     local api_name="$2"
     
+    # TOUJOURS afficher les erreurs, même en mode -noverbose
+    
     # Vérifier quota dépassé
     if echo "$response" | grep -q "quota\|RESOURCE_EXHAUSTED\|exceeded"; then
         echo -e "${RED}❌ ERREUR : Quota $api_name dépassé !${NC}"
         if echo "$response" | grep -q "quotaValue"; then
             local quota=$(echo "$response" | grep -o '"quotaValue":[^,}]*' | cut -d'"' -f4)
             echo -e "${YELLOW}   Limite : $quota requêtes/jour${NC}"
+        fi
+        # Afficher le message d'erreur complet pour Claude
+        if [ "$api_name" = "Claude" ] && echo "$response" | grep -q '"message"'; then
+            local error_msg=$(echo "$response" | grep -o '"message":"[^"]*"' | cut -d':' -f2- | tr -d '"')
+            echo -e "${YELLOW}   Message : $error_msg${NC}"
         fi
         return 1
     fi
@@ -102,6 +109,11 @@ analyze_api_error() {
             local delay=$(echo "$response" | grep -o '"retryDelay":[^,}]*' | cut -d'"' -f4)
             echo -e "${YELLOW}   Attendre : $delay${NC}"
         fi
+        # Message spécifique pour Claude
+        if [ "$api_name" = "Claude" ]; then
+            local error_detail=$(echo "$response" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('error',{}).get('message',''))" 2>/dev/null)
+            [ -n "$error_detail" ] && echo -e "${YELLOW}   Détail : $error_detail${NC}"
+        fi
         return 1
     fi
     
@@ -111,10 +123,30 @@ analyze_api_error() {
         return 1
     fi
     
-    # Autres erreurs
+    # Vérifier crédit insuffisant
+    if echo "$response" | grep -q "insufficient_credits"; then
+        echo -e "${RED}❌ ERREUR : Crédits $api_name insuffisants !${NC}"
+        echo -e "${YELLOW}   Vérifier : https://console.anthropic.com/billing${NC}"
+        return 1
+    fi
+    
+    # Autres erreurs - TOUJOURS afficher pour comprendre
     if echo "$response" | grep -q '"error"'; then
-        echo -e "${RED}❌ ERREUR $api_name non identifiée${NC}"
-        debug_echo "[DEBUG] Erreur : $response"
+        echo -e "${RED}❌ ERREUR $api_name :${NC}"
+        # Extraire et afficher le message d'erreur
+        local error_msg=$(echo "$response" | python3 -c "
+import json,sys
+try:
+    d=json.load(sys.stdin)
+    if 'error' in d:
+        print(d['error'].get('message', str(d['error'])))
+except:
+    print('Erreur inconnue')
+" 2>/dev/null || echo "$response" | grep -o '"message":"[^"]*"' | head -1)
+        echo -e "${YELLOW}   $error_msg${NC}"
+        
+        # En mode verbose, afficher plus de détails
+        debug_echo "[DEBUG] Réponse complète : $response"
         return 1
     fi
     
@@ -900,4 +932,13 @@ case "$input" in
 esac
 
 echo ""
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
 echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"

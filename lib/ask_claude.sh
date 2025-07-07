@@ -97,10 +97,32 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     fi
     
     # Analyser les erreurs AVANT d'extraire
-    if ! analyze_api_error "$response" "Claude"; then
-        debug_echo "[DEBUG] === FIN ask_claude avec ERREUR ==="
-        return 1
-    fi
+    local retry_count=0
+    local max_retries=1
+    
+    while [ $retry_count -le $max_retries ]; do
+        if ! analyze_api_error "$response" "Claude"; then
+            local error_code=$?
+            if [ $error_code -eq 2 ]; then
+                # Rate limit avec attente automatique, réessayer
+                ((retry_count++))
+                if [ $retry_count -le $max_retries ]; then
+                    echo -e "${YELLOW}🔄 Nouvelle tentative...${NC}"
+                    # Refaire l'appel API
+                    response=$(curl -s -X POST "$CLAUDE_API_URL" \
+                        -H "x-api-key: $CLAUDE_API_KEY" \
+                        -H "anthropic-version: 2023-06-01" \
+                        -H "content-type: application/json" \
+                        -d "$json_request" 2>&1)
+                    continue
+                fi
+            fi
+            debug_echo "[DEBUG] === FIN ask_claude avec ERREUR ==="
+            return 1
+        else
+            break
+        fi
+    done
     
     # Extraire la réponse avec la fonction
     debug_echo "[DEBUG] Appel extract_text_from_json..."

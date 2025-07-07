@@ -188,16 +188,14 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
 
     # Afficher le prompt si DEBUG
     if [ "$SHOW_PROMPTS" = "1" ]; then
-        {
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo -e "${GREEN}📤 PROMPT ENVOYÉ À GEMINI :${NC}"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "$prompt" | head -50
-            echo "... [tronqué pour l'affichage]"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-        } >&2
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo -e "${GREEN}📤 PROMPT ENVOYÉ À GEMINI :${NC}"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "$prompt" | head -50
+        echo "... [tronqué pour l'affichage]"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
     fi
 
     # Échapper pour JSON
@@ -232,11 +230,9 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     
     # DEBUG : afficher la réponse brute
     if [ "$SHOW_PROMPTS" = "1" ]; then
-        {
-            echo -e "${GREEN}📥 RÉPONSE GEMINI (brute) :${NC}"
-            echo "$response" | head -200
-            echo ""
-        } >&2
+        echo -e "${GREEN}📥 RÉPONSE GEMINI (brute) :${NC}"
+        echo "$response" | head -200
+        echo ""
     fi
     
     # Vérifier si c'est une erreur
@@ -252,12 +248,11 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     echo "[DEBUG] ID extrait par la fonction : '$extracted_id'" >&2
     
     if [ "$SHOW_PROMPTS" = "1" ] && [ -n "$extracted_id" ]; then
-        echo -e "${GREEN}🔢 ID final extrait de Gemini : ${BOLD}$extracted_id${NC}" >&2
-        echo "" >&2
+        echo -e "${GREEN}🔢 ID final extrait de Gemini : ${BOLD}$extracted_id${NC}"
+        echo ""
     fi
     
     echo "[DEBUG] === FIN ask_gemini, retour : '$extracted_id' ===" >&2
-    # IMPORTANT : Retourner UNIQUEMENT l'ID extrait, pas les affichages
     echo "$extracted_id"
 }
 
@@ -305,16 +300,14 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
 
     # Afficher le prompt si DEBUG
     if [ "$SHOW_PROMPTS" = "1" ]; then
-        {
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo -e "${BLUE}📤 PROMPT ENVOYÉ À CLAUDE :${NC}"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "$prompt" | head -50
-            echo "... [tronqué pour l'affichage]"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-        } >&2
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo -e "${BLUE}📤 PROMPT ENVOYÉ À CLAUDE :${NC}"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "$prompt" | head -50
+        echo "... [tronqué pour l'affichage]"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
     fi
 
     # Échapper pour JSON
@@ -349,11 +342,9 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     
     # DEBUG : afficher la réponse brute
     if [ "$SHOW_PROMPTS" = "1" ]; then
-        {
-            echo -e "${BLUE}📥 RÉPONSE CLAUDE (brute) :${NC}"
-            echo "$response" | head -200
-            echo ""
-        } >&2
+        echo -e "${BLUE}📥 RÉPONSE CLAUDE (brute) :${NC}"
+        echo "$response" | head -200
+        echo ""
     fi
     
     # Vérifier si c'est une erreur
@@ -388,12 +379,11 @@ except:
     fi
     
     if [ "$SHOW_PROMPTS" = "1" ] && [ -n "$extracted_id" ]; then
-        echo -e "${BLUE}🔢 ID final extrait de Claude : ${BOLD}$extracted_id${NC}" >&2
-        echo "" >&2
+        echo -e "${BLUE}🔢 ID final extrait de Claude : ${BOLD}$extracted_id${NC}"
+        echo ""
     fi
     
     echo "[DEBUG] === FIN ask_claude, retour : '$extracted_id' ===" >&2
-    # IMPORTANT : Retourner UNIQUEMENT l'ID extrait
     echo "$extracted_id"
 }
 
@@ -481,9 +471,18 @@ categorize_with_dual_ai() {
     echo -n "   Gemini analyse... "
     echo "[DEBUG] Appel ask_gemini Round 1..." >&2
     local gemini_choice_1=$(ask_gemini "$title" "$authors" "$description" "$categories_list")
-    echo "[DEBUG] Retour ask_gemini Round 1 : '$gemini_choice_1'" >&2
+    echo "[DEBUG] *** RETOUR ask_gemini Round 1 ***" >&2
+    echo "[DEBUG] *** VALEUR BRUTE : '$gemini_choice_1'" >&2
+    echo "[DEBUG] *** LONGUEUR : ${#gemini_choice_1}" >&2
+    echo "[DEBUG] *** CODE ASCII premier char : $(printf '%d' "'$gemini_choice_1'" 2>/dev/null || echo 'N/A')" >&2
+    
+    # Nettoyer au cas où
+    gemini_choice_1=$(echo "$gemini_choice_1" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
+    echo "[DEBUG] *** APRÈS NETTOYAGE : '$gemini_choice_1'" >&2
+    echo "[DEBUG] *** LONGUEUR APRÈS : ${#gemini_choice_1}" >&2
     
     if [ -n "$gemini_choice_1" ] && [[ "$gemini_choice_1" =~ ^[0-9]+$ ]]; then
+        echo "[DEBUG] Gemini choice valide : '$gemini_choice_1'" >&2
         local gemini_cat_1=$(get_category_with_parent "$gemini_choice_1")
         echo -e "${GREEN}Gemini choisit : ${BOLD}$gemini_cat_1${NC}"
     else
@@ -495,9 +494,17 @@ categorize_with_dual_ai() {
     echo -n "   Claude analyse... "
     echo "[DEBUG] Appel ask_claude Round 1..." >&2
     local claude_choice_1=$(ask_claude "$title" "$authors" "$description" "$categories_list")
-    echo "[DEBUG] Retour ask_claude Round 1 : '$claude_choice_1'" >&2
+    echo "[DEBUG] *** RETOUR ask_claude Round 1 ***" >&2
+    echo "[DEBUG] *** VALEUR BRUTE : '$claude_choice_1'" >&2
+    echo "[DEBUG] *** LONGUEUR : ${#claude_choice_1}" >&2
+    
+    # Nettoyer au cas où
+    claude_choice_1=$(echo "$claude_choice_1" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
+    echo "[DEBUG] *** APRÈS NETTOYAGE : '$claude_choice_1'" >&2
+    echo "[DEBUG] *** LONGUEUR APRÈS : ${#claude_choice_1}" >&2
     
     if [ -n "$claude_choice_1" ] && [[ "$claude_choice_1" =~ ^[0-9]+$ ]]; then
+        echo "[DEBUG] Claude choice valide : '$claude_choice_1'" >&2
         local claude_cat_1=$(get_category_with_parent "$claude_choice_1")
         echo -e "${BLUE}Claude choisit : ${BOLD}$claude_cat_1${NC}"
     else
@@ -522,6 +529,9 @@ categorize_with_dual_ai() {
         local gemini_choice_2=$(ask_gemini "$title" "$authors" "$description" "$categories_list" "$claude_choice_1")
         echo "[DEBUG] Retour ask_gemini Round 2 : '$gemini_choice_2'" >&2
         
+        # Nettoyer
+        gemini_choice_2=$(echo "$gemini_choice_2" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
+        
         if [ -n "$gemini_choice_2" ] && [[ "$gemini_choice_2" =~ ^[0-9]+$ ]]; then
             local gemini_cat_2=$(get_category_with_parent "$gemini_choice_2")
             echo -e "${GREEN}Gemini change pour : ${BOLD}$gemini_cat_2${NC}"
@@ -535,6 +545,9 @@ categorize_with_dual_ai() {
         echo "[DEBUG] Appel ask_claude Round 2 avec suggestion Gemini=$gemini_choice_1..." >&2
         local claude_choice_2=$(ask_claude "$title" "$authors" "$description" "$categories_list" "$gemini_choice_1")
         echo "[DEBUG] Retour ask_claude Round 2 : '$claude_choice_2'" >&2
+        
+        # Nettoyer
+        claude_choice_2=$(echo "$claude_choice_2" | tr -d '\n\r' | grep -o '[0-9]\+' | head -1)
         
         if [ -n "$claude_choice_2" ] && [[ "$claude_choice_2" =~ ^[0-9]+$ ]]; then
             local claude_cat_2=$(get_category_with_parent "$claude_choice_2")
@@ -614,16 +627,6 @@ categorize_with_dual_ai() {
     " 2>/dev/null
     
     echo -e "${GREEN}✅ Fait!${NC}"
-    
-    # Stocker la catégorie de référence Google Books (si elle existe)
-    local g_category=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-    WHERE post_id = $post_id AND meta_key = '_g_categories' LIMIT 1" 2>/dev/null)
-    
-    if [ -n "$g_category" ] && [ "$g_category" != "NULL" ]; then
-        safe_store_meta "$post_id" "_g_categorie_reference" "$g_category"
-        echo "[DEBUG] Catégorie Google Books stockée pour référence : $g_category" >&2
-    fi
     
     # Log
     mkdir -p "$LOG_DIR"

@@ -29,6 +29,32 @@ categorize_with_dual_ai() {
     local post_id="$1"
     debug_echo "[DEBUG] === DÉBUT categorize_with_dual_ai pour post_id=$post_id ==="
     
+    # VÉRIFICATION : Skip si déjà catégorisé pour économiser les crédits
+    local has_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+    SELECT COUNT(*) 
+    FROM wp_${SITE_ID}_term_relationships tr
+    JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+    WHERE tr.object_id = $post_id 
+    AND tt.taxonomy = 'product_cat'
+    " 2>/dev/null)
+    
+    if [ "$has_cat" -gt 0 ]; then
+        local existing_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT t.name 
+        FROM wp_${SITE_ID}_term_relationships tr
+        JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+        JOIN wp_${SITE_ID}_terms t ON tt.term_id = t.term_id
+        WHERE tr.object_id = $post_id 
+        AND tt.taxonomy = 'product_cat'
+        LIMIT 1
+        " 2>/dev/null)
+        
+        echo ""
+        echo -e "${GREEN}✅ Déjà catégorisé : ${BOLD}$existing_cat${NC}"
+        echo -e "${YELLOW}↩️  Skip - Aucun crédit API utilisé${NC}"
+        return 0
+    fi
+    
     # Récupérer les infos du livre
     debug_echo "[DEBUG] Récupération des infos du livre ID $post_id..."
     local book_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
@@ -352,11 +378,14 @@ case "$input" in
         mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT DISTINCT p.ID
         FROM wp_${SITE_ID}_posts p
-        LEFT JOIN wp_${SITE_ID}_term_relationships tr ON p.ID = tr.object_id
-        LEFT JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
         WHERE p.post_type = 'product'
         AND p.post_status = 'publish'
-        AND (tt.taxonomy != 'product_cat' OR tt.taxonomy IS NULL)
+        AND p.ID NOT IN (
+            SELECT DISTINCT object_id 
+            FROM wp_${SITE_ID}_term_relationships tr
+            JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            WHERE tt.taxonomy = 'product_cat'
+        )
         LIMIT $limit
         " 2>/dev/null | while read post_id; do
             debug_echo "[DEBUG] Traitement du livre ID=$post_id"

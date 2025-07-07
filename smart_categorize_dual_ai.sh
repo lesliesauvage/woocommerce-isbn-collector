@@ -124,7 +124,7 @@ categorize_with_dual_ai() {
     
     # NOUVEAU : Filtrer les catégories pertinentes pour réduire les tokens
     echo "   🔍 Filtrage intelligent des catégories..."
-    local categories_list=$(filter_relevant_categories "$title" "$authors" "$description" "$all_categories")
+    local categories_list=$(filter_relevant_categories "$title" "$authors" "$description" "$all_categories" "$post_id")
     
     local cat_count=$(echo "$categories_list" | wc -l)
     echo "   $cat_count catégories pertinentes (filtrées)"

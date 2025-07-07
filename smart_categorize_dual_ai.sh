@@ -13,57 +13,47 @@ SHOW_PROMPTS="1"  # FORCÉ EN DEBUG
 get_all_categories_with_hierarchy() {
     echo "[DEBUG] Récupération des catégories AVEC hiérarchie..." >&2
     
-    # Fonction récursive pour obtenir le chemin complet
-    get_full_category_path() {
-        local cat_id=$1
-        local cat_name=$2
-        local parent_id=$3
+    # Récupérer TOUTES les catégories (pas seulement les finales)
+    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+    WITH RECURSIVE category_path AS (
+        -- Cas de base : catégories sans parent
+        SELECT 
+            t.term_id,
+            t.name,
+            tt.parent,
+            CAST(t.name AS CHAR(1000)) AS path,
+            t.term_id AS final_id,
+            t.name AS final_name
+        FROM wp_${SITE_ID}_terms t
+        JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
+        WHERE tt.taxonomy = 'product_cat' 
+        AND tt.parent = 0
+        AND t.term_id NOT IN (15, 16)
         
-        if [ "$parent_id" = "0" ]; then
-            echo "ID:$cat_id - $cat_name"
-        else
-            # Récupérer le parent
-            local parent_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-            SELECT t.term_id, t.name, tt.parent
-            FROM wp_${SITE_ID}_terms t
-            JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-            WHERE t.term_id = $parent_id AND tt.taxonomy = 'product_cat'
-            " 2>/dev/null)
-            
-            if [ -n "$parent_info" ]; then
-                local p_id=$(echo "$parent_info" | cut -f1)
-                local p_name=$(echo "$parent_info" | cut -f2)
-                local p_parent=$(echo "$parent_info" | cut -f3)
-                
-                local parent_path=$(get_full_category_path "$p_id" "$p_name" "$p_parent")
-                echo "$parent_path > $cat_name (ID:$cat_id)"
-            else
-                echo "ID:$cat_id - $cat_name"
-            fi
-        fi
-    }
-    
-    # Récupérer toutes les catégories finales avec leurs parents
-    local result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT t.term_id, t.name, tt.parent
-    FROM wp_${SITE_ID}_terms t
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-    WHERE tt.taxonomy = 'product_cat'
-    AND t.term_id NOT IN (15, 16)
-    AND NOT EXISTS (
-        SELECT 1 FROM wp_${SITE_ID}_term_taxonomy tt2 
-        WHERE tt2.parent = t.term_id 
-        AND tt2.taxonomy = 'product_cat'
+        UNION ALL
+        
+        -- Cas récursif : ajouter les enfants
+        SELECT 
+            t.term_id,
+            t.name,
+            tt.parent,
+            CONCAT(cp.path, ' > ', t.name) AS path,
+            t.term_id AS final_id,
+            t.name AS final_name
+        FROM wp_${SITE_ID}_terms t
+        JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
+        JOIN category_path cp ON tt.parent = cp.term_id
+        WHERE tt.taxonomy = 'product_cat'
     )
-    ORDER BY t.name
-    " 2>/dev/null)
-    
-    echo "[DEBUG] Catégories finales trouvées : $(echo "$result" | wc -l)" >&2
-    
-    # Pour chaque catégorie finale, obtenir le chemin complet
-    while IFS=$'\t' read -r cat_id cat_name parent_id; do
-        get_full_category_path "$cat_id" "$cat_name" "$parent_id"
-    done <<< "$result"
+    SELECT CONCAT(path, ' (ID:', final_id, ')') AS category_line
+    FROM category_path
+    WHERE final_id NOT IN (
+        SELECT DISTINCT parent 
+        FROM wp_${SITE_ID}_term_taxonomy 
+        WHERE taxonomy = 'product_cat' AND parent != 0
+    )
+    ORDER BY path
+    " 2>/dev/null
 }
 
 # Obtenir la hiérarchie complète d'une catégorie
@@ -158,23 +148,26 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     local prompt_escaped=$(echo "$prompt" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
     echo "[DEBUG] Prompt échappé (50 car) : ${prompt_escaped:0:50}..." >&2
     
+    # Créer le JSON de la requête
+    local json_request="{
+        \"contents\": [{
+            \"parts\": [{
+                \"text\": \"$prompt_escaped\"
+            }]
+        }],
+        \"generationConfig\": {
+            \"temperature\": 0.3,
+            \"maxOutputTokens\": 20
+        }
+    }"
+    
     # Appel à Gemini
     echo "[DEBUG] Appel curl vers Gemini API..." >&2
     echo "[DEBUG] URL : ${GEMINI_API_URL}?key=${GEMINI_API_KEY:0:10}..." >&2
     
     local response=$(curl -s -X POST "${GEMINI_API_URL}?key=${GEMINI_API_KEY}" \
         -H "Content-Type: application/json" \
-        -d "{
-            \"contents\": [{
-                \"parts\": [{
-                    \"text\": \"$prompt_escaped\"
-                }]
-            }],
-            \"generationConfig\": {
-                \"temperature\": 0.3,
-                \"maxOutputTokens\": 20
-            }
-        }" 2>&1)
+        -d "$json_request" 2>&1)
     
     local curl_status=$?
     echo "[DEBUG] Statut curl : $curl_status" >&2
@@ -183,7 +176,7 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     # DEBUG : afficher la réponse brute
     if [ "$SHOW_PROMPTS" = "1" ]; then
         echo "📥 RÉPONSE GEMINI (brute) :"
-        echo "$response" | python3 -m json.tool 2>/dev/null | head -20 || echo "$response" | head -100
+        echo "$response" | head -200
         echo ""
     fi
     
@@ -194,17 +187,17 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
         return 1
     fi
     
-    # Extraire la réponse - méthode simplifiée
+    # Extraire la réponse - méthode corrigée
     echo "[DEBUG] Extraction de l'ID depuis la réponse..." >&2
     local extracted_id=""
     
-    # Extraire directement le texte de la réponse
-    local gemini_text=$(echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//' | tr -d '\n' | tr -d ' ')
-    echo "[DEBUG] Texte extrait : '$gemini_text'" >&2
+    # Chercher le pattern "text":"XXX" et extraire XXX
+    local text_content=$(echo "$response" | grep -o '"text":"[^"]*"' | head -1 | sed 's/"text":"//;s/"//')
+    echo "[DEBUG] Contenu text brut : '$text_content'" >&2
     
-    # Extraire uniquement les chiffres
-    extracted_id=$(echo "$gemini_text" | grep -o '[0-9]\+' | head -1)
-    echo "[DEBUG] ID extrait : '$extracted_id'" >&2
+    # Nettoyer et extraire uniquement les chiffres
+    extracted_id=$(echo "$text_content" | sed 's/\\n//g' | grep -o '[0-9]\+' | head -1)
+    echo "[DEBUG] ID extrait après nettoyage : '$extracted_id'" >&2
     
     if [ "$SHOW_PROMPTS" = "1" ] && [ -n "$extracted_id" ]; then
         echo "🔢 ID final extrait de Gemini : $extracted_id"
@@ -274,6 +267,16 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     local prompt_escaped=$(echo "$prompt" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
     echo "[DEBUG] Prompt échappé (50 car) : ${prompt_escaped:0:50}..." >&2
     
+    # Créer le JSON de la requête
+    local json_request="{
+        \"model\": \"claude-3-haiku-20240307\",
+        \"messages\": [{
+            \"role\": \"user\",
+            \"content\": \"$prompt_escaped\"
+        }],
+        \"max_tokens\": 50
+    }"
+    
     # Appel à Claude
     echo "[DEBUG] Appel curl vers Claude API..." >&2
     echo "[DEBUG] URL : $CLAUDE_API_URL" >&2
@@ -283,14 +286,7 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
         -H "x-api-key: $CLAUDE_API_KEY" \
         -H "anthropic-version: 2023-06-01" \
         -H "content-type: application/json" \
-        -d "{
-            \"model\": \"claude-3-haiku-20240307\",
-            \"messages\": [{
-                \"role\": \"user\",
-                \"content\": \"$prompt_escaped\"
-            }],
-            \"max_tokens\": 50
-        }" 2>&1)
+        -d "$json_request" 2>&1)
     
     local curl_status=$?
     echo "[DEBUG] Statut curl : $curl_status" >&2
@@ -299,7 +295,7 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     # DEBUG : afficher la réponse brute
     if [ "$SHOW_PROMPTS" = "1" ]; then
         echo "📥 RÉPONSE CLAUDE (brute) :"
-        echo "$response" | python3 -m json.tool 2>/dev/null | head -20 || echo "$response" | head -100
+        echo "$response" | head -200
         echo ""
     fi
     
@@ -310,12 +306,12 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
         return 1
     fi
     
-    # Extraire la réponse - méthode simplifiée
+    # Extraire la réponse - méthode corrigée
     echo "[DEBUG] Extraction de l'ID depuis la réponse..." >&2
     local extracted_id=""
     
-    # Extraire directement le texte de la réponse
-    local claude_text=$(echo "$response" | grep -o '"text":"[^"]*"' | sed 's/"text":"//;s/"//')
+    # Chercher le pattern "text":"XXX" et extraire XXX
+    local claude_text=$(echo "$response" | grep -o '"text":"[^"]*"' | head -1 | sed 's/"text":"//;s/"//')
     echo "[DEBUG] Texte extrait : '$claude_text'" >&2
     
     # Si Claude dit qu'il est d'accord, prendre la suggestion

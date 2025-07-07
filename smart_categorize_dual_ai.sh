@@ -21,6 +21,7 @@ done
 # Charger les modules
 source "$SCRIPT_DIR/lib/ai_common.sh"
 source "$SCRIPT_DIR/lib/category_functions.sh"
+source "$SCRIPT_DIR/lib/category_filter.sh"
 source "$SCRIPT_DIR/lib/ask_gemini.sh"
 source "$SCRIPT_DIR/lib/ask_claude.sh"
 
@@ -119,9 +120,14 @@ categorize_with_dual_ai() {
     
     # Obtenir la liste des catégories AVEC HIÉRARCHIE
     echo "📋 Récupération des catégories avec hiérarchie..."
-    local categories_list=$(get_all_categories_with_hierarchy)
+    local all_categories=$(get_all_categories_with_hierarchy)
+    
+    # NOUVEAU : Filtrer les catégories pertinentes pour réduire les tokens
+    echo "   🔍 Filtrage intelligent des catégories..."
+    local categories_list=$(filter_relevant_categories "$title" "$authors" "$description" "$all_categories")
+    
     local cat_count=$(echo "$categories_list" | wc -l)
-    echo "   $cat_count catégories disponibles"
+    echo "   $cat_count catégories pertinentes (filtrées)"
     debug_echo "[DEBUG] Exemples de catégories avec hiérarchie :"
     if [ "$VERBOSE" = "1" ]; then
         echo "$categories_list" | head -5 | while read line; do

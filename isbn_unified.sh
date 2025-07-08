@@ -323,10 +323,10 @@ process_single_book() {
         echo "[DEBUG] Début collecte pour produit #$id - ISBN: $isbn"
         
        # AU LIEU DE :
-"$SCRIPT_DIR/collect_all_sources.sh" "$id"    # ❌ N'existe pas
-"$SCRIPT_DIR/enrich_data.sh" "$id"           # ❌ N'existe pas  
-"$SCRIPT_DIR/select_best_data.sh" "$id"      # ❌ N'existe pas
-"$SCRIPT_DIR/process_images.sh" "$id"        # ❌ N'existe pas
+if [ -f "$SCRIPT_DIR/apis/google_books.sh" ]; then
+    source "$SCRIPT_DIR/apis/google_books.sh"
+    fetch_google_books "$isbn"
+fi
 
 # METTRE :
 # Appeler les APIs directement

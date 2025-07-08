@@ -147,55 +147,6 @@ parse_arguments() {
     done
 }
 
-# ===== FONCTIONS HELPER =====
-
-# Fonction pour compter les données d'un livre
-count_book_data() {
-    local product_id=$1
-    local prefix=$2
-    
-    local count=$(safe_mysql "
-        SELECT COUNT(*) FROM wp_${SITE_ID}_postmeta 
-        WHERE post_id = $product_id 
-        AND meta_key LIKE '${prefix}_%' 
-        AND meta_value IS NOT NULL 
-        AND meta_value != '' 
-        AND meta_value != 'null' 
-        AND meta_value != '0'")
-    
-    echo "${count:-0}"
-}
-
-# Afficher le résumé du traitement par lot
-show_batch_summary() {
-    local processed=$1
-    local successful=$2
-    local errors=$3
-    local incomplete_before=$4
-    local incomplete_after=$5
-    local duration=$6
-    
-    echo ""
-    echo ""
-    echo "════════════════════════════════════════════════════════════════"
-    echo "📊 RÉSUMÉ DU TRAITEMENT PAR LOT"
-    echo "════════════════════════════════════════════════════════════════"
-    echo ""
-    echo "📚 Livres traités      : $processed"
-    echo "✅ Réussis            : $successful"
-    echo "❌ Erreurs            : $errors"
-    echo ""
-    echo "📈 Progression        : $incomplete_before → $incomplete_after incomplets"
-    echo "⏱️  Durée totale      : ${duration}s"
-    echo ""
-    
-    if [ $incomplete_after -gt 0 ]; then
-        echo "💡 Relancez avec -p$processed pour continuer"
-    else
-        echo "🎉 Tous les livres sont maintenant complets !"
-    fi
-}
-
 # ===== FONCTIONS PRINCIPALES =====
 
 # Analyser un livre (mode AVANT/APRÈS ou compact)

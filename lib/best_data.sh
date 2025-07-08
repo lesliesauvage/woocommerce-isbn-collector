@@ -1,89 +1,237 @@
 #!/bin/bash
-# Sélection des meilleures données
+# lib/best_data.sh - Gestion des meilleures données
 
-# Source des dépendances
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$(dirname "${BASH_SOURCE[0]}")/database.sh"
+# Récupérer la meilleure valeur pour un type de donnée
+get_best_value() {
+    local data_type=$1
+    local product_id=$2
+    local value=""
+    
+    case "$data_type" in
+        "title")
+            # D'ABORD chercher _best_title
+            value=$(safe_get_meta "$product_id" "_best_title")
+            if [ -n "$value" ] && [ "$value" != "null" ]; then
+                echo "$value"
+                return
+            fi
+            # ENSUITE chercher dans les sources directes
+            for key in _g_title _i_title _o_title; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            ;;
+            
+        "authors")
+            # D'ABORD chercher _best_authors
+            value=$(safe_get_meta "$product_id" "_best_authors")
+            if [ -n "$value" ] && [ "$value" != "null" ]; then
+                echo "$value"
+                return
+            fi
+            # ENSUITE chercher dans les sources
+            for key in _g_authors _i_authors _o_authors; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            ;;
+            
+        "publisher")
+            # D'ABORD chercher _best_publisher
+            value=$(safe_get_meta "$product_id" "_best_publisher")
+            if [ -n "$value" ] && [ "$value" != "null" ]; then
+                echo "$value"
+                return
+            fi
+            # ENSUITE chercher dans les sources
+            for key in _g_publisher _i_publisher _o_publishers; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            ;;
+            
+        "description")
+            # Ordre de priorité pour la description
+            for key in _best_description _claude_description _groq_description _g_description _i_synopsis _i_overview _o_description; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ] && [ ${#value} -gt 20 ]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            ;;
+            
+        "pages")
+            # D'ABORD chercher _best_pages
+            value=$(safe_get_meta "$product_id" "_best_pages")
+            if [ -n "$value" ] && [ "$value" != "null" ] && [ "$value" != "0" ]; then
+                echo "$value"
+                return
+            fi
+            # ENSUITE chercher dans les sources
+            for key in _g_pageCount _i_pages _o_number_of_pages; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ] && [ "$value" != "0" ]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            ;;
+            
+        "language")
+            for key in _g_language _i_language; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            echo "fr"  # Défaut français
+            ;;
+            
+        "date")
+            for key in _g_publishedDate _i_date_published; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            ;;
+            
+        "binding")
+            for key in _i_binding _o_physical_format; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            ;;
+            
+        "weight")
+            value=$(safe_get_meta "$product_id" "_calculated_weight")
+            if [ -n "$value" ] && [ "$value" != "null" ]; then
+                echo "$value"
+                return
+            fi
+            ;;
+            
+        "dimensions")
+            value=$(safe_get_meta "$product_id" "_calculated_dimensions")
+            if [ -n "$value" ] && [ "$value" != "null" ]; then
+                echo "$value"
+                return
+            fi
+            ;;
+            
+        "price")
+            value=$(safe_get_meta "$product_id" "_price")
+            if [ -n "$value" ] && [ "$value" != "null" ]; then
+                echo "$value"
+                return
+            fi
+            ;;
+            
+        "image")
+            # Ordre de préférence pour les images
+            for key in _best_cover_image _g_extraLarge _g_large _g_medium _g_small _g_thumbnail _g_smallThumbnail _i_image _o_cover_large _o_cover_medium _o_cover_small; do
+                value=$(safe_get_meta "$product_id" "$key")
+                if [ -n "$value" ] && [ "$value" != "null" ] && [[ "$value" =~ ^https?:// ]]; then
+                    echo "$value"
+                    return
+                fi
+            done
+            ;;
+    esac
+    
+    # Rien trouvé
+    echo ""
+}
 
-# Stocker les meilleures données avec leur source
+# Stocker la meilleure valeur pour un type de donnée
 store_best_data() {
     local product_id=$1
-    local field=$2
+    local data_type=$2
     local value=$3
     local source=$4
     
-    if [ -n "$value" ]; then
-        safe_store_meta "$product_id" "_best_$field" "$value"
-        safe_store_meta "$product_id" "_best_${field}_source" "$source"
+    if [ -z "$value" ] || [ "$value" = "null" ]; then
+        return
     fi
+    
+    case "$data_type" in
+        "title")
+            safe_store_meta "$product_id" "_best_title" "$value"
+            safe_store_meta "$product_id" "_best_title_source" "$source"
+            ;;
+        "authors")
+            safe_store_meta "$product_id" "_best_authors" "$value"
+            safe_store_meta "$product_id" "_best_authors_source" "$source"
+            ;;
+        "publisher")
+            safe_store_meta "$product_id" "_best_publisher" "$value"
+            safe_store_meta "$product_id" "_best_publisher_source" "$source"
+            ;;
+        "description")
+            safe_store_meta "$product_id" "_best_description" "$value"
+            safe_store_meta "$product_id" "_best_description_source" "$source"
+            ;;
+        "pages")
+            safe_store_meta "$product_id" "_best_pages" "$value"
+            safe_store_meta "$product_id" "_best_pages_source" "$source"
+            ;;
+        "binding")
+            safe_store_meta "$product_id" "_best_binding" "$value"
+            safe_store_meta "$product_id" "_best_binding_source" "$source"
+            ;;
+        "cover")
+            safe_store_meta "$product_id" "_best_cover_image" "$value"
+            safe_store_meta "$product_id" "_best_cover_source" "$source"
+            ;;
+    esac
 }
 
-# Sélectionner la meilleure description
+# Sélectionner la meilleure description parmi plusieurs
 select_best_description() {
     local product_id=$1
+    shift  # Enlever product_id des arguments
     local descriptions=("$@")
     
     local best_desc=""
+    local best_length=0
     local best_source=""
     
-    # Parcourir les descriptions dans l'ordre de préférence
-    for desc_entry in "${descriptions[@]:1}"; do
-        IFS='|' read -r desc source <<< "$desc_entry"
-        if [ -n "$desc" ] && [ "$desc" != "Text: French" ] && [ ${#desc} -gt 30 ]; then
+    for desc_data in "${descriptions[@]}"; do
+        local desc=$(echo "$desc_data" | cut -d'|' -f1)
+        local source=$(echo "$desc_data" | cut -d'|' -f2)
+        
+        if [ -n "$desc" ] && [ "$desc" != "null" ] && [ ${#desc} -gt $best_length ]; then
             best_desc="$desc"
+            best_length=${#desc}
             best_source="$source"
-            break
         fi
     done
     
     if [ -n "$best_desc" ]; then
         store_best_data "$product_id" "description" "$best_desc" "$best_source"
-        safe_store_meta "$product_id" "_has_description" "1"
         echo "$best_desc"
         return 0
-    else
-        safe_store_meta "$product_id" "_has_description" "0"
-        return 1
     fi
+    
+    return 1
 }
 
-# Fusionner toutes les catégories
-merge_all_categories() {
-    local g_categories=$1
-    local i_subjects=$2
-    local o_subjects=$3
-    
-    local all_categories=""
-    [ -n "$g_categories" ] && all_categories="${all_categories}${g_categories}, "
-    [ -n "$i_subjects" ] && [ "$i_subjects" != "Subjects," ] && all_categories="${all_categories}${i_subjects}, "
-    [ -n "$o_subjects" ] && all_categories="${all_categories}${o_subjects}, "
-    
-    echo "$all_categories" | sed 's/, $//' | sed 's/,\+/, /g'
-}
-
-# Déterminer la meilleure image
-select_best_image() {
-    local g_extraLarge=$1
-    local g_large=$2
-    local g_medium=$3
-    local g_thumbnail=$4
-    local i_image=$5
-    local o_cover_large=$6
-    local o_cover_medium=$7
-    local o_cover_small=$8
-    
-    local best_image="${g_extraLarge:-${g_large:-${g_medium:-${g_thumbnail:-${i_image:-${o_cover_large:-${o_cover_medium:-$o_cover_small}}}}}}}"
-    
-    if [ -n "$best_image" ]; then
-        local source="unknown"
-        if [[ "$best_image" == *"books.google"* ]]; then
-            source="google"
-        elif [[ "$best_image" == *"isbndb"* ]]; then
-            source="isbndb"
-        elif [[ "$best_image" == *"openlibrary"* ]] || [[ "$best_image" == *"covers.openlibrary"* ]]; then
-            source="openlibrary"
-        fi
-        
-        echo "$best_image|$source"
-    fi
-}
+# Export des fonctions
+export -f get_best_value
+export -f store_best_data
+export -f select_best_description

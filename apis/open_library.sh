@@ -17,6 +17,8 @@ fetch_open_library() {
     
     local ol_response=$(curl -s --connect-timeout 10 --max-time 30 -H "Accept-Charset: UTF-8" "https://openlibrary.org/api/books?bibkeys=ISBN:$isbn&format=json&jscmd=data")
     ((api_calls_ol++))
+	# Marquer la tentative d'appel
+    safe_store_meta "$product_id" "_openlibrary_last_attempt" "$(date '+%Y-%m-%d %H:%M:%S')"
     export api_calls_ol
     
     if [ -n "$ol_response" ] && [ "$ol_response" != "{}" ]; then

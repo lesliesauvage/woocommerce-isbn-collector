@@ -155,3 +155,67 @@ lib/maintenance_tools.sh (nouveau)
 lib/enrichment.sh (mise à jour)
 lib/analyze_display.sh (mise à jour)
 isbn_unified.sh (principal)
+
+
+SYNTHÈSE FINALE COMPLÈTE AVEC -p[X]
+🎯 NOUVELLE FONCTIONNALITÉ -p[X] INTÉGRÉE
+Comportement de -p[X] :
+
+-p10 : Traite les 10 premiers livres incomplets (score < max)
+Les livres restent dans la queue jusqu'à être complets
+-force -p10 : Traite les 10 premiers TOUS (ignore le score)
+
+Combinaisons valides :
+bash./isbn_unified.sh -p10 -notableau    # 10 livres sans tableaux
+./isbn_unified.sh -p10 -groq         # 10 livres avec Groq
+./isbn_unified.sh -p10 -noverbose    # 10 livres silencieux
+./isbn_unified.sh -p10 -s5           # 10 livres, pause 5s entre chaque
+./isbn_unified.sh -force -p10        # Force les 10 premiers même si complets
+📊 TOUTES LES OPTIONS DU SCRIPT
+bash📚 ISBN UNIFIED - Gestionnaire complet
+Usage: ./isbn_unified.sh [OPTIONS] [ISBN] [PRIX] [ÉTAT] [STOCK]
+
+Options principales:
+  -p[X]          Traiter X livres incomplets
+  -force         Force la réanalyse (ignore score)
+  -notableau     Sans tableaux détaillés AVANT/APRÈS
+  -vendu ISBN    Décrémenter stock d'un livre
+  -export MARKET Exporter vers marketplace
+  -n[X]          Limiter export à X livres
+  -s[X]          Pause X secondes entre livres
+  -groq          Utiliser Groq au lieu de Claude
+  -noverbose     Moins de détails (niveau 1)
+  -noverbose2    Minimum de détails (niveau 2)
+
+États: 1=Neuf étiq. 2=Neuf 3=Très bon 4=Bon 5=Correct 6=Passable
+Marketplaces: amazon, rakuten, vinted, fnac, cdiscount, leboncoin, all
+🔄 LOGIQUE DE SÉLECTION POUR -p[X]
+Sans -force :
+sqlWHERE (pm_score.meta_value IS NULL OR pm_score.meta_value < MAX_SCORE)
+ORDER BY p.ID ASC
+LIMIT X
+Avec -force :
+sqlWHERE p.post_type = 'product' AND p.post_status = 'publish'
+ORDER BY p.ID ASC  
+LIMIT X
+📝 RÉSUMÉ FINAL DES FONCTIONNALITÉS
+
+Traitement par lot (-p[X]) ✅
+Analyse avec tableaux AVANT/APRÈS ✅
+Mode rapide sans tableaux (-notableau) ✅
+Ajout de nouveaux livres ✅
+Gestion stock avec décrémentation (-vendu) ✅
+Export marketplace avec limite (-n[X]) ✅
+Rapport détaillé (ex-martingale) ✅
+Score d'exportabilité avec détails manquants ✅
+Import images WordPress ✅
+Maintenance avancée (5 sous-options) ✅
+
+🚀 ORDRE DE CODAGE FINAL
+
+apis/claude_ai.sh (150 lignes)
+lib/export_checks.sh (300 lignes)
+lib/maintenance_tools.sh (400 lignes)
+lib/enrichment.sh (mise à jour +200 lignes)
+lib/analyze_display.sh (mise à jour +100 lignes)
+isbn_unified.sh (800-1000 lignes)

@@ -340,7 +340,91 @@ collect_all_apis() {
     safe_store_meta "$product_id" "_last_analyze_date" "$(date '+%Y-%m-%d %H:%M:%S')"
     
     echo "[DEBUG] Collecte terminée : $api_calls appels API, $data_found sources" >&2
+    # ===== À AJOUTER À LA FIN DE collect_all_apis() AVANT LE RETURN =====
+
+    # === 10. SÉLECTION AUTOMATIQUE DES MEILLEURES DONNÉES ===
+    echo "[DEBUG] Sélection automatique des meilleures données..." >&2
     
+    # Titre
+    local best_title=""
+    for key in _g_title _i_title _o_title; do
+        local val=$(safe_get_meta "$product_id" "$key")
+        if [ -n "$val" ] && [ "$val" != "null" ]; then
+            best_title="$val"
+            safe_store_meta "$product_id" "_best_title" "$best_title"
+            safe_store_meta "$product_id" "_best_title_source" "${key#_}"
+            echo "[DEBUG] Best title: $best_title (source: ${key#_})" >&2
+            break
+        fi
+    done
+    
+    # Auteurs
+    local best_authors=""
+    for key in _g_authors _i_authors _o_authors; do
+        local val=$(safe_get_meta "$product_id" "$key")
+        if [ -n "$val" ] && [ "$val" != "null" ]; then
+            best_authors="$val"
+            safe_store_meta "$product_id" "_best_authors" "$best_authors"
+            safe_store_meta "$product_id" "_best_authors_source" "${key#_}"
+            echo "[DEBUG] Best authors: $best_authors (source: ${key#_})" >&2
+            break
+        fi
+    done
+    
+    # Éditeur (correction du bug)
+    local best_publisher=""
+    for key in _g_publisher _i_publisher _o_publishers; do
+        local val=$(safe_get_meta "$product_id" "$key")
+        if [ -n "$val" ] && [ "$val" != "null" ]; then
+            best_publisher="$val"
+            safe_store_meta "$product_id" "_best_publisher" "$best_publisher"
+            safe_store_meta "$product_id" "_best_publisher_source" "${key#_}"
+            echo "[DEBUG] Best publisher: $best_publisher (source: ${key#_})" >&2
+            break
+        fi
+    done
+    
+    # Pages
+    local best_pages=""
+    for key in _g_pageCount _i_pages _o_number_of_pages; do
+        local val=$(safe_get_meta "$product_id" "$key")
+        if [ -n "$val" ] && [ "$val" != "null" ] && [ "$val" != "0" ]; then
+            best_pages="$val"
+            safe_store_meta "$product_id" "_best_pages" "$best_pages"
+            safe_store_meta "$product_id" "_best_pages_source" "${key#_}"
+            echo "[DEBUG] Best pages: $best_pages (source: ${key#_})" >&2
+            break
+        fi
+    done
+    
+    # Reliure
+    local best_binding=""
+    for key in _i_binding _o_physical_format; do
+        local val=$(safe_get_meta "$product_id" "$key")
+        if [ -n "$val" ] && [ "$val" != "null" ]; then
+            best_binding="$val"
+            safe_store_meta "$product_id" "_best_binding" "$best_binding"
+            safe_store_meta "$product_id" "_best_binding_source" "${key#_}"
+            echo "[DEBUG] Best binding: $best_binding (source: ${key#_})" >&2
+            break
+        fi
+    done
+    
+    # Mise à jour du titre WordPress si nécessaire
+    if [ -n "$best_title" ]; then
+        local current_title=$(safe_mysql "SELECT post_title FROM wp_${SITE_ID}_posts WHERE ID = $product_id")
+        if [[ "$current_title" =~ ^Livre[[:space:]]ISBN ]] || [ "$current_title" = "" ]; then
+            echo "[DEBUG] Mise à jour du titre WordPress : $best_title" >&2
+            local title_escaped=$(safe_sql "$best_title")
+            safe_mysql "UPDATE wp_${SITE_ID}_posts SET post_title = '$title_escaped' WHERE ID = $product_id"
+        fi
+    fi
+    
+    # === 11. VÉRIFICATION SI DONNÉES DÉJÀ COLLECTÉES ===
+    if [ $data_found -eq 0 ] && [ $api_calls -gt 0 ]; then
+        echo "[DEBUG] ⚠️  Aucune nouvelle donnée trouvée (APIs déjà interrogées)" >&2
+        echo "[DEBUG] 💡 Utilisez -force pour forcer une nouvelle collecte" >&2
+    fi
     return 0
 }
 

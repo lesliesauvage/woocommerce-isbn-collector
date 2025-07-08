@@ -486,6 +486,71 @@ analyze_book() {
     fi
 }
 
+# Affichage compact pour mode sans tableaux
+show_compact_collection() {
+    local product_id=$1
+    local isbn=$2
+    local start_time=$3
+    local use_groq=$4
+    
+    # Calculer durée
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+    
+    echo ""
+    echo "✅ COLLECTE TERMINÉE en ${duration}s"
+    echo ""
+    
+    # Afficher les données essentielles
+    local title=$(get_best_value "title" "$product_id")
+    local authors=$(get_best_value "authors" "$product_id")
+    local publisher=$(get_best_value "publisher" "$product_id")
+    local pages=$(get_best_value "pages" "$product_id")
+    local price=$(get_best_value "price" "$product_id")
+    local has_desc=$(safe_get_meta "$product_id" "_has_description")
+    local has_image=$(get_best_value "image" "$product_id")
+    
+    echo "📖 DONNÉES COLLECTÉES :"
+    echo "─────────────────────"
+    [ -n "$title" ] && echo "Titre      : $title"
+    [ -n "$authors" ] && echo "Auteur(s)  : $authors"
+    [ -n "$publisher" ] && echo "Éditeur    : $publisher"
+    [ -n "$pages" ] && [ "$pages" != "0" ] && echo "Pages      : $pages"
+    [ -n "$price" ] && [ "$price" != "0" ] && echo "Prix       : $price €"
+    
+    # Status description
+    if [ "$has_desc" = "1" ]; then
+        local desc_source=$(safe_get_meta "$product_id" "_best_description_source")
+        [ -z "$desc_source" ] && desc_source=$(safe_get_meta "$product_id" "_description_source")
+        echo "Description: ✅ Générée par ${desc_source:-IA}"
+    else
+        echo "Description: ❌ Manquante"
+    fi
+    
+    # Status image
+    if [ -n "$has_image" ]; then
+        echo "Image      : ✅ Disponible"
+    else
+        echo "Image      : ❌ Manquante"
+    fi
+    
+    # Score d'exportabilité
+    calculate_export_score "$product_id" > /dev/null
+    local score=$(safe_get_meta "$product_id" "_export_score")
+    local max_score=$(safe_get_meta "$product_id" "_export_max_score")
+    
+    echo ""
+    echo "📊 EXPORTABILITÉ : $score/$max_score points"
+    
+    # Marketplaces prêtes
+    local ready_markets=$(get_ready_marketplaces "$product_id")
+    if [ -n "$ready_markets" ]; then
+        echo "✅ Prêt pour : $ready_markets"
+    else
+        echo "❌ Aucune marketplace prête"
+    fi
+}
+
 # Ajouter un nouveau livre
 add_new_book() {
     local isbn=$1

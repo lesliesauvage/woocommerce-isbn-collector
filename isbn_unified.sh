@@ -322,17 +322,38 @@ process_single_book() {
         # Lancer la collecte
         echo "[DEBUG] Début collecte pour produit #$id - ISBN: $isbn"
         
-        # Appeler le script de collecte
-        "$SCRIPT_DIR/collect_all_sources.sh" "$id"
-        
-        # Enrichir les données
-        "$SCRIPT_DIR/enrich_data.sh" "$id"
-        
-        # Sélectionner les meilleures données
-        "$SCRIPT_DIR/select_best_data.sh" "$id"
-        
-        # Traiter les images
-        "$SCRIPT_DIR/process_images.sh" "$id"
+       # AU LIEU DE :
+"$SCRIPT_DIR/collect_all_sources.sh" "$id"    # ❌ N'existe pas
+"$SCRIPT_DIR/enrich_data.sh" "$id"           # ❌ N'existe pas  
+"$SCRIPT_DIR/select_best_data.sh" "$id"      # ❌ N'existe pas
+"$SCRIPT_DIR/process_images.sh" "$id"        # ❌ N'existe pas
+
+# METTRE :
+# Appeler les APIs directement
+if [ -f "$SCRIPT_DIR/apis/google_books.sh" ]; then
+    source "$SCRIPT_DIR/apis/google_books.sh"
+    fetch_google_books "$isbn"
+fi
+
+if [ -f "$SCRIPT_DIR/apis/isbndb.sh" ]; then
+    source "$SCRIPT_DIR/apis/isbndb.sh"
+    fetch_isbndb "$isbn"
+fi
+
+if [ -f "$SCRIPT_DIR/apis/open_library.sh" ]; then
+    source "$SCRIPT_DIR/apis/open_library.sh"
+    fetch_openlibrary "$isbn"
+fi
+
+# Sélectionner les meilleures données
+source "$SCRIPT_DIR/lib/best_data.sh"
+select_best_data "$id"
+
+# Calculer poids et dimensions
+calculate_weight_dimensions "$id"
+
+# Générer les bullet points
+generate_bullet_points "$id"
     fi
     
     # Gérer le prix et la condition

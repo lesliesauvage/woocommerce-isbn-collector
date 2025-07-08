@@ -1,10 +1,10 @@
 #!/bin/bash
-# API ISBNdb - VERSION CORRIGÉE
+# API ISBNdb - VERSION CORRIGÉE AVEC MESSAGES CLAIRS
 
 # Source des dépendances
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$SCRIPT_DIR/config/settings.sh"
-source "$SCRIPT_DIR/lib/safe_functions.sh"  # Fonctions sécurisées
+source "$SCRIPT_DIR/lib/safe_functions.sh"
 source "$SCRIPT_DIR/lib/utils.sh"
 source "$SCRIPT_DIR/lib/database.sh"
 
@@ -33,19 +33,25 @@ fetch_isbndb() {
     
     # Vérifier la réponse
     if [ -z "$isbndb_response" ]; then
-        log "    ✗ ISBNdb : pas de réponse"
+        log "    ✗ ISBNdb : API non accessible (timeout ou erreur réseau)"
         return 1
     fi
     
     # Vérifier les erreurs d'authentification
     if [[ "$isbndb_response" =~ "unauthorized" ]] || [[ "$isbndb_response" =~ "Invalid API" ]]; then
-        log "    ✗ ISBNdb : erreur d'authentification"
+        log "    ✗ ISBNdb : erreur d'authentification (vérifiez la clé API)"
+        return 1
+    fi
+    
+    # Vérifier si c'est une erreur 404 ou pas de livre
+    if [[ "$isbndb_response" =~ "not found" ]] || [[ "$isbndb_response" =~ "404" ]]; then
+        log "    ✗ ISBNdb : aucune donnée pour cet ISBN"
         return 1
     fi
     
     # Vérifier la présence de la structure book
-    if [[ "$isbndb_response" != *'"book":'* ]]; then
-        log "    ✗ ISBNdb : structure invalide"
+    if [[ ! "$isbndb_response" =~ '"book":' ]]; then
+        log "    ✗ ISBNdb : réponse invalide (pas de données livre)"
         return 1
     fi
     
@@ -72,7 +78,7 @@ fetch_isbndb() {
     elif [ -n "$i_title" ] && [ "$i_title" != "null" ]; then
         log "    ✓ ISBNdb : trouvé '$i_title'"
     else
-        log "    ✓ ISBNdb : données trouvées"
+        log "    ✓ ISBNdb : données partielles trouvées"
     fi
     
     # Stocker toutes les données

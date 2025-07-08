@@ -596,7 +596,7 @@ process_batch() {
         echo "[$current/$batch_size] ISBN $isbn (ID #$product_id) - Analyse..."
         
         # Analyser le livre
-        if analyze_book "$product_id" >/dev/null 2>&1; then
+        if analyze_book "$product_id"; then
             ((successful++))
             echo "[$current/$batch_size] ✅ ISBN $isbn - Terminé"
         else

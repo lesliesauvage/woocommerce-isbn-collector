@@ -29,6 +29,8 @@ fetch_isbndb() {
         "https://api2.isbndb.com/book/$isbn")
     
     ((api_calls_isbndb++))
+	# Marquer la tentative
+    safe_store_meta "$product_id" "_isbndb_last_attempt" "$(date '+%Y-%m-%d %H:%M:%S')"
     export api_calls_isbndb
     
     # Vérifier la réponse

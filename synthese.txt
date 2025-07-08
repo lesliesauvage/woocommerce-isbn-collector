@@ -1,0 +1,157 @@
+📋 SYNTHÈSE EXHAUSTIVE AVANT CODAGE
+🎯 OBJECTIF
+Créer isbn_unified.sh qui fusionne TOUTES les fonctionnalités de :
+
+run.sh
+add_book_minimal.sh
+add_and_collect.sh
+collect_api_data.sh
+analyze_with_collect.sh
+martingale.sh
+
+📁 STRUCTURE DES FICHIERS
+Fichier principal :
+
+isbn_unified.sh (~800 lignes) : Menu, routing, logique principale
+
+Fichiers à créer :
+
+apis/claude_ai.sh : API Claude pour descriptions
+lib/export_checks.sh : Vérifications d'exportabilité
+lib/maintenance_tools.sh : Outils de maintenance
+
+Fichiers à mettre à jour :
+
+lib/enrichment.sh : +fonctions de collecte depuis collect_api_data.sh
+lib/analyze_display.sh : +affichage mode notableau
+
+Fichiers à renommer en .bak :
+
+Les 6 fichiers fusionnés
+
+🔧 FONCTIONNALITÉS PRINCIPALES
+
+Modes de lancement :
+
+Sans params → Menu interactif
+Avec ISBN → Analyse directe
+Avec options → Actions spécifiques
+
+
+Options disponibles :
+
+-force : Réanalyse forcée
+-notableau : Sans tableaux AVANT/APRÈS
+-vendu ISBN : Décrémente stock
+-export [market] : Export marketplace
+-n[X] : Limite nombre de livres
+-s[X] : Pause X secondes
+-groq : Utilise Groq au lieu de Claude
+-noverbose[2] : Moins de détails
+
+
+Menu principal (10 options) :
+
+Analyse complète (AVANT/APRÈS)
+Collecte rapide (sans tableaux)
+Ajouter un nouveau livre
+Marquer comme vendu
+Rapport complet (ex-martingale)
+Exporter vers marketplaces
+Catégorisation IA double
+Générer rapport statistiques
+Tester les APIs
+Maintenance (sous-menu)
+
+
+
+📊 NOUVELLES FONCTIONNALITÉS
+
+Gestion du stock :
+
+Nouvelle meta _stock_quantity
+Décrémentation avec -vendu
+Mise à jour _stock_status
+
+
+Score d'exportabilité :
+
+Calcul dynamique des points
+Affichage "18/20 points"
+Liste des données manquantes
+
+
+Import images WordPress :
+
+Téléchargement et vérification
+Import dans Media Library
+Stockage URLs + attachment ID
+
+
+Mode notableau :
+
+Affichage compact
+Description Claude visible
+Stats finales (X/Y points)
+
+
+Maintenance avancée :
+
+Recalcul poids/dimensions
+Vérification images cassées
+Export CSV inventaire
+Nettoyage titres
+Stats globales
+
+
+
+🔄 WORKFLOW DE COLLECTE
+
+Vérification initiale :
+
+ISBN existe ? → Proposer analyse
+Données complètes ? → Score et manques
+Force ? → Skip vérifications
+
+
+Collecte APIs (ordre) :
+
+Google Books → ISBNdb → Open Library
+Si pas de description → Claude (ou Groq si -groq)
+Calculs automatiques (poids, dimensions)
+
+
+Post-traitement :
+
+Import images si trouvées
+Calcul score exportabilité
+Stockage métadonnées
+Correction bug publisher
+
+
+
+⚡ COMPORTEMENTS SPÉCIAUX
+
+Prix = 0 → Toujours redemander
+Stock par défaut = 1
+État mapping → 6 états vers formats marketplace
+Pause collecte → Variable COLLECT_DELAY
+Erreur Claude → Arrêt complet (pas de fallback Groq)
+Images → Vérifier existence + dimensions si possible
+
+🛡️ SÉCURITÉ
+
+Utilisation systématique de safe_sql pour apostrophes
+Validation ISBN avant traitement
+Vérification packages avant utilisation
+Gestion erreurs MySQL propre
+Logs détaillés en mode DEBUG
+
+📝 ORDRE DE DÉVELOPPEMENT
+
+apis/claude_ai.sh (nouveau)
+lib/export_checks.sh (nouveau)
+lib/maintenance_tools.sh (nouveau)
+lib/enrichment.sh (mise à jour)
+lib/analyze_display.sh (mise à jour)
+isbn_unified.sh (principal)

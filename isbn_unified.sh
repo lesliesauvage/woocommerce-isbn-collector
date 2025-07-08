@@ -464,28 +464,6 @@ analyze_book() {
             echo "❌ Erreur lors de la collecte"
             return 1
         fi
-            
-            # Compter après
-            local after_google=$(count_book_data "$product_id" "_g")
-            local after_isbndb=$(count_book_data "$product_id" "_i")
-            local after_ol=$(count_book_data "$product_id" "_o")
-            local after_best=$(count_book_data "$product_id" "_best")
-            local after_calc=$(count_book_data "$product_id" "_calculated")
-            local after_total=$((after_google + after_isbndb + after_ol + after_best + after_calc))
-            
-            # Tableau comparatif
-            show_gains_table "$before_google" "$after_google" "$before_isbndb" "$after_isbndb" \
-                             "$before_ol" "$after_ol" "$before_best" "$after_best" \
-                             "$before_calc" "$after_calc" "$before_total" "$after_total"
-            
-            local gain_total=$((after_total - before_total))
-            
-            # Message final
-            show_final_stats "$product_id" "$gain_total"
-        else
-            echo "❌ Erreur lors de la collecte"
-            return 1
-        fi
     fi
     
     # Commande pour nouvelle analyse - SEULEMENT SI PAS EN MODE BATCH

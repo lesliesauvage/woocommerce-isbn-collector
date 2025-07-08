@@ -343,22 +343,18 @@ show_api_collection() {
     
     echo "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘"
     
-    # ISBNdb
-echo ""
+# ISBNdb
+    echo ""
     echo "🟢 ISBNDB API"
-    
-    # Vérifier si on a des données ISBNdb
     local i_test=$(safe_get_meta "$product_id" "_i_title")
     local i_binding=$(safe_get_meta "$product_id" "_i_binding")
     
     if [ -n "$i_test" ] || [ -n "$i_binding" ]; then
         echo "✅ Statut : Données collectées avec succès"
     else
-        # Vérifier si on a une clé API
         if [ -z "$ISBNDB_KEY" ]; then
             echo "❌ Statut : Clé API non configurée"
         else
-            # Vérifier si on a tenté l'appel
             local isbndb_attempt=$(safe_get_meta "$product_id" "_isbndb_last_attempt")
             if [ -n "$isbndb_attempt" ]; then
                 echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
@@ -400,17 +396,14 @@ echo ""
     
     echo "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘"
     
-    # Open Library
-  echo ""
+ # Open Library
+    echo ""
     echo "🟠 OPEN LIBRARY API"
-    
-    # Vérifier si on a des données Open Library
     local o_test=$(safe_get_meta "$product_id" "_o_title")
     
     if [ -n "$o_test" ]; then
         echo "✅ Statut : Données collectées avec succès"
     else
-        # Vérifier si on a tenté l'appel
         local ol_attempt=$(safe_get_meta "$product_id" "_openlibrary_last_attempt")
         if [ -n "$ol_attempt" ]; then
             echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"

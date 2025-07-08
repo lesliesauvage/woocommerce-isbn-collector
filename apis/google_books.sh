@@ -21,6 +21,8 @@ fetch_google_books() {
     
     local google_response=$(curl -s --connect-timeout 10 --max-time 30 -H "Accept-Charset: UTF-8" "$google_url")
     ((api_calls_google++))
+	# Marquer la tentative d'appel
+    safe_store_meta "$product_id" "_google_last_attempt" "$(date '+%Y-%m-%d %H:%M:%S')"
     export api_calls_google
     
     if [ -n "$google_response" ] && [ "$google_response" != "null" ] && [[ "$google_response" == *"items"* ]]; then

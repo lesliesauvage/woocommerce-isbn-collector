@@ -412,11 +412,58 @@ analyze_book() {
         
         # Lancer la collecte
         if collect_all_apis "$product_id" "$isbn" "$USE_GROQ"; then
+            # Compter après collecte pour détecter si nouvelles données
+            local after_google_quick=$(count_book_data "$product_id" "_g")
+            local new_data=$((after_google_quick - before_google))
+            
+            # Message si pas de nouvelles données
+            if [ $new_data -eq 0 ] && [ $before_google -gt 10 ]; then
+                echo ""
+                echo "ℹ️  CE LIVRE A DÉJÀ ÉTÉ ANALYSÉ"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "Toutes les APIs ont déjà été interrogées pour ce livre."
+                echo "Les données sont à jour et complètes."
+                echo ""
+                echo "💡 Utilisez -force pour forcer une nouvelle collecte"
+                echo ""
+            fi
+            
             # SECTION 2 : COLLECTE API
             show_api_collection "$product_id" "$isbn"
             
             # SECTION 3 : APRÈS
             show_after_state "$product_id" "$isbn"
+            
+            # Compter après (détaillé)
+            local after_google=$(count_book_data "$product_id" "_g")
+            local after_isbndb=$(count_book_data "$product_id" "_i")
+            local after_ol=$(count_book_data "$product_id" "_o")
+            local after_best=$(count_book_data "$product_id" "_best")
+            local after_calc=$(count_book_data "$product_id" "_calculated")
+            local after_total=$((after_google + after_isbndb + after_ol + after_best + after_calc))
+            
+            # Tableau comparatif
+            show_gains_table "$before_google" "$after_google" "$before_isbndb" "$after_isbndb" \
+                             "$before_ol" "$after_ol" "$before_best" "$after_best" \
+                             "$before_calc" "$after_calc" "$before_total" "$after_total"
+            
+            local gain_total=$((after_total - before_total))
+            
+            # Message final adapté
+            if [ $gain_total -eq 0 ] && [ $before_total -gt 20 ]; then
+                echo ""
+                echo "ℹ️  Aucune nouvelle donnée collectée"
+                echo "   Causes possibles :"
+                echo "   • Le livre a déjà toutes les données disponibles"
+                echo "   • Les APIs n'ont pas d'informations supplémentaires"
+                echo "   • Utilisez -force pour réinterroger les APIs"
+            else
+                show_final_stats "$product_id" "$gain_total"
+            fi
+        else
+            echo "❌ Erreur lors de la collecte"
+            return 1
+        fi
             
             # Compter après
             local after_google=$(count_book_data "$product_id" "_g")

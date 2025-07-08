@@ -1,335 +1,318 @@
 #!/bin/bash
-# lib/analyze_after.sh - Fonction show_after_state pour la section 3
+# lib/analyze_after.sh - Affichage de l'état APRÈS collecte avec requirements
 
-# Fonction pour afficher l'état APRÈS collecte (Section 3)
+# Fonction pour afficher l'état après collecte
 show_after_state() {
-    local product_id=$1
+    local id=$1
     local isbn=$2
-    
-    echo ""
-    echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-    echo "📊 SECTION 3 : RÉSULTAT APRÈS COLLECTE ET EXPORTABILITÉ"
-    echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
     
     # Tableau des meilleures données sélectionnées
     echo ""
     echo "🏆 MEILLEURES DONNÉES SÉLECTIONNÉES PAR LA MARTINGALE"
-    echo "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐"
-    echo "│ Variable finale                              │ Valeur sélectionnée                                                                                    │ Source   │"
-    echo "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤"
+    printf "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐\n"
+    printf "│ %-44s │ %-102s │ %-8s │\n" "Variable finale" "Valeur sélectionnée" "Source"
+    printf "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤\n"
     
-    # Variables essentielles avec leurs sources
-    local final_vars=(
-        "_best_title|Titre final"
-        "_best_authors|Auteur(s)"
-        "_best_publisher|Éditeur"
-        "_best_pages|Nombre de pages"
-        "_best_description|Description"
-        "_calculated_weight|Poids calculé"
-        "_calculated_dimensions|Dimensions calculées"
-        "_price|Prix de vente"
-        "_book_condition|État du livre"
-        "_vinted_condition|Condition Vinted"
-        "_vinted_category_id|Catégorie Vinted"
-        "_location_zip|Code postal"
-    )
+    # Titre final
+    local best_title=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_title' LIMIT 1")
+    local best_title_source=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_title_source' LIMIT 1")
+    if [ -n "$best_title" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Titre final" "$best_title" "$best_title_source"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Titre final" "Non défini" "✗ MANQUE"
+    fi
     
-    for var_info in "${final_vars[@]}"; do
-        IFS='|' read -r var_key var_name <<< "$var_info"
-        local value=$(safe_get_meta "$product_id" "$var_key")
-        local source=""
-        
-        # Récupérer la source si c'est une variable _best_
-        if [[ "$var_key" =~ ^_best_ ]]; then
-            local source_key="${var_key}_source"
-            source=$(safe_get_meta "$product_id" "$source_key")
-        elif [[ "$var_key" =~ ^_calculated_ ]]; then
-            source="CALCULÉ"
-        elif [ "$var_key" = "_price" ] || [ "$var_key" = "_book_condition" ]; then
-            source="MANUEL"
-        elif [ "$var_key" = "_vinted_condition" ] || [ "$var_key" = "_vinted_category_id" ]; then
-            source="AUTO"
-        elif [ "$var_key" = "_location_zip" ]; then
-            source="DÉFAUT"
+    # Auteur(s)
+    local best_authors=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_authors' LIMIT 1")
+    local best_authors_source=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_authors_source' LIMIT 1")
+    if [ -n "$best_authors" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Auteur(s)" "$best_authors" "$best_authors_source"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Auteur(s)" "Non défini" "✗ MANQUE"
+    fi
+    
+    # Éditeur
+    local best_publisher=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_publisher' LIMIT 1")
+    local best_publisher_source=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_publisher_source' LIMIT 1")
+    if [ -n "$best_publisher" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Éditeur" "$best_publisher" "$best_publisher_source"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Éditeur" "Non défini" "✗ MANQUE"
+    fi
+    
+    # Nombre de pages
+    local best_pages=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_pages' LIMIT 1")
+    local best_pages_source=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_pages_source' LIMIT 1")
+    if [ -n "$best_pages" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Nombre de pages" "$best_pages" "$best_pages_source"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Nombre de pages" "Non défini" "✗ MANQUE"
+    fi
+    
+    # Description
+    local best_description=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_description' LIMIT 1")
+    if [ -n "$best_description" ]; then
+        if [ ${#best_description} -gt 97 ]; then
+            best_description="${best_description:0:97}..."
         fi
-        
-        if [ -n "$value" ] && [ "$value" != "null" ] && [ "$value" != "0" ]; then
-            # Gérer l'affichage spécial pour certains champs
-            if [ "$var_key" = "_vinted_condition" ]; then
-                case "$value" in
-                    "5") value="5 - Neuf avec étiquettes" ;;
-                    "4") value="4 - Neuf sans étiquettes" ;;
-                    "3") value="3 - Très bon état" ;;
-                    "2") value="2 - Bon état" ;;
-                    "1") value="1 - Satisfaisant" ;;
-                esac
-            elif [ "$var_key" = "_vinted_category_id" ]; then
-                case "$value" in
-                    "1196") value="1196 - Romans et littérature" ;;
-                    "1197") value="1197 - BD et mangas" ;;
-                    "1198") value="1198 - Livres pour enfants" ;;
-                    "1199") value="1199 - Études et références" ;;
-                    "1200") value="1200 - Non-fiction et documentaires" ;;
-                    "1201") value="1201 - Autres livres" ;;
-                    "1601") value="1601 - Livres (général)" ;;
-                esac
-            elif [ "$var_key" = "_price" ]; then
-                value="$value €"
-            elif [ "$var_key" = "_calculated_weight" ]; then
-                value="$value g"
-            elif [ "$var_key" = "_calculated_dimensions" ]; then
-                value="$value cm"
-            fi
-            
-            # Affichage
-            if [ ${#value} -gt 102 ]; then
-                printf "│ %-44s │ %-102s │ \033[32m%-8s\033[0m │\n" "$var_name" "${value:0:99}..." "$source"
-            else
-                printf "│ %-44s │ %-102s │ \033[32m%-8s\033[0m │\n" "$var_name" "$value" "$source"
-            fi
-        else
-            # BUG FIX : Afficher correctement la ligne du prix même si vide
-            if [ "$var_key" = "_price" ]; then
-                printf "│ %-44s │ %-102s │ \033[31m✗ MANQUE\033[0m │\n" "$var_name" "Non défini - OBLIGATOIRE POUR EXPORT"
-            else
-                printf "│ %-44s │ %-102s │ \033[31m✗ MANQUE\033[0m │\n" "$var_name" "Non défini"
-            fi
-        fi
-    done
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Description" "$best_description" "google"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Description" "Non définie" "✗ MANQUE"
+    fi
     
-    echo "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘"
+    # Poids calculé
+    local weight=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_calculated_weight' LIMIT 1")
+    if [ -n "$weight" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Poids calculé" "$weight g" "CALCULÉ"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Poids calculé" "Non calculé" "✗ MANQUE"
+    fi
     
-    # Images après collecte
+    # Dimensions calculées
+    local dimensions=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_calculated_dimensions' LIMIT 1")
+    if [ -n "$dimensions" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Dimensions calculées" "$dimensions cm" "CALCULÉ"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Dimensions calculées" "Non calculées" "✗ MANQUE"
+    fi
+    
+    # Prix de vente
+    local price=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_price' LIMIT 1")
+    if [ -n "$price" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Prix de vente" "$price €" "MANUEL"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Prix de vente" "À définir" "✗ MANQUE"
+    fi
+    
+    # État du livre
+    local condition=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_book_condition' LIMIT 1")
+    if [ -n "$condition" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "État du livre" "$condition" "MANUEL"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "État du livre" "À définir" "✗ MANQUE"
+    fi
+    
+    # Condition Vinted
+    local vinted_condition=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_vinted_condition' LIMIT 1")
+    if [ -n "$vinted_condition" ]; then
+        case "$vinted_condition" in
+            1) vinted_text="1 - Neuf avec étiquette" ;;
+            2) vinted_text="2 - Neuf sans étiquette" ;;
+            3) vinted_text="3 - Très bon état" ;;
+            4) vinted_text="4 - Bon état" ;;
+            5) vinted_text="5 - Satisfaisant" ;;
+            *) vinted_text="$vinted_condition" ;;
+        esac
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Condition Vinted" "$vinted_text" "AUTO"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Condition Vinted" "À définir" "✗ MANQUE"
+    fi
+    
+    # Catégorie Vinted - CORRECTION : utiliser _cat_vinted
+    local vinted_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_cat_vinted' LIMIT 1")
+    if [ -n "$vinted_cat" ]; then
+        case "$vinted_cat" in
+            1601) vinted_cat_text="1601 - Livres (défaut)" ;;
+            57) vinted_cat_text="57 - Bandes dessinées" ;;
+            *) vinted_cat_text="$vinted_cat" ;;
+        esac
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Catégorie Vinted" "$vinted_cat_text" "✓ OK"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Catégorie Vinted" "Non défini" "✗ MANQUE"
+    fi
+    
+    # Code postal
+    local zip=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_location_zip' LIMIT 1")
+    if [ -n "$zip" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Code postal" "$zip" "DÉFAUT"
+    else
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Code postal" "Non défini" "✗ MANQUE"
+    fi
+    
+    printf "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘\n"
+    
+    # Images disponibles après collecte
     echo ""
     echo "🖼️  IMAGES DISPONIBLES APRÈS COLLECTE"
-    echo "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐"
-    echo "│ Source / Type                                │ URL de l'image                                                                                         │ Priorité │"
-    echo "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤"
+    printf "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐\n"
+    printf "│ %-44s │ %-102s │ %-8s │\n" "Source / Type" "URL de l'image" "Priorité"
+    printf "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤\n"
     
-    # Ordre de priorité pour les images
-    local best_image=""
-    local image_priority=1
-    
-    # ISBNdb d'abord (souvent meilleure qualité)
-    local i_image=$(safe_get_meta "$product_id" "_i_image")
-    if [ -n "$i_image" ] && [ "$i_image" != "null" ]; then
-        printf "│ %-44s │ %-102s │ \033[32m#%d ⭐\033[0m    │\n" "ISBNdb" "$i_image" "$image_priority"
-        [ -z "$best_image" ] && best_image="$i_image"
-        ((image_priority++))
-    fi
-    
-    # Google Extra Large
-    local g_xl=$(safe_get_meta "$product_id" "_g_extraLarge")
-    if [ -n "$g_xl" ] && [ "$g_xl" != "null" ]; then
-        printf "│ %-44s │ %-102s │ \033[32m#%d\033[0m       │\n" "Google Extra Large" "$g_xl" "$image_priority"
-        [ -z "$best_image" ] && best_image="$g_xl"
-        ((image_priority++))
-    fi
-    
-    # Google Large
-    local g_l=$(safe_get_meta "$product_id" "_g_large")
-    if [ -n "$g_l" ] && [ "$g_l" != "null" ]; then
-        printf "│ %-44s │ %-102s │ \033[32m#%d\033[0m       │\n" "Google Large" "$g_l" "$image_priority"
-        [ -z "$best_image" ] && best_image="$g_l"
-        ((image_priority++))
-    fi
-    
-    # Google Medium
-    local g_m=$(safe_get_meta "$product_id" "_g_medium")
-    if [ -n "$g_m" ] && [ "$g_m" != "null" ]; then
-        printf "│ %-44s │ %-102s │ \033[32m#%d\033[0m       │\n" "Google Medium" "$g_m" "$image_priority"
-        [ -z "$best_image" ] && best_image="$g_m"
-        ((image_priority++))
-    fi
+    # Compter et afficher les images
+    local image_count=0
     
     # Google Thumbnail
-    local g_t=$(safe_get_meta "$product_id" "_g_thumbnail")
-    if [ -n "$g_t" ] && [ "$g_t" != "null" ]; then
-        printf "│ %-44s │ %-102s │ \033[33m#%d\033[0m       │\n" "Google Thumbnail" "$g_t" "$image_priority"
-        [ -z "$best_image" ] && best_image="$g_t"
-        ((image_priority++))
+    local g_thumb=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_g_thumbnail' LIMIT 1")
+    if [ -n "$g_thumb" ]; then
+        ((image_count++))
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Google Thumbnail" "$g_thumb" "#$image_count"
     fi
     
-    # Open Library
-    local o_l=$(safe_get_meta "$product_id" "_o_cover_large")
-    if [ -n "$o_l" ] && [ "$o_l" != "null" ]; then
-        printf "│ %-44s │ %-102s │ \033[33m#%d\033[0m       │\n" "Open Library Large" "$o_l" "$image_priority"
-        [ -z "$best_image" ] && best_image="$o_l"
-        ((image_priority++))
+    # Open Library Large
+    local o_large=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_o_cover_large' LIMIT 1")
+    if [ -n "$o_large" ]; then
+        ((image_count++))
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Open Library Large" "$o_large" "#$image_count"
     fi
     
-    if [ -z "$best_image" ]; then
-        printf "│ %-44s │ %-102s │ \033[31m✗\033[0m        │\n" "AUCUNE IMAGE TROUVÉE" "❌ Bloquant pour export" ""
-    fi
-    
-    echo "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘"
+    printf "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘\n"
     
     # Bullet points Amazon
     echo ""
     echo "📍 BULLET POINTS AMAZON GÉNÉRÉS"
     echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    for i in 1 2 3 4 5; do
-        local bullet=$(safe_get_meta "$product_id" "_calculated_bullet$i")
-        [ -n "$bullet" ] && echo "• $bullet"
+    
+    # Afficher les bullet points
+    for i in {1..5}; do
+        local bullet=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+            SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_calculated_bullet$i' LIMIT 1")
+        if [ -n "$bullet" ]; then
+            echo "• $bullet"
+        fi
     done
     
-    # Statut d'exportabilité par marketplace
+    # Statut d'exportabilité
     echo ""
     echo "📤 STATUT D'EXPORTABILITÉ PAR MARKETPLACE"
-    echo "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐"
-    echo "│ Marketplace                                  │ Statut et données manquantes                                                                          │ Export   │"
-    echo "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤"
+    printf "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐\n"
+    printf "│ %-44s │ %-102s │ %-8s │\n" "Marketplace" "Statut et données manquantes" "Export"
+    printf "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤\n"
     
     # Vérifier l'exportabilité pour chaque marketplace
-    local price=$(safe_get_meta "$product_id" "_price")
-    local title=$(safe_get_meta "$product_id" "_best_title")
-    [ -z "$title" ] && title=$(safe_get_meta "$product_id" "_g_title")
-    local authors=$(safe_get_meta "$product_id" "_best_authors")
-    local publisher=$(safe_get_meta "$product_id" "_best_publisher")
-    local description=$(safe_get_meta "$product_id" "_best_description")
-    local has_price=0
-    [ -n "$price" ] && [ "$price" != "0" ] && has_price=1
+    local ready_count=0
+    local total_marketplaces=6
     
     # Amazon
-    local amazon_ok=1
-    local amazon_missing=""
-    [ -z "$title" ] && { amazon_ok=0; amazon_missing="titre, "; }
-    [ -z "$publisher" ] && { amazon_ok=0; amazon_missing="${amazon_missing}éditeur/brand, "; }
-    [ -z "$description" ] && { amazon_ok=0; amazon_missing="${amazon_missing}description, "; }
-    [ $has_price -eq 0 ] && { amazon_ok=0; amazon_missing="${amazon_missing}prix, "; }
-    [ -z "$best_image" ] && { amazon_ok=0; amazon_missing="${amazon_missing}image, "; }
-    
-    if [ $amazon_ok -eq 1 ]; then
-        printf "│ %-44s │ %-102s │ \033[32m✅ PRÊT\033[0m  │\n" "Amazon" "Toutes les données obligatoires sont présentes"
+    if [ -n "$best_title" ] && [ -n "$price" ] && [ -n "$best_description" ] && [ $image_count -gt 0 ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Amazon" "Toutes les données obligatoires sont présentes" "✅ PRÊT"
+        ((ready_count++))
     else
-        amazon_missing=${amazon_missing%, }
-        printf "│ %-44s │ %-102s │ \033[31m❌ NON\033[0m   │\n" "Amazon" "Manque : $amazon_missing"
+        local missing=""
+        [ -z "$best_title" ] && missing="${missing}titre, "
+        [ -z "$price" ] && missing="${missing}prix, "
+        [ -z "$best_description" ] && missing="${missing}description, "
+        [ $image_count -eq 0 ] && missing="${missing}image, "
+        missing=${missing%, }
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Amazon" "Données manquantes : $missing" "❌ BLOQUÉ"
     fi
     
     # Rakuten
-    local rakuten_ok=1
-    local rakuten_missing=""
-    [ -z "$title" ] && { rakuten_ok=0; rakuten_missing="titre, "; }
-    [ -z "$description" ] || [ ${#description} -lt 20 ] && { rakuten_ok=0; rakuten_missing="${rakuten_missing}description (min 20 car), "; }
-    [ $has_price -eq 0 ] && { rakuten_ok=0; rakuten_missing="${rakuten_missing}prix, "; }
-    [ -z "$best_image" ] && { rakuten_ok=0; rakuten_missing="${rakuten_missing}image, "; }
-    
-    if [ $rakuten_ok -eq 1 ]; then
-        printf "│ %-44s │ %-102s │ \033[32m✅ PRÊT\033[0m  │\n" "Rakuten/PriceMinister" "Toutes les données obligatoires sont présentes"
+    if [ -n "$best_title" ] && [ -n "$price" ] && [ -n "$best_description" ] && [ ${#best_description} -ge 20 ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Rakuten/PriceMinister" "Toutes les données obligatoires sont présentes" "✅ PRÊT"
+        ((ready_count++))
     else
-        rakuten_missing=${rakuten_missing%, }
-        printf "│ %-44s │ %-102s │ \033[31m❌ NON\033[0m   │\n" "Rakuten/PriceMinister" "Manque : $rakuten_missing"
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Rakuten/PriceMinister" "Description trop courte ou données manquantes" "❌ BLOQUÉ"
     fi
     
     # Vinted
-    local vinted_ok=1
-    local vinted_missing=""
-    [ -z "$title" ] && { vinted_ok=0; vinted_missing="titre, "; }
-    [ -z "$description" ] && { vinted_ok=0; vinted_missing="${vinted_missing}description, "; }
-    [ $has_price -eq 0 ] && { vinted_ok=0; vinted_missing="${vinted_missing}prix, "; }
-    [ -z "$best_image" ] && { vinted_ok=0; vinted_missing="${vinted_missing}photo, "; }
-    [ -z "$(safe_get_meta "$product_id" "_book_condition")" ] && { vinted_ok=0; vinted_missing="${vinted_missing}état, "; }
-    
-    if [ $vinted_ok -eq 1 ]; then
-        printf "│ %-44s │ %-102s │ \033[32m✅ PRÊT\033[0m  │\n" "Vinted" "Toutes les données obligatoires sont présentes"
+    if [ -n "$best_title" ] && [ -n "$price" ] && [ $image_count -gt 0 ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Vinted" "Toutes les données obligatoires sont présentes" "✅ PRÊT"
+        ((ready_count++))
     else
-        vinted_missing=${vinted_missing%, }
-        printf "│ %-44s │ %-102s │ \033[31m❌ NON\033[0m   │\n" "Vinted" "Manque : $vinted_missing"
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Vinted" "Titre, prix ou image manquant" "❌ BLOQUÉ"
     fi
     
     # Fnac
-    local fnac_ok=1
-    local fnac_missing=""
-    [ -z "$title" ] && { fnac_ok=0; fnac_missing="titre, "; }
-    [ -z "$authors" ] && { fnac_ok=0; fnac_missing="${fnac_missing}auteur, "; }
-    [ -z "$publisher" ] && { fnac_ok=0; fnac_missing="${fnac_missing}éditeur, "; }
-    [ $has_price -eq 0 ] && { fnac_ok=0; fnac_missing="${fnac_missing}prix, "; }
-    
-    if [ $fnac_ok -eq 1 ]; then
-        printf "│ %-44s │ %-102s │ \033[32m✅ PRÊT\033[0m  │\n" "Fnac" "Toutes les données obligatoires sont présentes"
+    if [ -n "$best_title" ] && [ -n "$best_authors" ] && [ -n "$best_publisher" ] && [ -n "$price" ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Fnac" "Toutes les données obligatoires sont présentes" "✅ PRÊT"
+        ((ready_count++))
     else
-        fnac_missing=${fnac_missing%, }
-        printf "│ %-44s │ %-102s │ \033[31m❌ NON\033[0m   │\n" "Fnac" "Manque : $fnac_missing"
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Fnac" "Auteur, éditeur ou prix manquant" "❌ BLOQUÉ"
     fi
     
     # Cdiscount
-    local cdiscount_ok=1
-    local cdiscount_missing=""
-    [ -z "$title" ] && { cdiscount_ok=0; cdiscount_missing="titre, "; }
-    [ -z "$publisher" ] && { cdiscount_ok=0; cdiscount_missing="${cdiscount_missing}brand, "; }
-    [ -z "$description" ] && { cdiscount_ok=0; cdiscount_missing="${cdiscount_missing}description, "; }
-    [ $has_price -eq 0 ] && { cdiscount_ok=0; cdiscount_missing="${cdiscount_missing}prix, "; }
-    [ -z "$best_image" ] && { cdiscount_ok=0; cdiscount_missing="${cdiscount_missing}image, "; }
-    
-    if [ $cdiscount_ok -eq 1 ]; then
-        printf "│ %-44s │ %-102s │ \033[32m✅ PRÊT\033[0m  │\n" "Cdiscount" "Toutes les données obligatoires sont présentes"
+    if [ -n "$best_title" ] && [ -n "$price" ] && [ -n "$best_description" ] && [ $image_count -gt 0 ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Cdiscount" "Toutes les données obligatoires sont présentes" "✅ PRÊT"
+        ((ready_count++))
     else
-        cdiscount_missing=${cdiscount_missing%, }
-        printf "│ %-44s │ %-102s │ \033[31m❌ NON\033[0m   │\n" "Cdiscount" "Manque : $cdiscount_missing"
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Cdiscount" "Données de base manquantes" "❌ BLOQUÉ"
     fi
     
     # Leboncoin
-    local lbc_ok=1
-    local lbc_missing=""
-    [ -z "$title" ] && { lbc_ok=0; lbc_missing="titre, "; }
-    [ -z "$description" ] && { lbc_ok=0; lbc_missing="${lbc_missing}description, "; }
-    [ $has_price -eq 0 ] && { lbc_ok=0; lbc_missing="${lbc_missing}prix, "; }
-    [ -z "$best_image" ] && { lbc_ok=0; lbc_missing="${lbc_missing}photo, "; }
-    local zip=$(safe_get_meta "$product_id" "_location_zip")
-    [ -z "$zip" ] && { lbc_ok=0; lbc_missing="${lbc_missing}code postal, "; }
-    
-    if [ $lbc_ok -eq 1 ]; then
-        printf "│ %-44s │ %-102s │ \033[32m✅ PRÊT\033[0m  │\n" "Leboncoin" "Toutes les données obligatoires sont présentes"
+    if [ -n "$best_title" ] && [ -n "$price" ] && [ $image_count -gt 0 ]; then
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Leboncoin" "Toutes les données obligatoires sont présentes" "✅ PRÊT"
+        ((ready_count++))
     else
-        lbc_missing=${lbc_missing%, }
-        printf "│ %-44s │ %-102s │ \033[31m❌ NON\033[0m   │\n" "Leboncoin" "Manque : $lbc_missing"
+        printf "│ %-44s │ %-102s │ %-8s │\n" "Leboncoin" "Titre, prix ou image manquant" "❌ BLOQUÉ"
     fi
     
-    echo "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘"
+    printf "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘\n"
     
-    # Comptage final
-    local ready_count=0
-    [ $amazon_ok -eq 1 ] && ((ready_count++))
-    [ $rakuten_ok -eq 1 ] && ((ready_count++))
-    [ $vinted_ok -eq 1 ] && ((ready_count++))
-    [ $fnac_ok -eq 1 ] && ((ready_count++))
-    [ $cdiscount_ok -eq 1 ] && ((ready_count++))
-    [ $lbc_ok -eq 1 ] && ((ready_count++))
-    
+    # Message récapitulatif
     echo ""
-    if [ $ready_count -eq 6 ]; then
-        echo "🎉 EXCELLENT ! Le livre est prêt pour l'export vers TOUTES les marketplaces (6/6)"
-    elif [ $ready_count -ge 3 ]; then
-        echo "✅ BON ! Le livre est exportable vers $ready_count/6 marketplaces"
+    if [ $ready_count -eq $total_marketplaces ]; then
+        echo "🎉 EXCELLENT ! Le livre est prêt pour l'export vers TOUTES les marketplaces ($ready_count/$total_marketplaces)"
+    elif [ $ready_count -gt 0 ]; then
+        echo "⚠️  Le livre est prêt pour $ready_count marketplace(s) sur $total_marketplaces"
     else
-        echo "⚠️  INSUFFISANT ! Le livre n'est exportable que vers $ready_count/6 marketplaces"
+        echo "❌ Le livre n'est prêt pour AUCUNE marketplace - données essentielles manquantes"
     fi
     
     # Métadonnées de collecte
     echo ""
     echo "📊 MÉTADONNÉES DE COLLECTE"
     echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    local collect_date=$(safe_get_meta "$product_id" "_api_collect_date")
-    local collect_status=$(safe_get_meta "$product_id" "_api_collect_status")
-    local api_calls=$(safe_get_meta "$product_id" "_api_calls_made")
-    local collect_version=$(safe_get_meta "$product_id" "_api_collect_version")
     
-    echo "Date de collecte    : ${collect_date:-Non renseignée}"
-    echo "Statut              : ${collect_status:-Non renseigné}"
+    local last_collected=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_last_collected' LIMIT 1")
+    local collection_status=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_collection_status' LIMIT 1")
+    local api_calls=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_api_calls_count' LIMIT 1")
+    
+    echo "Date de collecte    : ${last_collected:-Non collecté}"
+    echo "Statut              : ${collection_status:-Non défini}"
     echo "Appels API totaux   : ${api_calls:-0}"
-    echo "Version collecteur  : ${collect_version:-Non renseignée}"
+    echo "Version collecteur  : Non renseignée"
     
-    # AFFICHER LES TABLEAUX DES MARKETPLACES
+    # Appeler l'affichage des requirements détaillés
+    echo ""
     echo ""
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
     echo "📋 REQUIREMENTS DÉTAILLÉS PAR MARKETPLACE"
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
+    echo ""
     
-    # Appeler toutes les fonctions marketplace
-    show_amazon_requirements "$product_id" "$isbn"
-    show_rakuten_requirements "$product_id" "$isbn"
-    show_vinted_requirements "$product_id" "$isbn"
-    show_fnac_requirements "$product_id" "$isbn"
-    show_cdiscount_requirements "$product_id" "$isbn"
-    show_leboncoin_requirements "$product_id" "$isbn"
+    # Source les fonctions get_best_value si nécessaire
+    if [ -f "$SCRIPT_DIR/lib/analyze_functions.sh" ]; then
+        source "$SCRIPT_DIR/lib/analyze_functions.sh"
+    elif [ -f "$SCRIPT_DIR/lib/best_data.sh" ]; then
+        source "$SCRIPT_DIR/lib/best_data.sh"
+    fi
+    
+    # Afficher les requirements de chaque marketplace
+    show_amazon_requirements "$id" "$isbn"
+    echo ""
+    echo ""
+    show_rakuten_requirements "$id" "$isbn"
+    echo ""
+    echo ""
+    show_vinted_requirements "$id" "$isbn"
+    echo ""
+    echo ""
+    show_fnac_requirements "$id" "$isbn"
+    echo ""
+    echo ""
+    show_cdiscount_requirements "$id" "$isbn"
+    echo ""
+    echo ""
+    show_leboncoin_requirements "$id" "$isbn"
 }

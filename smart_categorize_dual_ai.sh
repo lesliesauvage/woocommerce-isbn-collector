@@ -9,12 +9,17 @@ source "$SCRIPT_DIR/lib/safe_functions.sh"
 # Mode debug
 SHOW_PROMPTS="${SHOW_PROMPTS:-0}"
 
-# Vérifier si -noverbose est présent dans les arguments
+# Variables globales
 VERBOSE=1
+FORCE_MODE=0
+
+# Vérifier les arguments
 for arg in "$@"; do
     if [ "$arg" = "-noverbose" ]; then
         VERBOSE=0
-        break
+    fi
+    if [ "$arg" = "-force" ]; then
+        FORCE_MODE=1
     fi
 done
 
@@ -30,7 +35,7 @@ categorize_with_dual_ai() {
     local post_id="$1"
     debug_echo "[DEBUG] === DÉBUT categorize_with_dual_ai pour post_id=$post_id ==="
     
-    # VÉRIFICATION : Skip si déjà catégorisé pour économiser les crédits
+    # VÉRIFICATION : Skip si déjà catégorisé pour économiser les crédits (sauf si -force)
     local has_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
     SELECT COUNT(*) 
     FROM wp_${SITE_ID}_term_relationships tr
@@ -39,7 +44,7 @@ categorize_with_dual_ai() {
     AND tt.taxonomy = 'product_cat'
     " 2>/dev/null)
     
-    if [ "$has_cat" -gt 0 ]; then
+    if [ "$has_cat" -gt 0 ] && [ "$FORCE_MODE" != "1" ]; then
         local existing_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT t.name 
         FROM wp_${SITE_ID}_term_relationships tr
@@ -53,7 +58,22 @@ categorize_with_dual_ai() {
         echo ""
         echo -e "${GREEN}✅ Déjà catégorisé : ${BOLD}$existing_cat${NC}"
         echo -e "${YELLOW}↩️  Skip - Aucun crédit API utilisé${NC}"
+        echo -e "${CYAN}💡 Utilisez -force pour recatégoriser${NC}"
         return 0
+    elif [ "$has_cat" -gt 0 ] && [ "$FORCE_MODE" = "1" ]; then
+        local existing_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT t.name 
+        FROM wp_${SITE_ID}_term_relationships tr
+        JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+        JOIN wp_${SITE_ID}_terms t ON tt.term_id = t.term_id
+        WHERE tr.object_id = $post_id 
+        AND tt.taxonomy = 'product_cat'
+        LIMIT 1
+        " 2>/dev/null)
+        
+        echo ""
+        echo -e "${YELLOW}⚠️  FORCE MODE : Recatégorisation de${NC}"
+        echo -e "${YELLOW}   Catégorie actuelle : ${BOLD}$existing_cat${NC}"
     fi
     
     # Récupérer TOUTES les infos du livre incluant Google Books
@@ -259,7 +279,11 @@ categorize_with_dual_ai() {
         if apply_category_to_product "$post_id" "$final_choice" "$final_cat_name"; then
             # Log
             mkdir -p "$LOG_DIR"
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name (Claude seul)" >> "$LOG_DIR/dual_ai_categorize.log"
+            local log_message="[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name (Claude seul)"
+            if [ "$FORCE_MODE" = "1" ]; then
+                log_message="$log_message (FORCE MODE)"
+            fi
+            echo "$log_message" >> "$LOG_DIR/dual_ai_categorize.log"
             return 0
         else
             return 1
@@ -375,7 +399,11 @@ categorize_with_dual_ai() {
     if apply_category_to_product "$post_id" "$final_choice" "$final_cat_name"; then
         # Log
         mkdir -p "$LOG_DIR"
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name" >> "$LOG_DIR/dual_ai_categorize.log"
+        local log_message="[$(date '+%Y-%m-%d %H:%M:%S')] ID:$post_id - $title → $final_cat_name"
+        if [ "$FORCE_MODE" = "1" ]; then
+            log_message="$log_message (FORCE MODE)"
+        fi
+        echo "$log_message" >> "$LOG_DIR/dual_ai_categorize.log"
         debug_echo "[DEBUG] === FIN categorize_with_dual_ai ==="
         return 0
     else
@@ -407,10 +435,10 @@ if [ "$SHOW_PROMPTS" = "1" ] && [ "$VERBOSE" = "1" ]; then
     echo ""
 fi
 
-# Retirer -noverbose des arguments pour le traitement
+# Retirer -noverbose et -force des arguments pour le traitement
 args=()
 for arg in "$@"; do
-    if [ "$arg" != "-noverbose" ]; then
+    if [ "$arg" != "-noverbose" ] && [ "$arg" != "-force" ]; then
         args+=("$arg")
     fi
 done
@@ -423,6 +451,11 @@ if [ ${#args[@]} -eq 0 ]; then
     echo -e "  ${CYAN}./smart_categorize_dual_ai.sh -id ID${NC}"
     echo -e "  ${CYAN}./smart_categorize_dual_ai.sh -batch N${NC}"
     echo -e "  ${CYAN}./smart_categorize_dual_ai.sh ISBN -noverbose${NC}"
+    echo -e "  ${CYAN}./smart_categorize_dual_ai.sh ISBN -force${NC} (recatégoriser)"
+    echo ""
+    echo -e "Options :"
+    echo -e "  ${GREEN}-noverbose${NC} : Mode silencieux"
+    echo -e "  ${GREEN}-force${NC}     : Forcer la recatégorisation même si déjà fait"
     echo ""
     echo -e "Mode debug : ${YELLOW}SHOW_PROMPTS=1 ./smart_categorize_dual_ai.sh ISBN${NC}"
     echo ""

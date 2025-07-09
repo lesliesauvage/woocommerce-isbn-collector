@@ -2,12 +2,22 @@
 # Script unifié de gestion ISBN - Version 4 MARTINGALE COMPLÈTE
 # Gère la collecte, l'analyse et l'enrichissement EXHAUSTIF des données
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/config/settings.sh"
+source "$SCRIPT_DIR/lib/safe_functions.sh"
+source "$SCRIPT_DIR/lib/marketplace/amazon.sh"
+source "$SCRIPT_DIR/lib/marketplace/rakuten.sh"
+source "$SCRIPT_DIR/lib/marketplace/vinted.sh"
+source "$SCRIPT_DIR/lib/marketplace/fnac.sh"
+source "$SCRIPT_DIR/lib/marketplace/cdiscount.sh"
+source "$SCRIPT_DIR/lib/marketplace/leboncoin.sh"
 
 # Variables globales
-
-# Chargement de la martingale complète
-source "$SCRIPT_DIR/lib/martingale_complete.sh"
-
+FORCE_MODE=""
+MODE=""
+LIMIT=""
+PARAM_ISBN=""
+PARAM_PRICE=""
 PARAM_CONDITION=""
 PARAM_STOCK=""
 

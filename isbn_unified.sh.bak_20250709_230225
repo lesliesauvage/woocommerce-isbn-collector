@@ -49,18 +49,6 @@ get_meta_value() {
     else
         echo "$value"
     fi
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonction pour obtenir le timestamp d'une métadonnée
@@ -90,18 +78,6 @@ get_meta_timestamp() {
     esac
     
     echo "${timestamp:-Non collecté}"
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonction d'aide
@@ -141,18 +117,6 @@ EXEMPLES :
 
 ══════════════════════════════════════════════════════════════════════════════════════════════
 EOF
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Parser les options
@@ -209,215 +173,203 @@ done
 # ====================================================================
 # FONCTION MARTINGALE COMPLÈTE - REMPLIT TOUS LES CHAMPS
 # ====================================================================
-# apply_complete_martingale_metadata() {
-#     local post_id="$1"
-#     [ -z "$post_id" ] && { echo "[ERROR] apply_complete_martingale_metadata: post_id requis"; return 1; }
-#     
-#     echo "[DEBUG] Application COMPLÈTE de TOUTES les métadonnées martingale pour #$post_id..." >&2
-#     
-#     # ================ PRIX ET STOCK ================
-#     local price=$(get_meta_value "$post_id" "_price")
-#     if [ -z "$price" ] || [ "$price" = "0" ]; then
-#         safe_store_meta "$post_id" "_price" "0"
-#         safe_store_meta "$post_id" "_regular_price" "0"
-#     else
-#         safe_store_meta "$post_id" "_regular_price" "$price"
-#     fi
-#     safe_store_meta "$post_id" "_sale_price" ""
-#     safe_store_meta "$post_id" "_sale_price_dates_from" ""
-#     safe_store_meta "$post_id" "_sale_price_dates_to" ""
-#     
-#     local stock=$(get_meta_value "$post_id" "_stock")
-#     [ -z "$stock" ] && safe_store_meta "$post_id" "_stock" "1"
-#     safe_store_meta "$post_id" "_stock_status" "instock"
-#     safe_store_meta "$post_id" "_manage_stock" "yes"
-#     safe_store_meta "$post_id" "_backorders" "no"
-#     safe_store_meta "$post_id" "_sold_individually" "yes"
-#     
-#     # ================ ÉTATS ET CONDITIONS ================
-#     local condition=$(get_meta_value "$post_id" "_book_condition")
-#     if [ -z "$condition" ]; then
-#         safe_store_meta "$post_id" "_book_condition" "très bon"
-#         safe_store_meta "$post_id" "_vinted_condition" "3"
-#         safe_store_meta "$post_id" "_vinted_condition_text" "3 - Très bon état"
-#     else
-#         # Mapper la condition Vinted
-#         case "$condition" in
-#             "Neuf avec étiquette") 
-#                 safe_store_meta "$post_id" "_vinted_condition" "1"
-#                 safe_store_meta "$post_id" "_vinted_condition_text" "1 - Neuf avec étiquette"
-#                 ;;
-#             "Neuf sans étiquette"|"Neuf")
-#                 safe_store_meta "$post_id" "_vinted_condition" "2"
-#                 safe_store_meta "$post_id" "_vinted_condition_text" "2 - Neuf sans étiquette"
-#                 ;;
-#             "Très bon état"|"très bon")
-#                 safe_store_meta "$post_id" "_vinted_condition" "3"
-#                 safe_store_meta "$post_id" "_vinted_condition_text" "3 - Très bon état"
-#                 ;;
-#             "Bon état"|"bon")
-#                 safe_store_meta "$post_id" "_vinted_condition" "4"
-#                 safe_store_meta "$post_id" "_vinted_condition_text" "4 - Bon état"
-#                 ;;
-#             *)
-#                 safe_store_meta "$post_id" "_vinted_condition" "5"
-#                 safe_store_meta "$post_id" "_vinted_condition_text" "5 - Satisfaisant"
-#                 ;;
-#         esac
-#     fi
-#     
-#     # ================ CATÉGORIES TOUTES MARKETPLACES ================
-#     safe_store_meta "$post_id" "_cat_vinted" "1601"
-#     safe_store_meta "$post_id" "_vinted_category_id" "1601"
-#     safe_store_meta "$post_id" "_vinted_category_name" "Livres"
-#     safe_store_meta "$post_id" "_amazon_category" "Livres"
-#     safe_store_meta "$post_id" "_rakuten_category" "livres"
-#     safe_store_meta "$post_id" "_fnac_category" "livres"
-#     safe_store_meta "$post_id" "_cdiscount_category" "livres"
-#     safe_store_meta "$post_id" "_leboncoin_category" "27"
-#     safe_store_meta "$post_id" "_ebay_category" "267"
-#     safe_store_meta "$post_id" "_allegro_category" "7"
-#     safe_store_meta "$post_id" "_bol_category" "8299"
-#     safe_store_meta "$post_id" "_etsy_category" "69150433"
-#     
-#     # ================ LOCALISATION ================
-#     safe_store_meta "$post_id" "_location_zip" "76000"
-#     safe_store_meta "$post_id" "_location_city" "Rouen"
-#     safe_store_meta "$post_id" "_location_country" "FR"
-#     
-#     # ================ IDENTIFIANTS ================
-#     local isbn=$(get_meta_value "$post_id" "_isbn")
-#     if [ -n "$isbn" ]; then
-#         safe_store_meta "$post_id" "_sku" "$isbn"
-#         safe_store_meta "$post_id" "_ean" "$isbn"
-#         # Si ISBN13
-#         if [[ "$isbn" =~ ^[0-9]{13}$ ]]; then
-#             safe_store_meta "$post_id" "_isbn13" "$isbn"
-#         # Si ISBN10
-#         elif [[ "$isbn" =~ ^[0-9]{10}$ ]]; then
-#             safe_store_meta "$post_id" "_isbn10" "$isbn"
-#         fi
-#     fi
-#     
-#     # ================ MÉTADONNÉES PRODUIT ================
-#     safe_store_meta "$post_id" "_product_type" "simple"
-#     safe_store_meta "$post_id" "_visibility" "visible"
-#     safe_store_meta "$post_id" "_featured" "no"
-#     safe_store_meta "$post_id" "_virtual" "no"
-#     safe_store_meta "$post_id" "_downloadable" "no"
-#     safe_store_meta "$post_id" "_tax_status" "taxable"
-#     safe_store_meta "$post_id" "_tax_class" "reduced-rate"
-#     safe_store_meta "$post_id" "_shipping_class" ""
-#     
-#     # ================ MÉTADONNÉES SYSTÈME ================
-#     safe_store_meta "$post_id" "_has_description" "1"
-#     safe_store_meta "$post_id" "_collection_status" "completed"
-#     safe_store_meta "$post_id" "_last_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
-#     safe_store_meta "$post_id" "_api_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
-#     safe_store_meta "$post_id" "_last_analyze_date" "$(date '+%Y-%m-%d %H:%M:%S')"
-#     
-#     # ================ DIMENSIONS PHYSIQUES ================
-#     local calc_length=$(get_meta_value "$post_id" "_calculated_length")
-#     local calc_width=$(get_meta_value "$post_id" "_calculated_width")
-#     local calc_height=$(get_meta_value "$post_id" "_calculated_height")
-#     local calc_weight=$(get_meta_value "$post_id" "_calculated_weight")
-#     
-#     [ -n "$calc_length" ] && safe_store_meta "$post_id" "_length" "$calc_length"
-#     [ -n "$calc_width" ] && safe_store_meta "$post_id" "_width" "$calc_width"
-#     [ -n "$calc_height" ] && safe_store_meta "$post_id" "_height" "$calc_height"
-#     [ -n "$calc_weight" ] && safe_store_meta "$post_id" "_weight" "$calc_weight"
-#     
-#     # ================ IMAGES ================
-#     local best_cover=$(get_meta_value "$post_id" "_best_cover_image")
-#     if [ -n "$best_cover" ]; then
-#         safe_store_meta "$post_id" "_thumbnail_id" ""
-#         safe_store_meta "$post_id" "_product_image_gallery" ""
-#         safe_store_meta "$post_id" "_image_alt" "Couverture du livre"
-#         safe_store_meta "$post_id" "_image_title" "Image de couverture"
-#     fi
-#     
-#     # ================ LANGUE ================
-#     local language=$(get_meta_value "$post_id" "_g_language")
-#     [ -z "$language" ] && safe_store_meta "$post_id" "_g_language" "fr"
-#     
-#     # ================ DONNÉES MARKETPLACE SPÉCIFIQUES ================
-#     
-#     # Amazon
-#     local title=$(get_meta_value "$post_id" "_best_title")
-#     local authors=$(get_meta_value "$post_id" "_best_authors")
-#     local publisher=$(get_meta_value "$post_id" "_best_publisher")
-#     local categories=$(get_meta_value "$post_id" "_g_categories")
-#     
-#     safe_store_meta "$post_id" "_amazon_keywords" "$title $authors $publisher"
-#     safe_store_meta "$post_id" "_amazon_search_terms" "$title, $authors, $publisher, $categories"
-#     safe_store_meta "$post_id" "_amazon_asin" ""
-#     safe_store_meta "$post_id" "_amazon_export_status" ""
-#     safe_store_meta "$post_id" "_amazon_last_export" ""
-#     
-#     # Rakuten
-#     safe_store_meta "$post_id" "_rakuten_state" "10"
-#     safe_store_meta "$post_id" "_rakuten_product_id" ""
-#     safe_store_meta "$post_id" "_rakuten_export_status" ""
-#     safe_store_meta "$post_id" "_rakuten_last_export" ""
-#     
-#     # Fnac
-#     safe_store_meta "$post_id" "_fnac_tva_rate" "5.5"
-#     safe_store_meta "$post_id" "_fnac_product_id" ""
-#     safe_store_meta "$post_id" "_fnac_export_status" ""
-#     safe_store_meta "$post_id" "_fnac_last_export" ""
-#     
-#     # Cdiscount
-#     [ -n "$publisher" ] && safe_store_meta "$post_id" "_cdiscount_brand" "$publisher"
-#     safe_store_meta "$post_id" "_cdiscount_product_id" ""
-#     safe_store_meta "$post_id" "_cdiscount_export_status" ""
-#     safe_store_meta "$post_id" "_cdiscount_last_export" ""
-#     
-#     # Leboncoin
-#     safe_store_meta "$post_id" "_leboncoin_phone_hidden" "true"
-#     safe_store_meta "$post_id" "_leboncoin_ad_id" ""
-#     safe_store_meta "$post_id" "_leboncoin_export_status" ""
-#     safe_store_meta "$post_id" "_leboncoin_last_export" ""
-#     
-#     # Vinted
-#     safe_store_meta "$post_id" "_vinted_item_id" ""
-#     safe_store_meta "$post_id" "_vinted_export_status" ""
-#     safe_store_meta "$post_id" "_vinted_last_export" ""
-#     
-#     # eBay
-#     safe_store_meta "$post_id" "_ebay_condition_id" "4"
-#     
-#     # ================ TAGS ET ATTRIBUTS ================
-#     safe_store_meta "$post_id" "_product_tag" ""
-#     safe_store_meta "$post_id" "_product_attributes" ""
-#     safe_store_meta "$post_id" "_default_attributes" ""
-#     
-#     # ================ DONNÉES ENRICHIES ================
-#     safe_store_meta "$post_id" "_reading_age" ""
-#     safe_store_meta "$post_id" "_lexile_measure" ""
-#     safe_store_meta "$post_id" "_bisac_codes" ""
-#     safe_store_meta "$post_id" "_dewey_decimal" ""
-#     safe_store_meta "$post_id" "_lcc_number" ""
-#     
-#     # ================ SEO ================
-#     safe_store_meta "$post_id" "_yoast_title" ""
-#     safe_store_meta "$post_id" "_yoast_metadesc" ""
-#     safe_store_meta "$post_id" "_rank_math_title" ""
-#     safe_store_meta "$post_id" "_rank_math_description" ""
-#     
-#     echo "[DEBUG] TOUTES les métadonnées martingale appliquées" >&2
-#     
-#     # === AFFICHAGE MARTINGALE COMPLÈTE ===
-#     if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-#         echo ""
-#         echo ""
-#         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-#         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-#         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-#         
-#         # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-#         display_martingale_complete "$id"
-#     fi
-# }
+apply_complete_martingale_metadata() {
+    local post_id="$1"
+    [ -z "$post_id" ] && { echo "[ERROR] apply_complete_martingale_metadata: post_id requis"; return 1; }
+    
+    echo "[DEBUG] Application COMPLÈTE de TOUTES les métadonnées martingale pour #$post_id..." >&2
+    
+    # ================ PRIX ET STOCK ================
+    local price=$(get_meta_value "$post_id" "_price")
+    if [ -z "$price" ] || [ "$price" = "0" ]; then
+        safe_store_meta "$post_id" "_price" "0"
+        safe_store_meta "$post_id" "_regular_price" "0"
+    else
+        safe_store_meta "$post_id" "_regular_price" "$price"
+    fi
+    safe_store_meta "$post_id" "_sale_price" ""
+    safe_store_meta "$post_id" "_sale_price_dates_from" ""
+    safe_store_meta "$post_id" "_sale_price_dates_to" ""
+    
+    local stock=$(get_meta_value "$post_id" "_stock")
+    [ -z "$stock" ] && safe_store_meta "$post_id" "_stock" "1"
+    safe_store_meta "$post_id" "_stock_status" "instock"
+    safe_store_meta "$post_id" "_manage_stock" "yes"
+    safe_store_meta "$post_id" "_backorders" "no"
+    safe_store_meta "$post_id" "_sold_individually" "yes"
+    
+    # ================ ÉTATS ET CONDITIONS ================
+    local condition=$(get_meta_value "$post_id" "_book_condition")
+    if [ -z "$condition" ]; then
+        safe_store_meta "$post_id" "_book_condition" "très bon"
+        safe_store_meta "$post_id" "_vinted_condition" "3"
+        safe_store_meta "$post_id" "_vinted_condition_text" "3 - Très bon état"
+    else
+        # Mapper la condition Vinted
+        case "$condition" in
+            "Neuf avec étiquette") 
+                safe_store_meta "$post_id" "_vinted_condition" "1"
+                safe_store_meta "$post_id" "_vinted_condition_text" "1 - Neuf avec étiquette"
+                ;;
+            "Neuf sans étiquette"|"Neuf")
+                safe_store_meta "$post_id" "_vinted_condition" "2"
+                safe_store_meta "$post_id" "_vinted_condition_text" "2 - Neuf sans étiquette"
+                ;;
+            "Très bon état"|"très bon")
+                safe_store_meta "$post_id" "_vinted_condition" "3"
+                safe_store_meta "$post_id" "_vinted_condition_text" "3 - Très bon état"
+                ;;
+            "Bon état"|"bon")
+                safe_store_meta "$post_id" "_vinted_condition" "4"
+                safe_store_meta "$post_id" "_vinted_condition_text" "4 - Bon état"
+                ;;
+            *)
+                safe_store_meta "$post_id" "_vinted_condition" "5"
+                safe_store_meta "$post_id" "_vinted_condition_text" "5 - Satisfaisant"
+                ;;
+        esac
+    fi
+    
+    # ================ CATÉGORIES TOUTES MARKETPLACES ================
+    safe_store_meta "$post_id" "_cat_vinted" "1601"
+    safe_store_meta "$post_id" "_vinted_category_id" "1601"
+    safe_store_meta "$post_id" "_vinted_category_name" "Livres"
+    safe_store_meta "$post_id" "_amazon_category" "Livres"
+    safe_store_meta "$post_id" "_rakuten_category" "livres"
+    safe_store_meta "$post_id" "_fnac_category" "livres"
+    safe_store_meta "$post_id" "_cdiscount_category" "livres"
+    safe_store_meta "$post_id" "_leboncoin_category" "27"
+    safe_store_meta "$post_id" "_ebay_category" "267"
+    safe_store_meta "$post_id" "_allegro_category" "7"
+    safe_store_meta "$post_id" "_bol_category" "8299"
+    safe_store_meta "$post_id" "_etsy_category" "69150433"
+    
+    # ================ LOCALISATION ================
+    safe_store_meta "$post_id" "_location_zip" "76000"
+    safe_store_meta "$post_id" "_location_city" "Rouen"
+    safe_store_meta "$post_id" "_location_country" "FR"
+    
+    # ================ IDENTIFIANTS ================
+    local isbn=$(get_meta_value "$post_id" "_isbn")
+    if [ -n "$isbn" ]; then
+        safe_store_meta "$post_id" "_sku" "$isbn"
+        safe_store_meta "$post_id" "_ean" "$isbn"
+        # Si ISBN13
+        if [[ "$isbn" =~ ^[0-9]{13}$ ]]; then
+            safe_store_meta "$post_id" "_isbn13" "$isbn"
+        # Si ISBN10
+        elif [[ "$isbn" =~ ^[0-9]{10}$ ]]; then
+            safe_store_meta "$post_id" "_isbn10" "$isbn"
+        fi
+    fi
+    
+    # ================ MÉTADONNÉES PRODUIT ================
+    safe_store_meta "$post_id" "_product_type" "simple"
+    safe_store_meta "$post_id" "_visibility" "visible"
+    safe_store_meta "$post_id" "_featured" "no"
+    safe_store_meta "$post_id" "_virtual" "no"
+    safe_store_meta "$post_id" "_downloadable" "no"
+    safe_store_meta "$post_id" "_tax_status" "taxable"
+    safe_store_meta "$post_id" "_tax_class" "reduced-rate"
+    safe_store_meta "$post_id" "_shipping_class" ""
+    
+    # ================ MÉTADONNÉES SYSTÈME ================
+    safe_store_meta "$post_id" "_has_description" "1"
+    safe_store_meta "$post_id" "_collection_status" "completed"
+    safe_store_meta "$post_id" "_last_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
+    safe_store_meta "$post_id" "_api_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
+    safe_store_meta "$post_id" "_last_analyze_date" "$(date '+%Y-%m-%d %H:%M:%S')"
+    
+    # ================ DIMENSIONS PHYSIQUES ================
+    local calc_length=$(get_meta_value "$post_id" "_calculated_length")
+    local calc_width=$(get_meta_value "$post_id" "_calculated_width")
+    local calc_height=$(get_meta_value "$post_id" "_calculated_height")
+    local calc_weight=$(get_meta_value "$post_id" "_calculated_weight")
+    
+    [ -n "$calc_length" ] && safe_store_meta "$post_id" "_length" "$calc_length"
+    [ -n "$calc_width" ] && safe_store_meta "$post_id" "_width" "$calc_width"
+    [ -n "$calc_height" ] && safe_store_meta "$post_id" "_height" "$calc_height"
+    [ -n "$calc_weight" ] && safe_store_meta "$post_id" "_weight" "$calc_weight"
+    
+    # ================ IMAGES ================
+    local best_cover=$(get_meta_value "$post_id" "_best_cover_image")
+    if [ -n "$best_cover" ]; then
+        safe_store_meta "$post_id" "_thumbnail_id" ""
+        safe_store_meta "$post_id" "_product_image_gallery" ""
+        safe_store_meta "$post_id" "_image_alt" "Couverture du livre"
+        safe_store_meta "$post_id" "_image_title" "Image de couverture"
+    fi
+    
+    # ================ LANGUE ================
+    local language=$(get_meta_value "$post_id" "_g_language")
+    [ -z "$language" ] && safe_store_meta "$post_id" "_g_language" "fr"
+    
+    # ================ DONNÉES MARKETPLACE SPÉCIFIQUES ================
+    
+    # Amazon
+    local title=$(get_meta_value "$post_id" "_best_title")
+    local authors=$(get_meta_value "$post_id" "_best_authors")
+    local publisher=$(get_meta_value "$post_id" "_best_publisher")
+    local categories=$(get_meta_value "$post_id" "_g_categories")
+    
+    safe_store_meta "$post_id" "_amazon_keywords" "$title $authors $publisher"
+    safe_store_meta "$post_id" "_amazon_search_terms" "$title, $authors, $publisher, $categories"
+    safe_store_meta "$post_id" "_amazon_asin" ""
+    safe_store_meta "$post_id" "_amazon_export_status" ""
+    safe_store_meta "$post_id" "_amazon_last_export" ""
+    
+    # Rakuten
+    safe_store_meta "$post_id" "_rakuten_state" "10"
+    safe_store_meta "$post_id" "_rakuten_product_id" ""
+    safe_store_meta "$post_id" "_rakuten_export_status" ""
+    safe_store_meta "$post_id" "_rakuten_last_export" ""
+    
+    # Fnac
+    safe_store_meta "$post_id" "_fnac_tva_rate" "5.5"
+    safe_store_meta "$post_id" "_fnac_product_id" ""
+    safe_store_meta "$post_id" "_fnac_export_status" ""
+    safe_store_meta "$post_id" "_fnac_last_export" ""
+    
+    # Cdiscount
+    [ -n "$publisher" ] && safe_store_meta "$post_id" "_cdiscount_brand" "$publisher"
+    safe_store_meta "$post_id" "_cdiscount_product_id" ""
+    safe_store_meta "$post_id" "_cdiscount_export_status" ""
+    safe_store_meta "$post_id" "_cdiscount_last_export" ""
+    
+    # Leboncoin
+    safe_store_meta "$post_id" "_leboncoin_phone_hidden" "true"
+    safe_store_meta "$post_id" "_leboncoin_ad_id" ""
+    safe_store_meta "$post_id" "_leboncoin_export_status" ""
+    safe_store_meta "$post_id" "_leboncoin_last_export" ""
+    
+    # Vinted
+    safe_store_meta "$post_id" "_vinted_item_id" ""
+    safe_store_meta "$post_id" "_vinted_export_status" ""
+    safe_store_meta "$post_id" "_vinted_last_export" ""
+    
+    # eBay
+    safe_store_meta "$post_id" "_ebay_condition_id" "4"
+    
+    # ================ TAGS ET ATTRIBUTS ================
+    safe_store_meta "$post_id" "_product_tag" ""
+    safe_store_meta "$post_id" "_product_attributes" ""
+    safe_store_meta "$post_id" "_default_attributes" ""
+    
+    # ================ DONNÉES ENRICHIES ================
+    safe_store_meta "$post_id" "_reading_age" ""
+    safe_store_meta "$post_id" "_lexile_measure" ""
+    safe_store_meta "$post_id" "_bisac_codes" ""
+    safe_store_meta "$post_id" "_dewey_decimal" ""
+    safe_store_meta "$post_id" "_lcc_number" ""
+    
+    # ================ SEO ================
+    safe_store_meta "$post_id" "_yoast_title" ""
+    safe_store_meta "$post_id" "_yoast_metadesc" ""
+    safe_store_meta "$post_id" "_rank_math_title" ""
+    safe_store_meta "$post_id" "_rank_math_description" ""
+    
+    echo "[DEBUG] TOUTES les métadonnées martingale appliquées" >&2
+}
 
 # Fonction pour sélectionner les meilleures données
 select_best_data() {
@@ -587,18 +539,6 @@ select_best_data() {
     fi
     
     echo "[DEBUG] Meilleures données sélectionnées et sauvegardées" >&2
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonction de calcul du poids et dimensions
@@ -687,18 +627,6 @@ calculate_weight_dimensions() {
         
         echo "[DEBUG] Poids et dimensions par défaut appliqués" >&2
     fi
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonction de génération des bullet points
@@ -782,18 +710,6 @@ generate_bullet_points() {
     safe_store_meta "$post_id" "_calculated_bullet5" "$bullet5"
     
     echo "[DEBUG] Bullet points générés" >&2
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonction pour calculer le score d'export
@@ -847,18 +763,6 @@ calculate_export_score() {
     safe_store_meta "$post_id" "_missing_data" "$missing"
     
     echo "[DEBUG] Score d'export: $score/$max_score" >&2
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonctions spécifiques aux modes
@@ -898,18 +802,6 @@ mark_as_sold() {
         WHERE post_id=$id AND meta_key='_stock_status';"
     
     echo "✅ Livre #$id marqué comme VENDU"
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 process_batch() {
@@ -953,18 +845,6 @@ process_batch() {
     
     echo ""
     echo "✅ Traitement terminé : $count livres traités"
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonction pour traiter un livre unique avec MARTINGALE COMPLÈTE
@@ -1215,7 +1095,7 @@ process_single_book() {
     # === ÉTAPE 11 : APPLICATION COMPLÈTE DES MÉTADONNÉES MARTINGALE ===
     # IMPORTANT : Cette étape est maintenant TOUJOURS exécutée, même si collection_status = completed
     echo "[DEBUG] Application COMPLÈTE des métadonnées martingale..."
-    enrich_metadata_complete "$id" "$isbn"
+    apply_complete_martingale_metadata "$id"
     
     # === ÉTAPE 12 : AFFICHAGE DES RÉSULTATS ===
     
@@ -1478,18 +1358,6 @@ process_single_book() {
     else
         echo -e "${RED}❌ MARTINGALE INCOMPLÈTE : $completion_rate%${NC}"
     fi
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonction pour capturer l'état d'un livre
@@ -1501,18 +1369,6 @@ capture_book_state() {
         AND meta_key LIKE '\_%' 
         AND meta_value != ''
         AND meta_value IS NOT NULL"
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
-    fi
 }
 
 # Fonction pour formater la progression
@@ -1524,18 +1380,6 @@ format_progression() {
         echo "❌ $gain"
     else
         echo "➖ Aucun gain"
-    fi
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
     fi
 }
 
@@ -1622,18 +1466,6 @@ show_api_results() {
         echo -e "${CYAN}📝 Longueur : ${#groq_desc} caractères${NC}"
     else
         echo -e "${RED}❌ Statut : Pas de description Groq${NC}"
-    fi
-    
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        # Appeler la fonction d'affichage complète de lib/martingale_complete.sh
-        display_martingale_complete "$id"
     fi
 }
 

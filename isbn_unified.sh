@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script unifié de gestion ISBN - Version MARTINGALE COMPLÈTE
+# Script unifié de gestion ISBN - Version 4 MARTINGALE COMPLÈTE
 # Gère la collecte, l'analyse et l'enrichissement EXHAUSTIF des données
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -94,7 +94,7 @@ get_meta_timestamp() {
 show_help() {
     cat << EOF
 ══════════════════════════════════════════════════════════════════════════════════════════════
-                             📚 ISBN UNIFIED - Script complet
+                             📚 ISBN UNIFIED V4 - Script complet avec Martingale
 ══════════════════════════════════════════════════════════════════════════════════════════════
 
 UTILISATION :
@@ -180,16 +180,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Fonction pour appliquer TOUTES les métadonnées de la martingale
-apply_martingale_metadata() {
+# ====================================================================
+# FONCTION MARTINGALE COMPLÈTE - REMPLIT TOUS LES CHAMPS
+# ====================================================================
+apply_complete_martingale_metadata() {
     local post_id="$1"
-    [ -z "$post_id" ] && { echo "[ERROR] apply_martingale_metadata: post_id requis"; return 1; }
+    [ -z "$post_id" ] && { echo "[ERROR] apply_complete_martingale_metadata: post_id requis"; return 1; }
     
-    echo "[DEBUG] Application de TOUTES les métadonnées martingale pour #$post_id..." >&2
+    echo "[DEBUG] Application COMPLÈTE de TOUTES les métadonnées martingale pour #$post_id..." >&2
     
-    # === VALEURS PAR DÉFAUT OBLIGATOIRES ===
-    
-    # Prix et stock
+    # ================ PRIX ET STOCK ================
     local price=$(get_meta_value "$post_id" "_price")
     if [ -z "$price" ] || [ "$price" = "0" ]; then
         safe_store_meta "$post_id" "_price" "0"
@@ -197,8 +197,10 @@ apply_martingale_metadata() {
     else
         safe_store_meta "$post_id" "_regular_price" "$price"
     fi
+    safe_store_meta "$post_id" "_sale_price" ""
+    safe_store_meta "$post_id" "_sale_price_dates_from" ""
+    safe_store_meta "$post_id" "_sale_price_dates_to" ""
     
-    # Stock
     local stock=$(get_meta_value "$post_id" "_stock")
     [ -z "$stock" ] && safe_store_meta "$post_id" "_stock" "1"
     safe_store_meta "$post_id" "_stock_status" "instock"
@@ -206,16 +208,7 @@ apply_martingale_metadata() {
     safe_store_meta "$post_id" "_backorders" "no"
     safe_store_meta "$post_id" "_sold_individually" "yes"
     
-    # Métadonnées produit
-    safe_store_meta "$post_id" "_product_type" "simple"
-    safe_store_meta "$post_id" "_visibility" "visible"
-    safe_store_meta "$post_id" "_featured" "no"
-    safe_store_meta "$post_id" "_virtual" "no"
-    safe_store_meta "$post_id" "_downloadable" "no"
-    safe_store_meta "$post_id" "_tax_status" "taxable"
-    safe_store_meta "$post_id" "_tax_class" "reduced-rate"
-    
-    # État du livre
+    # ================ ÉTATS ET CONDITIONS ================
     local condition=$(get_meta_value "$post_id" "_book_condition")
     if [ -z "$condition" ]; then
         safe_store_meta "$post_id" "_book_condition" "très bon"
@@ -247,17 +240,26 @@ apply_martingale_metadata() {
         esac
     fi
     
-    # Catégories Vinted
+    # ================ CATÉGORIES TOUTES MARKETPLACES ================
     safe_store_meta "$post_id" "_cat_vinted" "1601"
     safe_store_meta "$post_id" "_vinted_category_id" "1601"
     safe_store_meta "$post_id" "_vinted_category_name" "Livres"
+    safe_store_meta "$post_id" "_amazon_category" "Livres"
+    safe_store_meta "$post_id" "_rakuten_category" "livres"
+    safe_store_meta "$post_id" "_fnac_category" "livres"
+    safe_store_meta "$post_id" "_cdiscount_category" "livres"
+    safe_store_meta "$post_id" "_leboncoin_category" "27"
+    safe_store_meta "$post_id" "_ebay_category" "267"
+    safe_store_meta "$post_id" "_allegro_category" "7"
+    safe_store_meta "$post_id" "_bol_category" "8299"
+    safe_store_meta "$post_id" "_etsy_category" "69150433"
     
-    # Localisation
+    # ================ LOCALISATION ================
     safe_store_meta "$post_id" "_location_zip" "76000"
     safe_store_meta "$post_id" "_location_city" "Rouen"
     safe_store_meta "$post_id" "_location_country" "FR"
     
-    # Identifiants
+    # ================ IDENTIFIANTS ================
     local isbn=$(get_meta_value "$post_id" "_isbn")
     if [ -n "$isbn" ]; then
         safe_store_meta "$post_id" "_sku" "$isbn"
@@ -271,25 +273,24 @@ apply_martingale_metadata() {
         fi
     fi
     
-    # Catégories marketplaces par défaut
-    safe_store_meta "$post_id" "_leboncoin_category" "27"
-    safe_store_meta "$post_id" "_leboncoin_phone_hidden" "true"
-    safe_store_meta "$post_id" "_fnac_tva_rate" "5.5"
-    safe_store_meta "$post_id" "_rakuten_state" "10"
-    safe_store_meta "$post_id" "_ebay_condition_id" "4"
+    # ================ MÉTADONNÉES PRODUIT ================
+    safe_store_meta "$post_id" "_product_type" "simple"
+    safe_store_meta "$post_id" "_visibility" "visible"
+    safe_store_meta "$post_id" "_featured" "no"
+    safe_store_meta "$post_id" "_virtual" "no"
+    safe_store_meta "$post_id" "_downloadable" "no"
+    safe_store_meta "$post_id" "_tax_status" "taxable"
+    safe_store_meta "$post_id" "_tax_class" "reduced-rate"
+    safe_store_meta "$post_id" "_shipping_class" ""
     
-    # Langue par défaut
-    local language=$(get_meta_value "$post_id" "_g_language")
-    [ -z "$language" ] && safe_store_meta "$post_id" "_g_language" "fr"
-    
-    # Métadonnées système
+    # ================ MÉTADONNÉES SYSTÈME ================
     safe_store_meta "$post_id" "_has_description" "1"
     safe_store_meta "$post_id" "_collection_status" "completed"
     safe_store_meta "$post_id" "_last_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
     safe_store_meta "$post_id" "_api_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
     safe_store_meta "$post_id" "_last_analyze_date" "$(date '+%Y-%m-%d %H:%M:%S')"
     
-    # Copier dimensions calculées vers dimensions WooCommerce
+    # ================ DIMENSIONS PHYSIQUES ================
     local calc_length=$(get_meta_value "$post_id" "_calculated_length")
     local calc_width=$(get_meta_value "$post_id" "_calculated_width")
     local calc_height=$(get_meta_value "$post_id" "_calculated_height")
@@ -300,7 +301,84 @@ apply_martingale_metadata() {
     [ -n "$calc_height" ] && safe_store_meta "$post_id" "_height" "$calc_height"
     [ -n "$calc_weight" ] && safe_store_meta "$post_id" "_weight" "$calc_weight"
     
-    echo "[DEBUG] Métadonnées martingale appliquées" >&2
+    # ================ IMAGES ================
+    local best_cover=$(get_meta_value "$post_id" "_best_cover_image")
+    if [ -n "$best_cover" ]; then
+        safe_store_meta "$post_id" "_thumbnail_id" ""
+        safe_store_meta "$post_id" "_product_image_gallery" ""
+        safe_store_meta "$post_id" "_image_alt" "Couverture du livre"
+        safe_store_meta "$post_id" "_image_title" "Image de couverture"
+    fi
+    
+    # ================ LANGUE ================
+    local language=$(get_meta_value "$post_id" "_g_language")
+    [ -z "$language" ] && safe_store_meta "$post_id" "_g_language" "fr"
+    
+    # ================ DONNÉES MARKETPLACE SPÉCIFIQUES ================
+    
+    # Amazon
+    local title=$(get_meta_value "$post_id" "_best_title")
+    local authors=$(get_meta_value "$post_id" "_best_authors")
+    local publisher=$(get_meta_value "$post_id" "_best_publisher")
+    local categories=$(get_meta_value "$post_id" "_g_categories")
+    
+    safe_store_meta "$post_id" "_amazon_keywords" "$title $authors $publisher"
+    safe_store_meta "$post_id" "_amazon_search_terms" "$title, $authors, $publisher, $categories"
+    safe_store_meta "$post_id" "_amazon_asin" ""
+    safe_store_meta "$post_id" "_amazon_export_status" ""
+    safe_store_meta "$post_id" "_amazon_last_export" ""
+    
+    # Rakuten
+    safe_store_meta "$post_id" "_rakuten_state" "10"
+    safe_store_meta "$post_id" "_rakuten_product_id" ""
+    safe_store_meta "$post_id" "_rakuten_export_status" ""
+    safe_store_meta "$post_id" "_rakuten_last_export" ""
+    
+    # Fnac
+    safe_store_meta "$post_id" "_fnac_tva_rate" "5.5"
+    safe_store_meta "$post_id" "_fnac_product_id" ""
+    safe_store_meta "$post_id" "_fnac_export_status" ""
+    safe_store_meta "$post_id" "_fnac_last_export" ""
+    
+    # Cdiscount
+    [ -n "$publisher" ] && safe_store_meta "$post_id" "_cdiscount_brand" "$publisher"
+    safe_store_meta "$post_id" "_cdiscount_product_id" ""
+    safe_store_meta "$post_id" "_cdiscount_export_status" ""
+    safe_store_meta "$post_id" "_cdiscount_last_export" ""
+    
+    # Leboncoin
+    safe_store_meta "$post_id" "_leboncoin_phone_hidden" "true"
+    safe_store_meta "$post_id" "_leboncoin_ad_id" ""
+    safe_store_meta "$post_id" "_leboncoin_export_status" ""
+    safe_store_meta "$post_id" "_leboncoin_last_export" ""
+    
+    # Vinted
+    safe_store_meta "$post_id" "_vinted_item_id" ""
+    safe_store_meta "$post_id" "_vinted_export_status" ""
+    safe_store_meta "$post_id" "_vinted_last_export" ""
+    
+    # eBay
+    safe_store_meta "$post_id" "_ebay_condition_id" "4"
+    
+    # ================ TAGS ET ATTRIBUTS ================
+    safe_store_meta "$post_id" "_product_tag" ""
+    safe_store_meta "$post_id" "_product_attributes" ""
+    safe_store_meta "$post_id" "_default_attributes" ""
+    
+    # ================ DONNÉES ENRICHIES ================
+    safe_store_meta "$post_id" "_reading_age" ""
+    safe_store_meta "$post_id" "_lexile_measure" ""
+    safe_store_meta "$post_id" "_bisac_codes" ""
+    safe_store_meta "$post_id" "_dewey_decimal" ""
+    safe_store_meta "$post_id" "_lcc_number" ""
+    
+    # ================ SEO ================
+    safe_store_meta "$post_id" "_yoast_title" ""
+    safe_store_meta "$post_id" "_yoast_metadesc" ""
+    safe_store_meta "$post_id" "_rank_math_title" ""
+    safe_store_meta "$post_id" "_rank_math_description" ""
+    
+    echo "[DEBUG] TOUTES les métadonnées martingale appliquées" >&2
 }
 
 # Fonction pour sélectionner les meilleures données
@@ -696,41 +774,28 @@ calculate_export_score() {
     
     echo "[DEBUG] Score d'export: $score/$max_score" >&2
 }
-
-# Fonction pour générer les métadonnées marketplaces
-generate_marketplace_metadata() {
-    local post_id="$1"
-    [ -z "$post_id" ] && { echo "[ERROR] generate_marketplace_metadata: post_id requis"; return 1; }
     
-    echo "[DEBUG] Génération des métadonnées marketplaces pour #$post_id..." >&2
+    for field_info in "${fields[@]}"; do
+        IFS=':' read -r field weight label <<< "$field_info"
+        ((max_score += weight))
+        
+        local value=$(get_meta_value "$post_id" "$field")
+        if [ ! -z "$value" ] && [ "$value" != "0" ] && [ "$value" != "null" ]; then
+            ((score += weight))
+        else
+            missing="${missing}$label, "
+        fi
+    done
     
-    # Récupérer les données de base
-    local title=$(get_meta_value "$post_id" "_best_title")
-    local authors=$(get_meta_value "$post_id" "_best_authors")
-    local publisher=$(get_meta_value "$post_id" "_best_publisher")
-    local categories=$(get_meta_value "$post_id" "_g_categories")
+    # Enlever la dernière virgule
+    missing="${missing%, }"
     
-    # Amazon
-    safe_store_meta "$post_id" "_amazon_keywords" "$title $authors $publisher"
-    safe_store_meta "$post_id" "_amazon_search_terms" "$title, $authors, $publisher, $categories"
+    # Sauvegarder le score
+    safe_store_meta "$post_id" "_export_score" "$score"
+    safe_store_meta "$post_id" "_export_max_score" "$max_score"
+    safe_store_meta "$post_id" "_missing_data" "$missing"
     
-    # Rakuten
-    safe_store_meta "$post_id" "_rakuten_state" "10"
-    
-    # Fnac
-    safe_store_meta "$post_id" "_fnac_tva_rate" "5.5"
-    
-    # Cdiscount
-    [ ! -z "$publisher" ] && safe_store_meta "$post_id" "_cdiscount_brand" "$publisher"
-    
-    # Leboncoin
-    safe_store_meta "$post_id" "_leboncoin_category" "27"
-    safe_store_meta "$post_id" "_leboncoin_phone_hidden" "true"
-    
-    # eBay
-    safe_store_meta "$post_id" "_ebay_condition_id" "4"
-    
-    echo "[DEBUG] Métadonnées marketplaces générées" >&2
+    echo "[DEBUG] Score d'export: $score/$max_score" >&2
 }
 
 # Fonctions spécifiques aux modes
@@ -914,8 +979,8 @@ process_single_book() {
         fi
     fi
     
-    # === ÉTAPE 2 : APPLIQUER TOUTES LES MÉTADONNÉES MARTINGALE ===
-    apply_martingale_metadata "$id"
+    # === ÉTAPE 2 : STOCKER L'ISBN DANS _isbn ===
+    safe_store_meta "$id" "_isbn" "$isbn"
     
     # === ÉTAPE 3 : CATÉGORISATION AUTOMATIQUE ===
     echo ""
@@ -1055,26 +1120,16 @@ process_single_book() {
             fi
         fi
         
-        # === ÉTAPE 10 : GÉNÉRATION DES MÉTADONNÉES MARKETPLACES ===
-        echo "[DEBUG] Génération des métadonnées marketplaces..."
-        generate_marketplace_metadata "$id"
-        
-        # === ÉTAPE 11 : CALCUL DU SCORE D'EXPORT ===
+        # === ÉTAPE 10 : CALCUL DU SCORE D'EXPORT ===
         echo "[DEBUG] Calcul du score d'export..."
         calculate_export_score "$id"
         
-        # === ÉTAPE 12 : APPLICATION FINALE DES MÉTADONNÉES ===
-        echo "[DEBUG] Application finale des métadonnées martingale..."
-        apply_martingale_metadata "$id"
-        
-        # Marquer la collecte comme terminée
-        safe_store_meta "$id" "_collection_status" "completed"
-        safe_store_meta "$id" "_last_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
-        safe_store_meta "$id" "_api_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
-        safe_store_meta "$id" "_last_analyze_date" "$(date '+%Y-%m-%d %H:%M:%S')"
+        # === ÉTAPE 11 : APPLICATION COMPLÈTE DES MÉTADONNÉES MARTINGALE ===
+        echo "[DEBUG] Application COMPLÈTE des métadonnées martingale..."
+        apply_complete_martingale_metadata "$id"
     fi
     
-    # === ÉTAPE 13 : AFFICHAGE DES RÉSULTATS ===
+    # === ÉTAPE 12 : AFFICHAGE DES RÉSULTATS ===
     
     # Capturer l'état APRÈS
     local after_data=$(capture_book_state "$id")
@@ -1118,7 +1173,7 @@ process_single_book() {
         echo "ℹ️  Aucune nouvelle donnée collectée"
     fi
     
-    # === ÉTAPE 14 : VÉRIFICATION FINALE DES DONNÉES MARTINGALE ===
+    # === ÉTAPE 13 : VÉRIFICATION FINALE DES DONNÉES MARTINGALE ===
     echo ""
     echo "🔍 VÉRIFICATION MARTINGALE COMPLÈTE"
     echo "══════════════════════════════════════════════════════════════"
@@ -1127,8 +1182,9 @@ process_single_book() {
     local total_fields=0
     local missing_critical=""
     
-    # Liste de TOUS les champs à vérifier
+    # Liste de TOUS les champs de la martingale V4
     local martingale_fields=(
+        # DONNÉES PRINCIPALES
         "_best_title:CRITIQUE"
         "_best_authors:IMPORTANT"
         "_best_publisher:IMPORTANT"
@@ -1136,17 +1192,35 @@ process_single_book() {
         "_best_pages:NORMAL"
         "_best_binding:NORMAL"
         "_best_cover_image:CRITIQUE"
+        # PRIX ET STOCK
         "_price:CRITIQUE"
         "_regular_price:CRITIQUE"
+        "_sale_price:NORMAL"
+        "_sale_price_dates_from:NORMAL"
+        "_sale_price_dates_to:NORMAL"
         "_stock:IMPORTANT"
         "_stock_status:IMPORTANT"
         "_manage_stock:NORMAL"
+        "_backorders:NORMAL"
+        "_sold_individually:NORMAL"
+        # ÉTATS ET CONDITIONS
         "_book_condition:IMPORTANT"
         "_vinted_condition:IMPORTANT"
         "_vinted_condition_text:NORMAL"
+        # CATÉGORIES
         "_cat_vinted:IMPORTANT"
         "_vinted_category_id:IMPORTANT"
         "_vinted_category_name:NORMAL"
+        "_amazon_category:NORMAL"
+        "_rakuten_category:NORMAL"
+        "_fnac_category:NORMAL"
+        "_cdiscount_category:NORMAL"
+        "_leboncoin_category:NORMAL"
+        "_ebay_category:NORMAL"
+        "_allegro_category:NORMAL"
+        "_bol_category:NORMAL"
+        "_etsy_category:NORMAL"
+        # CALCULS
         "_calculated_weight:IMPORTANT"
         "_calculated_dimensions:IMPORTANT"
         "_calculated_length:NORMAL"
@@ -1157,15 +1231,135 @@ process_single_book() {
         "_calculated_bullet3:NORMAL"
         "_calculated_bullet4:NORMAL"
         "_calculated_bullet5:NORMAL"
+        # DIMENSIONS PHYSIQUES
+        "_weight:NORMAL"
+        "_length:NORMAL"
+        "_width:NORMAL"
+        "_height:NORMAL"
+        # LOCALISATION
         "_location_zip:IMPORTANT"
         "_location_city:NORMAL"
         "_location_country:NORMAL"
+        # IDENTIFIANTS
         "_isbn:CRITIQUE"
         "_sku:CRITIQUE"
+        "_isbn10:NORMAL"
+        "_isbn13:NORMAL"
+        "_ean:NORMAL"
+        # MÉTADONNÉES PRODUIT
+        "_product_type:NORMAL"
+        "_visibility:NORMAL"
+        "_featured:NORMAL"
+        "_virtual:NORMAL"
+        "_downloadable:NORMAL"
+        "_tax_status:NORMAL"
+        "_tax_class:NORMAL"
+        "_shipping_class:NORMAL"
+        # MÉTADONNÉES SYSTÈME
         "_collection_status:CRITIQUE"
-        "_has_description:NORMAL"
+        "_last_collect_date:NORMAL"
+        "_api_collect_date:NORMAL"
         "_export_score:IMPORTANT"
         "_export_max_score:IMPORTANT"
+        "_missing_data:NORMAL"
+        "_has_description:NORMAL"
+        # IMAGES TOUTES TAILLES
+        "_g_smallThumbnail:NORMAL"
+        "_g_thumbnail:NORMAL"
+        "_g_small:NORMAL"
+        "_g_medium:NORMAL"
+        "_g_large:NORMAL"
+        "_g_extraLarge:NORMAL"
+        "_i_image:NORMAL"
+        "_o_cover_small:NORMAL"
+        "_o_cover_medium:NORMAL"
+        "_o_cover_large:NORMAL"
+        "_thumbnail_id:NORMAL"
+        "_product_image_gallery:NORMAL"
+        "_image_alt:NORMAL"
+        "_image_title:NORMAL"
+        # DONNÉES GOOGLE BOOKS
+        "_g_title:NORMAL"
+        "_g_authors:NORMAL"
+        "_g_publisher:NORMAL"
+        "_g_publishedDate:NORMAL"
+        "_g_description:NORMAL"
+        "_g_pageCount:NORMAL"
+        "_g_categories:NORMAL"
+        "_g_categorie_reference:NORMAL"
+        "_g_language:NORMAL"
+        # DONNÉES ISBNDB
+        "_i_title:NORMAL"
+        "_i_authors:NORMAL"
+        "_i_publisher:NORMAL"
+        "_i_synopsis:NORMAL"
+        "_i_binding:NORMAL"
+        "_i_pages:NORMAL"
+        "_i_subjects:NORMAL"
+        "_i_language:NORMAL"
+        "_i_msrp:NORMAL"
+        # DONNÉES OPEN LIBRARY
+        "_o_title:NORMAL"
+        "_o_authors:NORMAL"
+        "_o_publishers:NORMAL"
+        "_o_number_of_pages:NORMAL"
+        "_o_physical_format:NORMAL"
+        "_o_subjects:NORMAL"
+        "_o_description:NORMAL"
+        # SOURCES DES MEILLEURES DONNÉES
+        "_best_title_source:NORMAL"
+        "_best_authors_source:NORMAL"
+        "_best_publisher_source:NORMAL"
+        "_best_description_source:NORMAL"
+        "_best_pages_source:NORMAL"
+        "_best_binding_source:NORMAL"
+        "_best_cover_source:NORMAL"
+        # TIMESTAMPS DE COLLECTE
+        "_google_last_attempt:NORMAL"
+        "_isbndb_last_attempt:NORMAL"
+        "_openlibrary_last_attempt:NORMAL"
+        "_last_analyze_date:NORMAL"
+        # DONNÉES MARKETPLACE SPÉCIFIQUES
+        "_amazon_keywords:NORMAL"
+        "_amazon_search_terms:NORMAL"
+        "_amazon_asin:NORMAL"
+        "_amazon_export_status:NORMAL"
+        "_amazon_last_export:NORMAL"
+        "_rakuten_state:NORMAL"
+        "_rakuten_product_id:NORMAL"
+        "_rakuten_export_status:NORMAL"
+        "_rakuten_last_export:NORMAL"
+        "_fnac_tva_rate:NORMAL"
+        "_fnac_product_id:NORMAL"
+        "_fnac_export_status:NORMAL"
+        "_fnac_last_export:NORMAL"
+        "_cdiscount_brand:NORMAL"
+        "_cdiscount_product_id:NORMAL"
+        "_cdiscount_export_status:NORMAL"
+        "_cdiscount_last_export:NORMAL"
+        "_leboncoin_phone_hidden:NORMAL"
+        "_leboncoin_ad_id:NORMAL"
+        "_leboncoin_export_status:NORMAL"
+        "_leboncoin_last_export:NORMAL"
+        "_vinted_item_id:NORMAL"
+        "_vinted_export_status:NORMAL"
+        "_vinted_last_export:NORMAL"
+        "_ebay_condition_id:NORMAL"
+        # TAGS ET ATTRIBUTS
+        "_product_tag:NORMAL"
+        "_product_attributes:NORMAL"
+        "_default_attributes:NORMAL"
+        # DONNÉES ENRICHIES
+        "_reading_age:NORMAL"
+        "_lexile_measure:NORMAL"
+        "_bisac_codes:NORMAL"
+        "_dewey_decimal:NORMAL"
+        "_lcc_number:NORMAL"
+        # SEO
+        "_yoast_title:NORMAL"
+        "_yoast_metadesc:NORMAL"
+        "_rank_math_title:NORMAL"
+        "_rank_math_description:NORMAL"
     )
     
     for field_info in "${martingale_fields[@]}"; do
@@ -1198,152 +1392,3 @@ process_single_book() {
         echo -e "${RED}❌ MARTINGALE INCOMPLÈTE : $completion_rate%${NC}"
     fi
 }
-
-# Fonction pour capturer l'état d'un livre
-capture_book_state() {
-    local id=$1
-    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT meta_key FROM wp_${SITE_ID}_postmeta 
-        WHERE post_id=$id 
-        AND meta_key LIKE '\_%' 
-        AND meta_value != ''
-        AND meta_value IS NOT NULL"
-}
-
-# Fonction pour formater la progression
-format_progression() {
-    local gain=$1
-    if [ $gain -gt 0 ]; then
-        echo "✅ +$gain"
-    elif [ $gain -lt 0 ]; then
-        echo "❌ $gain"
-    else
-        echo "➖ Aucun gain"
-    fi
-}
-
-# Fonction pour afficher les résultats des APIs
-show_api_results() {
-    local id=$1
-    
-    # Google Books
-    echo ""
-    echo "🔵 GOOGLE BOOKS API"
-    local g_test=$(get_meta_value "$id" "_g_title")
-    local google_timestamp=$(get_meta_timestamp "$id" "_google_last_attempt")
-    
-    if [ -n "$g_test" ]; then
-        echo "✅ Statut : Données collectées avec succès"
-        echo -e "${CYAN}⏰ Collecté le : $google_timestamp${NC}"
-    else
-        local google_attempt=$(get_meta_value "$id" "_google_last_attempt")
-        if [ -n "$google_attempt" ]; then
-            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
-            echo -e "${YELLOW}⏰ Dernière tentative : $google_attempt${NC}"
-        else
-            echo "❌ Statut : Jamais collecté"
-        fi
-    fi
-    
-    # ISBNdb
-    echo ""
-    echo "🟢 ISBNDB API"
-    local i_test=$(get_meta_value "$id" "_i_title")
-    local isbndb_timestamp=$(get_meta_timestamp "$id" "_isbndb_last_attempt")
-    
-    if [ -n "$i_test" ]; then
-        echo "✅ Statut : Données collectées avec succès"
-        echo -e "${CYAN}⏰ Collecté le : $isbndb_timestamp${NC}"
-    else
-        local isbndb_attempt=$(get_meta_value "$id" "_isbndb_last_attempt")
-        if [ -n "$isbndb_attempt" ]; then
-            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
-            echo -e "${YELLOW}⏰ Dernière tentative : $isbndb_attempt${NC}"
-        else
-            echo "❌ Statut : Jamais collecté"
-        fi
-    fi
-    
-    # Open Library
-    echo ""
-    echo "🟠 OPEN LIBRARY API"
-    local o_test=$(get_meta_value "$id" "_o_title")
-    local openlibrary_timestamp=$(get_meta_timestamp "$id" "_openlibrary_last_attempt")
-    
-    if [ -n "$o_test" ]; then
-        echo "✅ Statut : Données collectées avec succès"
-        echo -e "${CYAN}⏰ Collecté le : $openlibrary_timestamp${NC}"
-    else
-        local openlibrary_attempt=$(get_meta_value "$id" "_openlibrary_last_attempt")
-        if [ -n "$openlibrary_attempt" ]; then
-            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
-            echo -e "${YELLOW}⏰ Dernière tentative : $openlibrary_attempt${NC}"
-        else
-            echo "❌ Statut : Jamais collecté"
-        fi
-    fi
-    
-    # Claude AI
-    echo ""
-    echo "🤖 CLAUDE AI"
-    local claude_desc=$(get_meta_value "$id" "_claude_description")
-    
-    if [ -n "$claude_desc" ] && [ ${#claude_desc} -gt 20 ]; then
-        echo "✅ Statut : Description générée avec succès"
-        echo -e "${CYAN}📝 Longueur : ${#claude_desc} caractères${NC}"
-    else
-        echo "❌ Statut : Pas de description Claude"
-    fi
-    
-    # Groq AI
-    echo ""
-    echo "🧠 GROQ AI"
-    local groq_desc=$(get_meta_value "$id" "_groq_description")
-    
-    if [ -n "$groq_desc" ] && [ ${#groq_desc} -gt 20 ]; then
-        echo "✅ Statut : Description générée avec succès"
-        echo -e "${CYAN}📝 Longueur : ${#groq_desc} caractères${NC}"
-    else
-        echo "❌ Statut : Pas de description Groq"
-    fi
-}
-
-# === PROGRAMME PRINCIPAL ===
-
-# Si aucun paramètre, afficher l'aide
-if [ -z "$MODE" ] && [ -z "$PARAM_ISBN" ]; then
-    show_help
-    exit 0
-fi
-
-# Traiter selon le mode
-case "$MODE" in
-    vendu)
-        mark_as_sold "$PARAM_ISBN"
-        ;;
-    batch)
-        process_batch "$LIMIT"
-        ;;
-    export)
-        echo "🚀 Mode export vers marketplaces"
-        if [ -n "$PARAM_ISBN" ]; then
-            # Export d'un seul livre
-            echo "Export du livre $PARAM_ISBN..."
-            # TODO: Implémenter l'export
-        else
-            # Export en masse
-            echo "Export en masse..."
-            # TODO: Implémenter l'export en masse
-        fi
-        ;;
-    *)
-        # Mode normal : traiter un livre
-        if [ -n "$PARAM_ISBN" ]; then
-            process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
-        else
-            echo "❌ ISBN requis"
-            show_help
-            exit 1
-        fi
-        ;;
-esac

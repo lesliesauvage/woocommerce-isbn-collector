@@ -21,6 +21,11 @@ PARAM_PRICE=""
 PARAM_CONDITION=""
 PARAM_STOCK=""
 
+# Définir LOG_FILE
+LOG_DIR="$SCRIPT_DIR/logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/isbn_unified_$(date +%Y%m%d_%H%M%S).log"
+
 # Fonction d'aide
 show_help() {
     cat << EOF
@@ -113,6 +118,140 @@ done
 
 # Debug des paramètres
 echo "[DEBUG] Paramètres: input=$PARAM_ISBN, price=$PARAM_PRICE, condition=$PARAM_CONDITION, stock=$PARAM_STOCK"
+
+# Fonction pour sélectionner les meilleures données
+select_best_data() {
+    local post_id="$1"
+    [ -z "$post_id" ] && { echo "[ERROR] select_best_data: post_id requis"; return 1; }
+    
+    echo "[DEBUG] Sélection des meilleures données pour #$post_id..." >&2
+    
+    # Récupérer toutes les données des APIs
+    local g_title=$(get_meta_value "$post_id" "_g_title")
+    local i_title=$(get_meta_value "$post_id" "_i_title")
+    local o_title=$(get_meta_value "$post_id" "_o_title")
+    
+    local g_authors=$(get_meta_value "$post_id" "_g_authors")
+    local i_authors=$(get_meta_value "$post_id" "_i_authors")
+    local o_authors=$(get_meta_value "$post_id" "_o_authors")
+    
+    local g_publisher=$(get_meta_value "$post_id" "_g_publisher")
+    local i_publisher=$(get_meta_value "$post_id" "_i_publisher")
+    local o_publishers=$(get_meta_value "$post_id" "_o_publishers")
+    
+    local g_pages=$(get_meta_value "$post_id" "_g_pageCount")
+    local i_pages=$(get_meta_value "$post_id" "_i_pages")
+    local o_pages=$(get_meta_value "$post_id" "_o_number_of_pages")
+    
+    # Sélectionner le meilleur titre (priorité : ISBNdb > Google > OpenLibrary)
+    local best_title=""
+    if [ ! -z "$i_title" ] && [ "$i_title" != "null" ]; then
+        best_title="$i_title"
+    elif [ ! -z "$g_title" ] && [ "$g_title" != "null" ]; then
+        best_title="$g_title"
+    elif [ ! -z "$o_title" ] && [ "$o_title" != "null" ]; then
+        best_title="$o_title"
+    fi
+    
+    # Sélectionner les meilleurs auteurs
+    local best_authors=""
+    if [ ! -z "$i_authors" ] && [ "$i_authors" != "null" ]; then
+        best_authors="$i_authors"
+    elif [ ! -z "$g_authors" ] && [ "$g_authors" != "null" ]; then
+        best_authors="$g_authors"
+    elif [ ! -z "$o_authors" ] && [ "$o_authors" != "null" ]; then
+        best_authors="$o_authors"
+    fi
+    
+    # Sélectionner le meilleur éditeur
+    local best_publisher=""
+    if [ ! -z "$i_publisher" ] && [ "$i_publisher" != "null" ]; then
+        best_publisher="$i_publisher"
+    elif [ ! -z "$g_publisher" ] && [ "$g_publisher" != "null" ]; then
+        best_publisher="$g_publisher"
+    elif [ ! -z "$o_publishers" ] && [ "$o_publishers" != "null" ]; then
+        best_publisher="$o_publishers"
+    fi
+    
+    # Sélectionner le meilleur nombre de pages
+    local best_pages=""
+    if [ ! -z "$i_pages" ] && [ "$i_pages" != "null" ] && [ "$i_pages" != "0" ]; then
+        best_pages="$i_pages"
+    elif [ ! -z "$g_pages" ] && [ "$g_pages" != "null" ] && [ "$g_pages" != "0" ]; then
+        best_pages="$g_pages"
+    elif [ ! -z "$o_pages" ] && [ "$o_pages" != "null" ] && [ "$o_pages" != "0" ]; then
+        best_pages="$o_pages"
+    fi
+    
+    # Sauvegarder les meilleures données
+    [ ! -z "$best_title" ] && safe_store_meta "$post_id" "_best_title" "$best_title"
+    [ ! -z "$best_authors" ] && safe_store_meta "$post_id" "_best_authors" "$best_authors"
+    [ ! -z "$best_publisher" ] && safe_store_meta "$post_id" "_best_publisher" "$best_publisher"
+    [ ! -z "$best_pages" ] && safe_store_meta "$post_id" "_best_pages" "$best_pages"
+    
+    # Mettre à jour le titre WordPress si on a un meilleur titre
+    if [ ! -z "$best_title" ]; then
+        local escaped_title=$(safe_sql "$best_title")
+        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+            UPDATE wp_${SITE_ID}_posts 
+            SET post_title='$escaped_title' 
+            WHERE ID=$post_id"
+    fi
+    
+    echo "[DEBUG] Meilleures données sélectionnées et sauvegardées" >&2
+}
+
+# Fonction de calcul du poids et dimensions
+calculate_weight_dimensions() {
+    local post_id="$1"
+    [ -z "$post_id" ] && { echo "[ERROR] calculate_weight_dimensions: post_id requis"; return 1; }
+    
+    echo "[DEBUG] Calcul du poids et dimensions pour #$post_id..." >&2
+    
+    # Récupérer le nombre de pages
+    local pages=$(get_meta_value "$post_id" "_best_pages")
+    [ -z "$pages" ] && pages=$(get_meta_value "$post_id" "_g_pageCount")
+    [ -z "$pages" ] && pages=$(get_meta_value "$post_id" "_i_pages")
+    
+    if [ ! -z "$pages" ] && [ "$pages" != "0" ]; then
+        # Calcul du poids approximatif (80g par 100 pages + 50g couverture)
+        local weight=$((pages * 80 / 100 + 50))
+        safe_store_meta "$post_id" "_calculated_weight" "$weight"
+        
+        # Dimensions standard livre de poche
+        safe_store_meta "$post_id" "_calculated_length" "18"
+        safe_store_meta "$post_id" "_calculated_width" "11"
+        
+        # Épaisseur basée sur le nombre de pages (0.1cm par 10 pages)
+        local thickness=$((pages / 10))
+        [ $thickness -lt 1 ] && thickness=1
+        safe_store_meta "$post_id" "_calculated_height" "$thickness"
+        
+        echo "[DEBUG] Poids: ${weight}g, Dimensions: 18x11x${thickness}cm" >&2
+    fi
+}
+
+# Fonction de génération des bullet points
+generate_bullet_points() {
+    local post_id="$1"
+    [ -z "$post_id" ] && { echo "[ERROR] generate_bullet_points: post_id requis"; return 1; }
+    
+    echo "[DEBUG] Génération des bullet points pour #$post_id..." >&2
+    
+    # Récupérer les données
+    local title=$(get_meta_value "$post_id" "_best_title")
+    local authors=$(get_meta_value "$post_id" "_best_authors")
+    local publisher=$(get_meta_value "$post_id" "_best_publisher")
+    local pages=$(get_meta_value "$post_id" "_best_pages")
+    local language=$(get_meta_value "$post_id" "_g_language")
+    
+    # Générer 5 bullet points
+    [ ! -z "$title" ] && safe_store_meta "$post_id" "_calculated_bullet1" "Titre: $title"
+    [ ! -z "$authors" ] && safe_store_meta "$post_id" "_calculated_bullet2" "Auteur(s): $authors"
+    [ ! -z "$publisher" ] && safe_store_meta "$post_id" "_calculated_bullet3" "Éditeur: $publisher"
+    [ ! -z "$pages" ] && safe_store_meta "$post_id" "_calculated_bullet4" "Nombre de pages: $pages"
+    [ ! -z "$language" ] && safe_store_meta "$post_id" "_calculated_bullet5" "Langue: $language"
+}
 
 # Fonctions spécifiques aux modes
 mark_as_sold() {
@@ -322,29 +461,37 @@ process_single_book() {
         # Lancer la collecte
         echo "[DEBUG] Début collecte pour produit #$id - ISBN: $isbn"
         
+        # Appeler les APIs avec le POST_ID et logger
+        if [ -f "$SCRIPT_DIR/apis/google_books.sh" ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → Google Books API..." | tee -a "$LOG_FILE"
+            "$SCRIPT_DIR/apis/google_books.sh" "$id" 2>&1 | tee -a "$LOG_FILE"
+        fi
 
+        if [ -f "$SCRIPT_DIR/apis/isbndb.sh" ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → ISBNdb API..." | tee -a "$LOG_FILE"
+            "$SCRIPT_DIR/apis/isbndb.sh" "$id" 2>&1 | tee -a "$LOG_FILE"
+        fi
 
-# METTRE :
-# Appeler les APIs directement
-if [ -f "$SCRIPT_DIR/apis/google_books.sh" ]; then
-    source "$SCRIPT_DIR/apis/google_books.sh"
-    fetch_google_books "$isbn"
-fi
+        if [ -f "$SCRIPT_DIR/apis/open_library.sh" ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → Open Library API..." | tee -a "$LOG_FILE"
+            "$SCRIPT_DIR/apis/open_library.sh" "$id" 2>&1 | tee -a "$LOG_FILE"
+        fi
 
-if [ -f "$SCRIPT_DIR/apis/isbndb.sh" ]; then
-    source "$SCRIPT_DIR/apis/isbndb.sh"
-    fetch_isbndb "$isbn"
-fi
+        # Sélectionner les meilleures données
+        echo "[DEBUG] Sélection des meilleures données..."
+        select_best_data "$id"
 
-if [ -f "$SCRIPT_DIR/apis/open_library.sh" ]; then
-    source "$SCRIPT_DIR/apis/open_library.sh"
-    fetch_openlibrary "$isbn"
-fi
+        # Calculer poids et dimensions
+        echo "[DEBUG] Calcul du poids et dimensions..."
+        calculate_weight_dimensions "$id"
 
-# Sélectionner les meilleures données
-
-
-
+        # Générer les bullet points
+        echo "[DEBUG] Génération des bullet points..."
+        generate_bullet_points "$id"
+        
+        # Marquer la collecte comme terminée
+        safe_store_meta "$id" "_collection_status" "completed"
+        safe_store_meta "$id" "_last_collect_date" "$(date '+%Y-%m-%d %H:%M:%S')"
     fi
     
     # Gérer le prix et la condition

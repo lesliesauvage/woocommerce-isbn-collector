@@ -774,29 +774,6 @@ calculate_export_score() {
     
     echo "[DEBUG] Score d'export: $score/$max_score" >&2
 }
-    
-    for field_info in "${fields[@]}"; do
-        IFS=':' read -r field weight label <<< "$field_info"
-        ((max_score += weight))
-        
-        local value=$(get_meta_value "$post_id" "$field")
-        if [ ! -z "$value" ] && [ "$value" != "0" ] && [ "$value" != "null" ]; then
-            ((score += weight))
-        else
-            missing="${missing}$label, "
-        fi
-    done
-    
-    # Enlever la dernière virgule
-    missing="${missing%, }"
-    
-    # Sauvegarder le score
-    safe_store_meta "$post_id" "_export_score" "$score"
-    safe_store_meta "$post_id" "_export_max_score" "$max_score"
-    safe_store_meta "$post_id" "_missing_data" "$missing"
-    
-    echo "[DEBUG] Score d'export: $score/$max_score" >&2
-}
 
 # Fonctions spécifiques aux modes
 mark_as_sold() {
@@ -1392,3 +1369,152 @@ process_single_book() {
         echo -e "${RED}❌ MARTINGALE INCOMPLÈTE : $completion_rate%${NC}"
     fi
 }
+
+# Fonction pour capturer l'état d'un livre
+capture_book_state() {
+    local id=$1
+    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_key FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$id 
+        AND meta_key LIKE '\_%' 
+        AND meta_value != ''
+        AND meta_value IS NOT NULL"
+}
+
+# Fonction pour formater la progression
+format_progression() {
+    local gain=$1
+    if [ $gain -gt 0 ]; then
+        echo "✅ +$gain"
+    elif [ $gain -lt 0 ]; then
+        echo "❌ $gain"
+    else
+        echo "➖ Aucun gain"
+    fi
+}
+
+# Fonction pour afficher les résultats des APIs
+show_api_results() {
+    local id=$1
+    
+    # Google Books
+    echo ""
+    echo "🔵 GOOGLE BOOKS API"
+    local g_test=$(get_meta_value "$id" "_g_title")
+    local google_timestamp=$(get_meta_timestamp "$id" "_google_last_attempt")
+    
+    if [ -n "$g_test" ]; then
+        echo "✅ Statut : Données collectées avec succès"
+        echo -e "${CYAN}⏰ Collecté le : $google_timestamp${NC}"
+    else
+        local google_attempt=$(get_meta_value "$id" "_google_last_attempt")
+        if [ -n "$google_attempt" ]; then
+            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
+            echo -e "${YELLOW}⏰ Dernière tentative : $google_attempt${NC}"
+        else
+            echo "❌ Statut : Jamais collecté"
+        fi
+    fi
+    
+    # ISBNdb
+    echo ""
+    echo "🟢 ISBNDB API"
+    local i_test=$(get_meta_value "$id" "_i_title")
+    local isbndb_timestamp=$(get_meta_timestamp "$id" "_isbndb_last_attempt")
+    
+    if [ -n "$i_test" ]; then
+        echo "✅ Statut : Données collectées avec succès"
+        echo -e "${CYAN}⏰ Collecté le : $isbndb_timestamp${NC}"
+    else
+        local isbndb_attempt=$(get_meta_value "$id" "_isbndb_last_attempt")
+        if [ -n "$isbndb_attempt" ]; then
+            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
+            echo -e "${YELLOW}⏰ Dernière tentative : $isbndb_attempt${NC}"
+        else
+            echo "❌ Statut : Jamais collecté"
+        fi
+    fi
+    
+    # Open Library
+    echo ""
+    echo "🟠 OPEN LIBRARY API"
+    local o_test=$(get_meta_value "$id" "_o_title")
+    local openlibrary_timestamp=$(get_meta_timestamp "$id" "_openlibrary_last_attempt")
+    
+    if [ -n "$o_test" ]; then
+        echo "✅ Statut : Données collectées avec succès"
+        echo -e "${CYAN}⏰ Collecté le : $openlibrary_timestamp${NC}"
+    else
+        local openlibrary_attempt=$(get_meta_value "$id" "_openlibrary_last_attempt")
+        if [ -n "$openlibrary_attempt" ]; then
+            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
+            echo -e "${YELLOW}⏰ Dernière tentative : $openlibrary_attempt${NC}"
+        else
+            echo "❌ Statut : Jamais collecté"
+        fi
+    fi
+    
+    # Claude AI
+    echo ""
+    echo "🤖 CLAUDE AI"
+    local claude_desc=$(get_meta_value "$id" "_claude_description")
+    
+    if [ -n "$claude_desc" ] && [ ${#claude_desc} -gt 20 ]; then
+        echo "✅ Statut : Description générée avec succès"
+        echo -e "${CYAN}📝 Longueur : ${#claude_desc} caractères${NC}"
+    else
+        echo "❌ Statut : Pas de description Claude"
+    fi
+    
+    # Groq AI
+    echo ""
+    echo "🧠 GROQ AI"
+    local groq_desc=$(get_meta_value "$id" "_groq_description")
+    
+    if [ -n "$groq_desc" ] && [ ${#groq_desc} -gt 20 ]; then
+        echo "✅ Statut : Description générée avec succès"
+        echo -e "${CYAN}📝 Longueur : ${#groq_desc} caractères${NC}"
+    else
+        echo "❌ Statut : Pas de description Groq"
+    fi
+}
+
+# === PROGRAMME PRINCIPAL ===
+
+# Si aucun paramètre, afficher l'aide
+if [ -z "$MODE" ] && [ -z "$PARAM_ISBN" ]; then
+    show_help
+    exit 0
+fi
+
+# Traiter selon le mode
+case "$MODE" in
+    vendu)
+        mark_as_sold "$PARAM_ISBN"
+        ;;
+    batch)
+        process_batch "$LIMIT"
+        ;;
+    export)
+        echo "🚀 Mode export vers marketplaces"
+        if [ -n "$PARAM_ISBN" ]; then
+            # Export d'un seul livre
+            echo "Export du livre $PARAM_ISBN..."
+            # TODO: Implémenter l'export
+        else
+            # Export en masse
+            echo "Export en masse..."
+            # TODO: Implémenter l'export en masse
+        fi
+        ;;
+    *)
+        # Mode normal : traiter un livre
+        if [ -n "$PARAM_ISBN" ]; then
+            process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
+        else
+            echo "❌ ISBN requis"
+            show_help
+            exit 1
+        fi
+        ;;
+esac

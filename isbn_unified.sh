@@ -1,6 +1,6 @@
 #!/bin/bash
-# isbn_unified.sh - Script unifié pour analyse complète ISBN
-# Version 2.0 - Intègre toutes les fonctionnalités
+# Script unifié de gestion ISBN - Version complète
+# Gère la collecte, l'analyse et l'enrichissement des données
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config/settings.sh"
@@ -26,6 +26,20 @@ LOG_DIR="$SCRIPT_DIR/logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/isbn_unified_$(date +%Y%m%d_%H%M%S).log"
 
+# Variables globales pour les options
+FORCE_COLLECT=0
+VERBOSE=0
+
+# Couleurs ANSI pour affichage
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
 # Fonction get_meta_value (depuis safe_functions.sh)
 get_meta_value() {
     local post_id="$1"
@@ -45,6 +59,35 @@ get_meta_value() {
     else
         echo "$value"
     fi
+}
+
+# Fonction pour obtenir le timestamp d'une métadonnée
+get_meta_timestamp() {
+    local post_id="$1"
+    local meta_key="$2"
+    local timestamp=""
+    
+    # Pour les APIs, chercher le timestamp de dernière tentative
+    case "$meta_key" in
+        "_g_"*)
+            timestamp=$(get_meta_value "$post_id" "_google_last_attempt")
+            ;;
+        "_i_"*)
+            timestamp=$(get_meta_value "$post_id" "_isbndb_last_attempt")
+            ;;
+        "_o_"*)
+            timestamp=$(get_meta_value "$post_id" "_openlibrary_last_attempt")
+            ;;
+        "_best_"*|"_calculated_"*)
+            timestamp=$(get_meta_value "$post_id" "_last_collect_date")
+            ;;
+        *)
+            # Pour les autres, utiliser la date de dernière collecte
+            timestamp=$(get_meta_value "$post_id" "_last_collect_date")
+            ;;
+    esac
+    
+    echo "${timestamp:-Non collecté}"
 }
 
 # Fonction d'aide
@@ -485,17 +528,20 @@ process_single_book() {
         # Appeler les APIs avec le POST_ID et logger
         if [ -f "$SCRIPT_DIR/apis/google_books.sh" ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → Google Books API..." | tee -a "$LOG_FILE"
-            "$SCRIPT_DIR/apis/google_books.sh" "$id" 2>&1 | tee -a "$LOG_FILE"
+            source "$SCRIPT_DIR/apis/google_books.sh"
+            fetch_google_books "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
         fi
 
         if [ -f "$SCRIPT_DIR/apis/isbndb.sh" ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → ISBNdb API..." | tee -a "$LOG_FILE"
-            "$SCRIPT_DIR/apis/isbndb.sh" "$id" 2>&1 | tee -a "$LOG_FILE"
+            source "$SCRIPT_DIR/apis/isbndb.sh"
+            fetch_isbndb "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
         fi
 
         if [ -f "$SCRIPT_DIR/apis/open_library.sh" ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → Open Library API..." | tee -a "$LOG_FILE"
-            "$SCRIPT_DIR/apis/open_library.sh" "$id" 2>&1 | tee -a "$LOG_FILE"
+            source "$SCRIPT_DIR/apis/open_library.sh"
+            fetch_open_library "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
         fi
 
         # Sélectionner les meilleures données
@@ -715,14 +761,20 @@ show_api_results() {
     # Google Books
     echo ""
     echo "🔵 GOOGLE BOOKS API"
-    local g_status=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-        WHERE post_id=$id AND meta_key='_google_api_status' LIMIT 1")
+    local g_test=$(get_meta_value "$id" "_g_title")
+    local google_timestamp=$(get_meta_timestamp "$id" "_google_last_attempt")
     
-    if [ "$g_status" = "success" ]; then
+    if [ -n "$g_test" ]; then
         echo "✅ Statut : Données collectées avec succès"
+        echo -e "${CYAN}⏰ Collecté le : $google_timestamp${NC}"
     else
-        echo "❌ Statut : Aucune donnée trouvée ou erreur"
+        local google_attempt=$(get_meta_value "$id" "_google_last_attempt")
+        if [ -n "$google_attempt" ]; then
+            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
+            echo -e "${YELLOW}⏰ Dernière tentative : $google_attempt${NC}"
+        else
+            echo "❌ Statut : Erreur de connexion à l'API"
+        fi
     fi
     echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
     echo ""
@@ -733,30 +785,25 @@ show_api_results() {
     # ISBNdb
     echo ""
     echo "🟢 ISBNDB API"
-    local i_status=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-        WHERE post_id=$id AND meta_key='_isbndb_api_status' LIMIT 1")
+    local i_test=$(get_meta_value "$id" "_i_title")
+    local isbndb_timestamp=$(get_meta_timestamp "$id" "_isbndb_last_attempt")
     
     # Vérifier si la clé API est configurée
     source "$SCRIPT_DIR/config/credentials.sh"
     if [ -z "$ISBNDB_API_KEY" ] || [ "$ISBNDB_API_KEY" = "YOUR_ISBNDB_API_KEY_HERE" ]; then
         echo "❌ Statut : Clé API non configurée"
-    elif [ "$i_status" = "success" ]; then
+    elif [ -n "$i_test" ]; then
         echo "✅ Statut : Données collectées avec succès"
+        echo -e "${CYAN}⏰ Collecté le : $isbndb_timestamp${NC}"
     else
-        echo "⚠️  Statut : Aucune donnée trouvée ou API non accessible"
+        if [ -n "$isbndb_timestamp" ]; then
+            echo "⚠️  Statut : Aucune donnée trouvée ou API non accessible"
+            echo -e "${YELLOW}⏰ Dernière tentative : $isbndb_timestamp${NC}"
+        else
+            echo "❌ Statut : API non appelée"
+        fi
     fi
     echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    
-    # Sous-section pour ISBNdb
-    if [ "$i_status" = "success" ]; then
-        echo "✅ Statut : Données collectées avec succès"
-        echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    else
-        echo "⚠️  Statut : Aucune donnée trouvée ou API non accessible"
-        echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    fi
-    echo ""
     
     # Tableau ISBNdb
     show_isbndb_data_table "$id"
@@ -764,25 +811,21 @@ show_api_results() {
     # Open Library
     echo ""
     echo "🟠 OPEN LIBRARY API"
-    local o_status=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-        WHERE post_id=$id AND meta_key='_openlibrary_api_status' LIMIT 1")
+    local o_test=$(get_meta_value "$id" "_o_title")
+    local ol_timestamp=$(get_meta_timestamp "$id" "_openlibrary_last_attempt")
     
-    if [ "$o_status" = "success" ]; then
+    if [ -n "$o_test" ]; then
         echo "✅ Statut : Données collectées avec succès"
+        echo -e "${CYAN}⏰ Collecté le : $ol_timestamp${NC}"
     else
-        echo "❌ Statut : Aucune donnée trouvée ou erreur"
+        if [ -n "$ol_timestamp" ]; then
+            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
+            echo -e "${YELLOW}⏰ Dernière tentative : $ol_timestamp${NC}"
+        else
+            echo "❌ Statut : Erreur de connexion à l'API (timeout ou réseau)"
+        fi
     fi
     echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    
-    # Sous-section pour Open Library
-    if [ "$o_status" = "success" ]; then
-        echo "✅ Statut : Données collectées avec succès"
-        echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    else
-        echo "❌ Statut : Aucune donnée trouvée ou erreur"
-        echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    fi
     echo ""
     
     # Tableau Open Library
@@ -840,9 +883,9 @@ show_google_data_table() {
             if [ ${#value} -gt 100 ]; then
                 value="${value:0:97}..."
             fi
-            printf "│ %-44s │ %-102s │ %-8s │\n" "$var_key" "$value" "✓ OK"
+            printf "│ %-44s │ %-102s │ ${GREEN}✓ OK${NC}     │\n" "$var_key" "$value"
         else
-            printf "│ %-44s │ %-102s │ %-8s │\n" "$var_key" "-" "✗ MANQUE"
+            printf "│ %-44s │ %-102s │ ${RED}✗ MANQUE${NC} │\n" "$var_key" "-"
         fi
     done
     
@@ -887,9 +930,9 @@ show_isbndb_data_table() {
             if [ ${#value} -gt 100 ]; then
                 value="${value:0:97}..."
             fi
-            printf "│ %-44s │ %-102s │ %-8s │\n" "$var_key" "$value" "✓ OK"
+            printf "│ %-44s │ %-102s │ ${GREEN}✓ OK${NC}     │\n" "$var_key" "$value"
         else
-            printf "│ %-44s │ %-102s │ %-8s │\n" "$var_key" "-" "✗ MANQUE"
+            printf "│ %-44s │ %-102s │ ${RED}✗ MANQUE${NC} │\n" "$var_key" "-"
         fi
     done
     
@@ -931,9 +974,9 @@ show_openlibrary_data_table() {
             if [ ${#value} -gt 100 ]; then
                 value="${value:0:97}..."
             fi
-            printf "│ %-44s │ %-102s │ %-8s │\n" "$var_key" "$value" "✓ OK"
+            printf "│ %-44s │ %-102s │ ${GREEN}✓ OK${NC}     │\n" "$var_key" "$value"
         else
-            printf "│ %-44s │ %-102s │ %-8s │\n" "$var_key" "-" "✗ MANQUE"
+            printf "│ %-44s │ %-102s │ ${RED}✗ MANQUE${NC} │\n" "$var_key" "-"
         fi
     done
     

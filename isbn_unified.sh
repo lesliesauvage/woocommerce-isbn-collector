@@ -961,7 +961,7 @@ process_single_book() {
     
     # === ÉTAPE 3 : CATÉGORISATION AUTOMATIQUE ===
     echo ""
-    echo "🤖 CATÉGORISATION AUTOMATIQUE"
+    echo -e "${BOLD}${BLUE}🤖 CATÉGORISATION AUTOMATIQUE${NC}"
     echo "══════════════════════════════════════════════════════════════"
     
     local existing_categories=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
@@ -973,23 +973,23 @@ process_single_book() {
         AND tt.term_id NOT IN (3088, 3089)")
     
     if [ "$existing_categories" -eq 0 ]; then
-        echo "📚 Aucune catégorie trouvée, lancement de la catégorisation..."
+        echo -e "${YELLOW}📚 Aucune catégorie trouvée, lancement de la catégorisation...${NC}"
         
         if [ -f "$SCRIPT_DIR/smart_categorize_dual_ai.sh" ]; then
             "$SCRIPT_DIR/smart_categorize_dual_ai.sh" "$id"
             echo ""
-            echo "✅ Catégorisation terminée"
+            echo -e "${GREEN}✅ Catégorisation terminée${NC}"
         else
-            echo "⚠️  Script de catégorisation non trouvé"
+            echo -e "${RED}⚠️  Script de catégorisation non trouvé${NC}"
         fi
     else
-        echo "✅ Le livre a déjà $existing_categories catégorie(s)"
+        echo -e "${GREEN}✅ Le livre a déjà $existing_categories catégorie(s)${NC}"
     fi
     
     # === ÉTAPE 4 : AFFICHAGE AVANT ===
     echo ""
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-    echo "📚 ANALYSE COMPLÈTE AVEC COLLECTE - ISBN: $isbn"
+    echo -e "${BOLD}${PURPLE}📚 ANALYSE COMPLÈTE AVEC COLLECTE - ISBN: $isbn${NC}"
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
     echo ""
     
@@ -1010,13 +1010,13 @@ process_single_book() {
     
     echo ""
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-    echo "🔄 LANCEMENT DE LA COLLECTE"
+    echo -e "${BOLD}${CYAN}🔄 LANCEMENT DE LA COLLECTE${NC}"
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
     echo ""
     
     if [ "$collection_status" = "completed" ] && [ "$FORCE_MODE" != "force" ]; then
-        echo "ℹ️  CE LIVRE A DÉJÀ ÉTÉ ANALYSÉ"
-        echo "💡 Utilisez -force pour forcer une nouvelle collecte"
+        echo -e "${BLUE}ℹ️  CE LIVRE A DÉJÀ ÉTÉ ANALYSÉ${NC}"
+        echo -e "${YELLOW}💡 Utilisez -force pour forcer une nouvelle collecte${NC}"
     else
         # Lancer la collecte COMPLÈTE
         echo "[DEBUG] Début collecte MARTINGALE pour produit #$id - ISBN: $isbn"
@@ -1100,11 +1100,12 @@ process_single_book() {
         # === ÉTAPE 10 : CALCUL DU SCORE D'EXPORT ===
         echo "[DEBUG] Calcul du score d'export..."
         calculate_export_score "$id"
-        
-        # === ÉTAPE 11 : APPLICATION COMPLÈTE DES MÉTADONNÉES MARTINGALE ===
-        echo "[DEBUG] Application COMPLÈTE des métadonnées martingale..."
-        apply_complete_martingale_metadata "$id"
     fi
+    
+    # === ÉTAPE 11 : APPLICATION COMPLÈTE DES MÉTADONNÉES MARTINGALE ===
+    # IMPORTANT : Cette étape est maintenant TOUJOURS exécutée, même si collection_status = completed
+    echo "[DEBUG] Application COMPLÈTE des métadonnées martingale..."
+    apply_complete_martingale_metadata "$id"
     
     # === ÉTAPE 12 : AFFICHAGE DES RÉSULTATS ===
     
@@ -1116,7 +1117,7 @@ process_single_book() {
     echo ""
     echo ""
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-    echo "🔄 SECTION 2 : COLLECTE DES DONNÉES VIA APIs"
+    echo -e "${BOLD}${BLUE}🔄 SECTION 2 : COLLECTE DES DONNÉES VIA APIs${NC}"
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
     
     show_api_results "$id"
@@ -1125,7 +1126,7 @@ process_single_book() {
     echo ""
     echo ""
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-    echo "📊 SECTION 3 : RÉSULTAT APRÈS COLLECTE ET EXPORTABILITÉ"
+    echo -e "${BOLD}${GREEN}📊 SECTION 3 : RÉSULTAT APRÈS COLLECTE ET EXPORTABILITÉ${NC}"
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
     
     if [ -f "$SCRIPT_DIR/lib/analyze_after.sh" ]; then
@@ -1137,7 +1138,7 @@ process_single_book() {
     echo ""
     echo ""
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-    echo "📈 RÉSUMÉ DES GAINS DE LA COLLECTE"
+    echo -e "${BOLD}${PURPLE}📈 RÉSUMÉ DES GAINS DE LA COLLECTE${NC}"
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
     echo ""
     
@@ -1145,14 +1146,14 @@ process_single_book() {
     local total_gain=$((after_count - before_count))
     
     if [ $total_gain -gt 0 ]; then
-        echo "✅ Collecte réussie : +$total_gain nouvelles données"
+        echo -e "${GREEN}✅ Collecte réussie : +$total_gain nouvelles données${NC}"
     else
-        echo "ℹ️  Aucune nouvelle donnée collectée"
+        echo -e "${BLUE}ℹ️  Aucune nouvelle donnée collectée${NC}"
     fi
     
     # === ÉTAPE 13 : VÉRIFICATION FINALE DES DONNÉES MARTINGALE ===
     echo ""
-    echo "🔍 VÉRIFICATION MARTINGALE COMPLÈTE"
+    echo -e "${BOLD}${YELLOW}🔍 VÉRIFICATION MARTINGALE COMPLÈTE${NC}"
     echo "══════════════════════════════════════════════════════════════"
     
     local complete_fields=0
@@ -1192,7 +1193,6 @@ process_single_book() {
         "_rakuten_category:NORMAL"
         "_fnac_category:NORMAL"
         "_cdiscount_category:NORMAL"
-        "_leboncoin_category:NORMAL"
         "_ebay_category:NORMAL"
         "_allegro_category:NORMAL"
         "_bol_category:NORMAL"
@@ -1399,83 +1399,83 @@ show_api_results() {
     
     # Google Books
     echo ""
-    echo "🔵 GOOGLE BOOKS API"
+    echo -e "${BLUE}🔵 GOOGLE BOOKS API${NC}"
     local g_test=$(get_meta_value "$id" "_g_title")
     local google_timestamp=$(get_meta_timestamp "$id" "_google_last_attempt")
     
     if [ -n "$g_test" ]; then
-        echo "✅ Statut : Données collectées avec succès"
+        echo -e "${GREEN}✅ Statut : Données collectées avec succès${NC}"
         echo -e "${CYAN}⏰ Collecté le : $google_timestamp${NC}"
     else
         local google_attempt=$(get_meta_value "$id" "_google_last_attempt")
         if [ -n "$google_attempt" ]; then
-            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
+            echo -e "${YELLOW}⚠️  Statut : Aucune donnée trouvée pour cet ISBN${NC}"
             echo -e "${YELLOW}⏰ Dernière tentative : $google_attempt${NC}"
         else
-            echo "❌ Statut : Jamais collecté"
+            echo -e "${RED}❌ Statut : Jamais collecté${NC}"
         fi
     fi
     
     # ISBNdb
     echo ""
-    echo "🟢 ISBNDB API"
+    echo -e "${GREEN}🟢 ISBNDB API${NC}"
     local i_test=$(get_meta_value "$id" "_i_title")
     local isbndb_timestamp=$(get_meta_timestamp "$id" "_isbndb_last_attempt")
     
     if [ -n "$i_test" ]; then
-        echo "✅ Statut : Données collectées avec succès"
+        echo -e "${GREEN}✅ Statut : Données collectées avec succès${NC}"
         echo -e "${CYAN}⏰ Collecté le : $isbndb_timestamp${NC}"
     else
         local isbndb_attempt=$(get_meta_value "$id" "_isbndb_last_attempt")
         if [ -n "$isbndb_attempt" ]; then
-            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
+            echo -e "${YELLOW}⚠️  Statut : Aucune donnée trouvée pour cet ISBN${NC}"
             echo -e "${YELLOW}⏰ Dernière tentative : $isbndb_attempt${NC}"
         else
-            echo "❌ Statut : Jamais collecté"
+            echo -e "${RED}❌ Statut : Jamais collecté${NC}"
         fi
     fi
     
     # Open Library
     echo ""
-    echo "🟠 OPEN LIBRARY API"
+    echo -e "${YELLOW}🟠 OPEN LIBRARY API${NC}"
     local o_test=$(get_meta_value "$id" "_o_title")
     local openlibrary_timestamp=$(get_meta_timestamp "$id" "_openlibrary_last_attempt")
     
     if [ -n "$o_test" ]; then
-        echo "✅ Statut : Données collectées avec succès"
+        echo -e "${GREEN}✅ Statut : Données collectées avec succès${NC}"
         echo -e "${CYAN}⏰ Collecté le : $openlibrary_timestamp${NC}"
     else
         local openlibrary_attempt=$(get_meta_value "$id" "_openlibrary_last_attempt")
         if [ -n "$openlibrary_attempt" ]; then
-            echo "⚠️  Statut : Aucune donnée trouvée pour cet ISBN"
+            echo -e "${YELLOW}⚠️  Statut : Aucune donnée trouvée pour cet ISBN${NC}"
             echo -e "${YELLOW}⏰ Dernière tentative : $openlibrary_attempt${NC}"
         else
-            echo "❌ Statut : Jamais collecté"
+            echo -e "${RED}❌ Statut : Jamais collecté${NC}"
         fi
     fi
     
     # Claude AI
     echo ""
-    echo "🤖 CLAUDE AI"
+    echo -e "${PURPLE}🤖 CLAUDE AI${NC}"
     local claude_desc=$(get_meta_value "$id" "_claude_description")
     
     if [ -n "$claude_desc" ] && [ ${#claude_desc} -gt 20 ]; then
-        echo "✅ Statut : Description générée avec succès"
+        echo -e "${GREEN}✅ Statut : Description générée avec succès${NC}"
         echo -e "${CYAN}📝 Longueur : ${#claude_desc} caractères${NC}"
     else
-        echo "❌ Statut : Pas de description Claude"
+        echo -e "${RED}❌ Statut : Pas de description Claude${NC}"
     fi
     
     # Groq AI
     echo ""
-    echo "🧠 GROQ AI"
+    echo -e "${CYAN}🧠 GROQ AI${NC}"
     local groq_desc=$(get_meta_value "$id" "_groq_description")
     
     if [ -n "$groq_desc" ] && [ ${#groq_desc} -gt 20 ]; then
-        echo "✅ Statut : Description générée avec succès"
+        echo -e "${GREEN}✅ Statut : Description générée avec succès${NC}"
         echo -e "${CYAN}📝 Longueur : ${#groq_desc} caractères${NC}"
     else
-        echo "❌ Statut : Pas de description Groq"
+        echo -e "${RED}❌ Statut : Pas de description Groq${NC}"
     fi
 }
 
@@ -1496,7 +1496,7 @@ case "$MODE" in
         process_batch "$LIMIT"
         ;;
     export)
-        echo "🚀 Mode export vers marketplaces"
+        echo -e "${BOLD}${PURPLE}🚀 Mode export vers marketplaces${NC}"
         if [ -n "$PARAM_ISBN" ]; then
             # Export d'un seul livre
             echo "Export du livre $PARAM_ISBN..."
@@ -1512,7 +1512,7 @@ case "$MODE" in
         if [ -n "$PARAM_ISBN" ]; then
             process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
         else
-            echo "❌ ISBN requis"
+            echo -e "${RED}❌ ISBN requis${NC}"
             show_help
             exit 1
         fi

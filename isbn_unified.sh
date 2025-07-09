@@ -344,11 +344,7 @@ fi
 # Sélectionner les meilleures données
 
 
-# Calculer poids et dimensions
-calculate_weight_dimensions "$id"
 
-# Générer les bullet points
-generate_bullet_points "$id"
     fi
     
     # Gérer le prix et la condition

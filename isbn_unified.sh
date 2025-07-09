@@ -26,6 +26,27 @@ LOG_DIR="$SCRIPT_DIR/logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/isbn_unified_$(date +%Y%m%d_%H%M%S).log"
 
+# Fonction get_meta_value (depuis safe_functions.sh)
+get_meta_value() {
+    local post_id="$1"
+    local meta_key="$2"
+    [ -z "$post_id" ] || [ -z "$meta_key" ] && return 1
+    
+    local value=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value 
+        FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$post_id 
+        AND meta_key='$meta_key' 
+        LIMIT 1" 2>/dev/null)
+    
+    # Si vide ou null, retourner vide
+    if [ -z "$value" ] || [ "$value" = "null" ] || [ "$value" = "NULL" ]; then
+        echo ""
+    else
+        echo "$value"
+    fi
+}
+
 # Fonction d'aide
 show_help() {
     cat << EOF
@@ -488,6 +509,13 @@ process_single_book() {
         # Générer les bullet points
         echo "[DEBUG] Génération des bullet points..."
         generate_bullet_points "$id"
+        
+        # Générer la description IA si pas déjà présente
+        local has_description=$(get_meta_value "$id" "_has_description")
+        if [ "$has_description" != "1" ] && [ -f "$SCRIPT_DIR/apis/generate_description.sh" ]; then
+            echo "[DEBUG] Génération description IA..."
+            "$SCRIPT_DIR/apis/generate_description.sh" "$id" 2>&1 | tee -a "$LOG_FILE"
+        fi
         
         # Marquer la collecte comme terminée
         safe_store_meta "$id" "_collection_status" "completed"

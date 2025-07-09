@@ -322,11 +322,7 @@ process_single_book() {
         # Lancer la collecte
         echo "[DEBUG] Début collecte pour produit #$id - ISBN: $isbn"
         
-       # AU LIEU DE :
-if [ -f "$SCRIPT_DIR/apis/google_books.sh" ]; then
-    source "$SCRIPT_DIR/apis/google_books.sh"
-    fetch_google_books "$isbn"
-fi
+
 
 # METTRE :
 # Appeler les APIs directement

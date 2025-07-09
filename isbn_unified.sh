@@ -342,8 +342,7 @@ if [ -f "$SCRIPT_DIR/apis/open_library.sh" ]; then
 fi
 
 # Sélectionner les meilleures données
-source "$SCRIPT_DIR/lib/best_data.sh"
-select_best_data "$id"
+
 
 # Calculer poids et dimensions
 calculate_weight_dimensions "$id"

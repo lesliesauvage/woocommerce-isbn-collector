@@ -61,6 +61,7 @@ mark_as_sold() {
         
         display_martingale_complete "$id"
     fi
+}
 
 process_batch() {
     local limit="${1:-10}"
@@ -86,7 +87,7 @@ process_batch() {
     fi
     
     local count=0
-    while IFS=\t' read -r id isbn; do
+    while IFS=$'\t' read -r id isbn; do
         ((count++))
         echo ""
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -125,6 +126,7 @@ process_batch() {
         
         display_martingale_complete "batch"
     fi
+}
 
 # Fonction pour traiter un livre unique avec MARTINGALE COMPLÈTE
 process_single_book() {
@@ -466,6 +468,7 @@ process_single_book() {
         "_allegro_category:NORMAL"
         "_bol_category:NORMAL"
         "_etsy_category:NORMAL"
+        "_leboncoin_category:NORMAL"
         # CALCULS
         "_calculated_weight:IMPORTANT"
         "_calculated_dimensions:IMPORTANT"
@@ -659,14 +662,4 @@ process_single_book() {
         
         display_martingale_complete "$id"
     fi
-
-    # === AFFICHAGE MARTINGALE COMPLÈTE ===
-    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-        echo ""
-        echo ""
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
-        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-        
-        display_martingale_complete "$id"
-    fi
+}

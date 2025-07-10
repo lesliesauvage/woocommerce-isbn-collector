@@ -12,15 +12,10 @@ source "$SCRIPT_DIR/lib/safe_functions.sh"
 # Charger les modules
 echo "[DEBUG] Chargement des modules..." >&2
 source "$SCRIPT_DIR/lib/isbn_functions.sh"    # Fonctions utilitaires
-echo "[DEBUG] isbn_functions.sh chargé : $(type -t select_best_data)" >&2
 source "$SCRIPT_DIR/lib/isbn_display.sh"      # Fonctions d'affichage
-echo "[DEBUG] isbn_display.sh chargé : $(type -t show_help)" >&2
 source "$SCRIPT_DIR/lib/isbn_collect.sh"      # Fonctions de collecte
-echo "[DEBUG] isbn_collect.sh chargé : $(type -t collect_all_apis)" >&2
 source "$SCRIPT_DIR/lib/isbn_process.sh"      # Fonctions de traitement
-echo "[DEBUG] isbn_process.sh chargé : $(type -t process_single_book)" >&2
 source "$SCRIPT_DIR/lib/martingale_complete.sh"  # Martingale complète
-echo "[DEBUG] martingale_complete.sh chargé : $(type -t enrich_metadata_complete)" >&2
 
 # Charger les fichiers analyze si disponibles
 [ -f "$SCRIPT_DIR/lib/analyze_before.sh" ] && source "$SCRIPT_DIR/lib/analyze_before.sh"
@@ -148,7 +143,6 @@ case "$MODE" in
         # Mode normal : traiter un livre
         if [ -n "$PARAM_ISBN" ]; then
             echo -e "${BOLD}${GREEN}📚 Mode traitement individuel${NC}"
-echo "[DEBUG] Avant appel process_single_book - fonction existe : $(type -t process_single_book)" >&2
             process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
         else
             echo -e "${RED}❌ ISBN requis${NC}"

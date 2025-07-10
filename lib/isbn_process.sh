@@ -353,7 +353,7 @@ process_single_book() {
     if [ $should_collect -eq 1 ]; then
         # Collecter via toutes les APIs
         if command -v collect_all_apis &> /dev/null; then
-            collect_all_apis "$id" "$isbn"
+            collect_all_apis "$isbn" "$id"
         else
             echo "⚠️  Fonction collect_all_apis non disponible"
         fi
@@ -370,14 +370,14 @@ process_single_book() {
     
     # Appeler l'enrichissement complet
     if command -v enrich_metadata_complete &> /dev/null; then
-        enrich_metadata_complete "$id"
+        enrich_metadata_complete "$id" "$isbn"
     else
         echo "⚠️  Fonction enrich_metadata_complete non disponible"
     fi
     
     # Sélection des meilleures données
     if command -v select_best_data &> /dev/null; then
-        select_best_data "$id" "$isbn"
+        select_best_data "$id"
     fi
     
     # Calculs automatiques

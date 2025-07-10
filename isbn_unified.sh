@@ -143,22 +143,22 @@ case "$MODE" in
             # TODO: Implémenter l'export en masse
             echo -e "${YELLOW}⚠️  Fonction export en masse en cours de développement${NC}"
         fi
-        ;;
-    *)
-        # Mode normal : traiter un livre
-        if [ -n "$PARAM_ISBN" ]; then
-            echo -e "${BOLD}${GREEN}📚 Mode traitement individuel${NC}"
-echo "[DEBUG] Avant appel process_single_book - fonction existe : $(type -t process_single_book)" >&2
-            process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
-        else
-            echo -e "${RED}❌ ISBN requis${NC}"
-            show_help
-            exit 1
-        fi
-        ;;
-esac
-
-# Log de fin
+#         ;;
+#     *)
+#         # Mode normal : traiter un livre
+#         if [ -n "$PARAM_ISBN" ]; then
+#             echo -e "${BOLD}${GREEN}📚 Mode traitement individuel${NC}"
+# echo "[DEBUG] Avant appel process_single_book - fonction existe : $(type -t process_single_book)" >&2
+#             process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
+#         else
+#             echo -e "${RED}❌ ISBN requis${NC}"
+#             show_help
+#             exit 1
+#         fi
+#         ;;
+# esac
+# 
+# # Log de fin
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script terminé" >> "$LOG_FILE"
 
 # === AFFICHAGE MARTINGALE FINALE SI DEMANDÉ ===

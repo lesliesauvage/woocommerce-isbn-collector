@@ -61,7 +61,6 @@ mark_as_sold() {
         
         display_martingale_complete "$id"
     fi
-}
 
 process_batch() {
     local limit="${1:-10}"
@@ -126,7 +125,6 @@ process_batch() {
         
         display_martingale_complete "batch"
     fi
-}
 
 # Fonction pour traiter un livre unique avec MARTINGALE COMPLÈTE
 process_single_book() {
@@ -661,7 +659,7 @@ process_single_book() {
         
         display_martingale_complete "$id"
     fi
-}
+
     # === AFFICHAGE MARTINGALE COMPLÈTE ===
     if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
         echo ""
@@ -672,4 +670,3 @@ process_single_book() {
         
         display_martingale_complete "$id"
     fi
-}

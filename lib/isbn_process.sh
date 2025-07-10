@@ -662,3 +662,14 @@ process_single_book() {
         display_martingale_complete "$id"
     fi
 }
+    # === AFFICHAGE MARTINGALE COMPLÈTE ===
+    if [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
+        echo ""
+        echo ""
+        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
+        echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
+        echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
+        
+        display_martingale_complete "$id"
+    fi
+}

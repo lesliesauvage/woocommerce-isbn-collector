@@ -2,6 +2,64 @@
 # Bibliothèque de fonctions de traitement pour isbn_unified.sh
 # Gère le traitement des livres, marquage vendu, batch processing
 
+# Fonction get_meta_value (depuis safe_functions.sh)
+get_meta_value() {
+    local post_id="$1"
+    local meta_key="$2"
+    [ -z "$post_id" ] || [ -z "$meta_key" ] && return 1
+    
+    local value=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value 
+        FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$post_id 
+        AND meta_key='$meta_key' 
+        LIMIT 1" 2>/dev/null)
+    
+    # Si vide ou null, retourner vide
+    if [ -z "$value" ] || [ "$value" = "null" ] || [ "$value" = "NULL" ]; then
+        echo ""
+    else
+        echo "$value"
+    fi
+}
+
+# Fonction safe_store_meta (depuis safe_functions.sh)
+safe_store_meta() {
+    local post_id="$1"
+    local meta_key="$2"
+    local meta_value="$3"
+    
+    [ -z "$post_id" ] || [ -z "$meta_key" ] && return 1
+    
+    # Échapper les apostrophes dans la valeur
+    meta_value=$(echo "$meta_value" | sed "s/'/\\\\'/g")
+    
+    # Vérifier si la métadonnée existe déjà
+    local existing=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_id FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$post_id AND meta_key='$meta_key' 
+        LIMIT 1" 2>/dev/null)
+    
+    if [ -n "$existing" ]; then
+        # Mettre à jour
+        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+            UPDATE wp_${SITE_ID}_postmeta 
+            SET meta_value='$meta_value'
+            WHERE post_id=$post_id AND meta_key='$meta_key'" 2>/dev/null
+    else
+        # Insérer
+        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+            INSERT INTO wp_${SITE_ID}_postmeta (post_id, meta_key, meta_value)
+            VALUES ($post_id, '$meta_key', '$meta_value')" 2>/dev/null
+    fi
+}
+
+# Fonction safe_sql (depuis safe_functions.sh)
+safe_sql() {
+    local input="$1"
+    echo "$input" | sed "s/'/\\\\'/g"
+}
+
 # Fonctions spécifiques aux modes
 mark_as_sold() {
     local input="$1"
@@ -48,7 +106,9 @@ mark_as_sold() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        display_martingale_complete "$id"
+        if command -v display_martingale_complete &> /dev/null; then
+            display_martingale_complete "$id"
+        fi
     fi
     
     # === AFFICHAGE MARTINGALE COMPLÈTE ===
@@ -59,7 +119,9 @@ mark_as_sold() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        display_martingale_complete "$id"
+        if command -v display_martingale_complete &> /dev/null; then
+            display_martingale_complete "$id"
+        fi
     fi
 }
 
@@ -113,7 +175,9 @@ process_batch() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        display_martingale_complete "batch"
+        if command -v display_martingale_complete &> /dev/null; then
+            display_martingale_complete "batch"
+        fi
     fi
     
     # === AFFICHAGE MARTINGALE COMPLÈTE ===
@@ -124,7 +188,9 @@ process_batch() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        display_martingale_complete "batch"
+        if command -v display_martingale_complete &> /dev/null; then
+            display_martingale_complete "batch"
+        fi
     fi
 }
 
@@ -271,7 +337,9 @@ process_single_book() {
     # Afficher section AVANT
     if [ -f "$SCRIPT_DIR/lib/analyze_before.sh" ]; then
         source "$SCRIPT_DIR/lib/analyze_before.sh"
-        show_before_state "$id" "$isbn"
+        if command -v show_before_state &> /dev/null; then
+            show_before_state "$id" "$isbn"
+        fi
     fi
     
     # === ÉTAPE 5 : COLLECTE DES DONNÉES ===
@@ -301,32 +369,44 @@ process_single_book() {
         if [ -f "$SCRIPT_DIR/apis/google_books.sh" ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → Google Books API..." | tee -a "$LOG_FILE"
             source "$SCRIPT_DIR/apis/google_books.sh"
-            fetch_google_books "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
+            if command -v fetch_google_books &> /dev/null; then
+                fetch_google_books "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
+            fi
         fi
 
         if [ -f "$SCRIPT_DIR/apis/isbndb.sh" ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → ISBNdb API..." | tee -a "$LOG_FILE"
             source "$SCRIPT_DIR/apis/isbndb.sh"
-            fetch_isbndb "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
+            if command -v fetch_isbndb &> /dev/null; then
+                fetch_isbndb "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
+            fi
         fi
 
         if [ -f "$SCRIPT_DIR/apis/open_library.sh" ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')]   → Open Library API..." | tee -a "$LOG_FILE"
             source "$SCRIPT_DIR/apis/open_library.sh"
-            fetch_open_library "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
+            if command -v fetch_open_library &> /dev/null; then
+                fetch_open_library "$isbn" "$id" 2>&1 | tee -a "$LOG_FILE"
+            fi
         fi
 
         # === ÉTAPE 6 : SÉLECTION DES MEILLEURES DONNÉES ===
         echo "[DEBUG] Sélection des meilleures données..."
-        select_best_data "$id"
+        if command -v select_best_data &> /dev/null; then
+            select_best_data "$id"
+        fi
 
         # === ÉTAPE 7 : CALCULS AUTOMATIQUES ===
         echo "[DEBUG] Calcul du poids et dimensions..."
-        calculate_weight_dimensions "$id"
+        if command -v calculate_weight_dimensions &> /dev/null; then
+            calculate_weight_dimensions "$id"
+        fi
 
         # === ÉTAPE 8 : GÉNÉRATION DES BULLET POINTS ===
         echo "[DEBUG] Génération des bullet points..."
-        generate_bullet_points "$id"
+        if command -v generate_bullet_points &> /dev/null; then
+            generate_bullet_points "$id"
+        fi
         
         # === ÉTAPE 9 : GÉNÉRATION DESCRIPTION IA SI NÉCESSAIRE ===
         local has_description=$(get_meta_value "$id" "_has_description")
@@ -346,22 +426,26 @@ process_single_book() {
             if [ -f "$SCRIPT_DIR/apis/claude_ai.sh" ]; then
                 echo "[DEBUG] Appel Claude AI pour génération description..."
                 source "$SCRIPT_DIR/apis/claude_ai.sh"
-                if claude_desc=$(generate_description_claude "$isbn" "$id" "$final_title" "$final_authors" "$final_publisher" "$final_pages" "$final_binding" "$categories" 2>&1); then
-                    safe_store_meta "$id" "_best_description" "$claude_desc"
-                    safe_store_meta "$id" "_best_description_source" "claude_ai"
-                    safe_store_meta "$id" "_has_description" "1"
-                    echo "[DEBUG] ✓ Claude : description générée"
-                else
-                    echo "[DEBUG] ✗ Claude : échec génération"
-                    # Essayer Groq en fallback
-                    if [ -f "$SCRIPT_DIR/apis/groq_ai.sh" ]; then
-                        echo "[DEBUG] Appel Groq AI en fallback..."
-                        source "$SCRIPT_DIR/apis/groq_ai.sh"
-                        if groq_desc=$(generate_description_groq "$isbn" "$id" "$final_title" "$final_authors" "$final_publisher" "$final_pages" "$final_binding" "$categories" 2>&1); then
-                            safe_store_meta "$id" "_best_description" "$groq_desc"
-                            safe_store_meta "$id" "_best_description_source" "groq_ai"
-                            safe_store_meta "$id" "_has_description" "1"
-                            echo "[DEBUG] ✓ Groq : description générée"
+                if command -v generate_description_claude &> /dev/null; then
+                    if claude_desc=$(generate_description_claude "$isbn" "$id" "$final_title" "$final_authors" "$final_publisher" "$final_pages" "$final_binding" "$categories" 2>&1); then
+                        safe_store_meta "$id" "_best_description" "$claude_desc"
+                        safe_store_meta "$id" "_best_description_source" "claude_ai"
+                        safe_store_meta "$id" "_has_description" "1"
+                        echo "[DEBUG] ✓ Claude : description générée"
+                    else
+                        echo "[DEBUG] ✗ Claude : échec génération"
+                        # Essayer Groq en fallback
+                        if [ -f "$SCRIPT_DIR/apis/groq_ai.sh" ]; then
+                            echo "[DEBUG] Appel Groq AI en fallback..."
+                            source "$SCRIPT_DIR/apis/groq_ai.sh"
+                            if command -v generate_description_groq &> /dev/null; then
+                                if groq_desc=$(generate_description_groq "$isbn" "$id" "$final_title" "$final_authors" "$final_publisher" "$final_pages" "$final_binding" "$categories" 2>&1); then
+                                    safe_store_meta "$id" "_best_description" "$groq_desc"
+                                    safe_store_meta "$id" "_best_description_source" "groq_ai"
+                                    safe_store_meta "$id" "_has_description" "1"
+                                    echo "[DEBUG] ✓ Groq : description générée"
+                                fi
+                            fi
                         fi
                     fi
                 fi
@@ -370,13 +454,17 @@ process_single_book() {
         
         # === ÉTAPE 10 : CALCUL DU SCORE D'EXPORT ===
         echo "[DEBUG] Calcul du score d'export..."
-        calculate_export_score "$id"
+        if command -v calculate_export_score &> /dev/null; then
+            calculate_export_score "$id"
+        fi
     fi
     
     # === ÉTAPE 11 : APPLICATION COMPLÈTE DES MÉTADONNÉES MARTINGALE ===
     # IMPORTANT : Cette étape est maintenant TOUJOURS exécutée, même si collection_status = completed
     echo "[DEBUG] Application COMPLÈTE des métadonnées martingale..."
-    enrich_metadata_complete "$id" "$isbn"
+    if command -v enrich_metadata_complete &> /dev/null; then
+        enrich_metadata_complete "$id" "$isbn"
+    fi
     
     # === ÉTAPE 12 : AFFICHAGE DES RÉSULTATS ===
     
@@ -391,7 +479,9 @@ process_single_book() {
     echo -e "${BOLD}${BLUE}🔄 SECTION 2 : COLLECTE DES DONNÉES VIA APIs${NC}"
     echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
     
-    show_api_results "$id"
+    if command -v show_api_results &> /dev/null; then
+        show_api_results "$id"
+    fi
     
     # Afficher section APRÈS avec requirements
     echo ""
@@ -402,7 +492,9 @@ process_single_book() {
     
     if [ -f "$SCRIPT_DIR/lib/analyze_after.sh" ]; then
         source "$SCRIPT_DIR/lib/analyze_after.sh"
-        show_after_state "$id" "$isbn"
+        if command -v show_after_state &> /dev/null; then
+            show_after_state "$id" "$isbn"
+        fi
     fi
     
     # Afficher le résumé des gains
@@ -649,7 +741,9 @@ process_single_book() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        display_martingale_complete "$id"
+        if command -v display_martingale_complete &> /dev/null; then
+            display_martingale_complete "$id"
+        fi
     fi
     
     # === AFFICHAGE MARTINGALE COMPLÈTE ===
@@ -660,6 +754,19 @@ process_single_book() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        display_martingale_complete "$id"
+        if command -v display_martingale_complete &> /dev/null; then
+            display_martingale_complete "$id"
+        fi
     fi
+}
+
+# Fonction capture_book_state
+capture_book_state() {
+    local id=$1
+    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_key FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$id 
+        AND meta_key LIKE '\_%' 
+        AND meta_value != ''
+        AND meta_value IS NOT NULL"
 }

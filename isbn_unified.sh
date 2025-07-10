@@ -143,50 +143,22 @@ case "$MODE" in
             # TODO: Implémenter l'export en masse
             echo -e "${YELLOW}⚠️  Fonction export en masse en cours de développement${NC}"
         fi
-#         ;;
-#     *)
-#         # Mode normal : traiter un livre
-#         if [ -n "$PARAM_ISBN" ]; then
-#             echo -e "${BOLD}${GREEN}📚 Mode traitement individuel${NC}"
-# echo "[DEBUG] Avant appel process_single_book - fonction existe : $(type -t process_single_book)" >&2
-#             process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
-#         else
-#             echo -e "${RED}❌ ISBN requis${NC}"
-#             show_help
-#             exit 1
-#         fi
-#         ;;
-# esac
-# 
-# # Log de fin
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script terminé" >> "$LOG_FILE"
-
-# === AFFICHAGE MARTINGALE FINALE SI DEMANDÉ ===
-if [ "$VERBOSE" -eq 1 ] && [ "$MODE" != "simple" ] && [ "$MODE" != "nostatus" ]; then
-    echo ""
-    echo ""
-    echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-    echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE FINALE (156 CHAMPS)${NC}"
-    echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
-    
-    if [ -n "$PARAM_ISBN" ]; then
-        # Récupérer l'ID si on a traité un livre
-        if [[ "$PARAM_ISBN" =~ ^[0-9]+$ ]] && [ ${#PARAM_ISBN} -lt 10 ]; then
-            display_martingale_complete "$PARAM_ISBN"
+        ;;
+    *)
+        # Mode normal : traiter un livre
+        if [ -n "$PARAM_ISBN" ]; then
+            echo -e "${BOLD}${GREEN}📚 Mode traitement individuel${NC}"
+            echo "[DEBUG] Avant appel process_single_book - fonction existe : $(type -t process_single_book)" >&2
+            process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
         else
-            local clean_isbn="${PARAM_ISBN//[^0-9]/}"
-            local final_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-                SELECT ID FROM wp_${SITE_ID}_posts 
-                WHERE post_type='product' 
-                AND post_status='publish' 
-                AND ID IN (
-                    SELECT post_id FROM wp_${SITE_ID}_postmeta 
-                    WHERE meta_key='_sku' AND meta_value='$clean_isbn'
-                )
-                LIMIT 1")
-            [ -n "$final_id" ] && display_martingale_complete "$final_id"
+            echo -e "${RED}❌ ISBN requis${NC}"
+            show_help
+            exit 1
         fi
-    fi
-fi
+        ;;
+esac
+
+# Log de fin
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script terminé" >> "$LOG_FILE"
 
 exit 0

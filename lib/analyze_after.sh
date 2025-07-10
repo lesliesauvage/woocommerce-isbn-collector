@@ -1,5 +1,35 @@
 #!/bin/bash
-# lib/analyze_after.sh - Affichage de l'état APRÈS collecte avec requirements
+# Bibliothèque pour l'analyse APRÈS collecte
+# Affiche les données collectées et leur état
+
+# Fonction principale d'analyse après collecte
+analyze_after() {
+    local id="$1"
+    local isbn=""
+    local title=""
+    local initial_state="$2"
+    
+    echo ""
+    echo ""
+    echo "════════════════════════════════════════════════════════════════════════════════"
+    echo -e "${BOLD}${GREEN}📊 APRÈS COLLECTE - DONNÉES ENRICHIES${NC}"
+    echo "════════════════════════════════════════════════════════════════════════════════"
+    
+    # Récupérer les infos de base
+    isbn=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$id AND meta_key='_sku' LIMIT 1")
+    
+    title=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT post_title FROM wp_${SITE_ID}_posts WHERE ID=$id")
+    
+    echo "ID: $id | ISBN: $isbn"
+    echo "Titre: $title"
+    echo ""
+    
+    # Afficher l'état après
+    show_after_state "$id" "$isbn"
+}
 
 # Fonction pour afficher l'état après collecte
 show_after_state() {
@@ -315,4 +345,296 @@ show_after_state() {
     echo ""
     echo ""
     show_leboncoin_requirements "$id" "$isbn"
+}
+
+# Fonctions pour afficher les requirements par marketplace
+show_amazon_requirements() {
+    local id=$1
+    echo "🟠 AMAZON"
+    echo "┌─────────────────────────────────────────────────────────────────┐"
+    
+    # Vérifier chaque champ requis
+    local title=$(get_meta_value "$id" "_best_title")
+    local price=$(get_meta_value "$id" "_price")
+    local image=$(get_meta_value "$id" "_best_cover_image")
+    local desc=$(get_meta_value "$id" "_best_description")
+    local isbn=$(get_meta_value "$id" "_isbn")
+    local author=$(get_meta_value "$id" "_best_authors")
+    local publisher=$(get_meta_value "$id" "_best_publisher")
+    local weight=$(get_meta_value "$id" "_calculated_weight")
+    local dimensions=$(get_meta_value "$id" "_calculated_dimensions")
+    local bullet1=$(get_meta_value "$id" "_calculated_bullet1")
+    local keywords=$(get_meta_value "$id" "_amazon_keywords")
+    
+    [ -n "$title" ] && echo "│ ✅ Titre" || echo "│ ❌ Titre MANQUANT"
+    [ -n "$price" ] && [ "$price" != "0" ] && echo "│ ✅ Prix : $price €" || echo "│ ❌ Prix MANQUANT"
+    [ -n "$image" ] && echo "│ ✅ Image principale" || echo "│ ❌ Image MANQUANTE"
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && echo "│ ✅ Description (${#desc} car.)" || echo "│ ❌ Description MANQUANTE"
+    [ -n "$isbn" ] && echo "│ ✅ ISBN : $isbn" || echo "│ ❌ ISBN MANQUANT"
+    [ -n "$author" ] && echo "│ ✅ Auteur(s)" || echo "│ ❌ Auteur(s) MANQUANT"
+    [ -n "$publisher" ] && echo "│ ✅ Éditeur" || echo "│ ❌ Éditeur MANQUANT"
+    [ -n "$weight" ] && echo "│ ✅ Poids : ${weight}g" || echo "│ ❌ Poids MANQUANT"
+    [ -n "$dimensions" ] && echo "│ ✅ Dimensions : $dimensions cm" || echo "│ ❌ Dimensions MANQUANTES"
+    [ -n "$bullet1" ] && echo "│ ✅ Bullet points" || echo "│ ❌ Bullet points MANQUANTS"
+    [ -n "$keywords" ] && echo "│ ✅ Mots-clés" || echo "│ ⚠️  Mots-clés recommandés"
+    
+    # Score
+    local required=0
+    local complete=0
+    [ -n "$title" ] && ((complete++))
+    ((required++))
+    [ -n "$price" ] && [ "$price" != "0" ] && ((complete++))
+    ((required++))
+    [ -n "$image" ] && ((complete++))
+    ((required++))
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && ((complete++))
+    ((required++))
+    [ -n "$isbn" ] && ((complete++))
+    ((required++))
+    
+    local percent=$((complete * 100 / required))
+    echo "│"
+    if [ $percent -eq 100 ]; then
+        echo "│ 🎯 PRÊT POUR AMAZON ($percent%)"
+    else
+        echo "│ ⚠️  INCOMPLET POUR AMAZON ($percent%)"
+    fi
+    
+    echo "└─────────────────────────────────────────────────────────────────┘"
+}
+
+show_rakuten_requirements() {
+    local id=$1
+    echo "🔵 RAKUTEN / PRICEMINISTER"
+    echo "┌─────────────────────────────────────────────────────────────────┐"
+    
+    local title=$(get_meta_value "$id" "_best_title")
+    local price=$(get_meta_value "$id" "_price")
+    local isbn=$(get_meta_value "$id" "_isbn")
+    local state=$(get_meta_value "$id" "_rakuten_state")
+    local desc=$(get_meta_value "$id" "_best_description")
+    local image=$(get_meta_value "$id" "_best_cover_image")
+    
+    [ -n "$title" ] && echo "│ ✅ Titre" || echo "│ ❌ Titre MANQUANT"
+    [ -n "$price" ] && [ "$price" != "0" ] && echo "│ ✅ Prix : $price €" || echo "│ ❌ Prix MANQUANT"
+    [ -n "$isbn" ] && echo "│ ✅ ISBN : $isbn" || echo "│ ❌ ISBN MANQUANT"
+    [ -n "$state" ] && echo "│ ✅ État produit (code: $state)" || echo "│ ❌ État MANQUANT"
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && echo "│ ✅ Description" || echo "│ ❌ Description MANQUANTE"
+    [ -n "$image" ] && echo "│ ✅ Image" || echo "│ ❌ Image MANQUANTE"
+    
+    # Score
+    local required=0
+    local complete=0
+    [ -n "$title" ] && ((complete++))
+    ((required++))
+    [ -n "$price" ] && [ "$price" != "0" ] && ((complete++))
+    ((required++))
+    [ -n "$isbn" ] && ((complete++))
+    ((required++))
+    [ -n "$state" ] && ((complete++))
+    ((required++))
+    
+    local percent=$((complete * 100 / required))
+    echo "│"
+    if [ $percent -eq 100 ]; then
+        echo "│ 🎯 PRÊT POUR RAKUTEN ($percent%)"
+    else
+        echo "│ ⚠️  INCOMPLET POUR RAKUTEN ($percent%)"
+    fi
+    
+    echo "└─────────────────────────────────────────────────────────────────┘"
+}
+
+show_vinted_requirements() {
+    local id=$1
+    echo "🟣 VINTED"
+    echo "┌─────────────────────────────────────────────────────────────────┐"
+    
+    local title=$(get_meta_value "$id" "_best_title")
+    local price=$(get_meta_value "$id" "_price")
+    local desc=$(get_meta_value "$id" "_best_description")
+    local image=$(get_meta_value "$id" "_best_cover_image")
+    local condition=$(get_meta_value "$id" "_vinted_condition")
+    local condition_text=$(get_meta_value "$id" "_vinted_condition_text")
+    local category=$(get_meta_value "$id" "_cat_vinted")
+    local category_name=$(get_meta_value "$id" "_vinted_category_name")
+    local weight=$(get_meta_value "$id" "_calculated_weight")
+    
+    [ -n "$title" ] && echo "│ ✅ Titre" || echo "│ ❌ Titre MANQUANT"
+    [ -n "$price" ] && [ "$price" != "0" ] && echo "│ ✅ Prix : $price €" || echo "│ ❌ Prix MANQUANT"
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && echo "│ ✅ Description (${#desc} car.)" || echo "│ ❌ Description MANQUANTE (min 20 car.)"
+    [ -n "$image" ] && echo "│ ✅ Photo principale" || echo "│ ❌ Photo MANQUANTE"
+    [ -n "$condition" ] && echo "│ ✅ État : $condition_text" || echo "│ ❌ État MANQUANT"
+    [ -n "$category" ] && echo "│ ✅ Catégorie : $category_name ($category)" || echo "│ ❌ Catégorie MANQUANTE"
+    [ -n "$weight" ] && echo "│ ✅ Poids : ${weight}g" || echo "│ ⚠️  Poids recommandé"
+    
+    # Score
+    local required=0
+    local complete=0
+    [ -n "$title" ] && ((complete++))
+    ((required++))
+    [ -n "$price" ] && [ "$price" != "0" ] && ((complete++))
+    ((required++))
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && ((complete++))
+    ((required++))
+    [ -n "$image" ] && ((complete++))
+    ((required++))
+    [ -n "$condition" ] && ((complete++))
+    ((required++))
+    [ -n "$category" ] && ((complete++))
+    ((required++))
+    
+    local percent=$((complete * 100 / required))
+    echo "│"
+    if [ $percent -eq 100 ]; then
+        echo "│ 🎯 PRÊT POUR VINTED ($percent%)"
+    else
+        echo "│ ⚠️  INCOMPLET POUR VINTED ($percent%)"
+    fi
+    
+    echo "└─────────────────────────────────────────────────────────────────┘"
+}
+
+show_fnac_requirements() {
+    local id=$1
+    echo "🟡 FNAC"
+    echo "┌─────────────────────────────────────────────────────────────────┐"
+    
+    local title=$(get_meta_value "$id" "_best_title")
+    local price=$(get_meta_value "$id" "_price")
+    local isbn=$(get_meta_value "$id" "_isbn")
+    local desc=$(get_meta_value "$id" "_best_description")
+    local image=$(get_meta_value "$id" "_best_cover_image")
+    local tva=$(get_meta_value "$id" "_fnac_tva_rate")
+    local author=$(get_meta_value "$id" "_best_authors")
+    local publisher=$(get_meta_value "$id" "_best_publisher")
+    
+    [ -n "$title" ] && echo "│ ✅ Titre" || echo "│ ❌ Titre MANQUANT"
+    [ -n "$price" ] && [ "$price" != "0" ] && echo "│ ✅ Prix : $price €" || echo "│ ❌ Prix MANQUANT"
+    [ -n "$isbn" ] && echo "│ ✅ ISBN : $isbn" || echo "│ ❌ ISBN MANQUANT"
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && echo "│ ✅ Description" || echo "│ ❌ Description MANQUANTE"
+    [ -n "$image" ] && echo "│ ✅ Image" || echo "│ ❌ Image MANQUANTE"
+    [ -n "$tva" ] && echo "│ ✅ TVA : $tva%" || echo "│ ⚠️  TVA par défaut (5.5%)"
+    [ -n "$author" ] && echo "│ ✅ Auteur(s)" || echo "│ ❌ Auteur(s) MANQUANT"
+    [ -n "$publisher" ] && echo "│ ✅ Éditeur" || echo "│ ❌ Éditeur MANQUANT"
+    
+    # Score
+    local required=0
+    local complete=0
+    [ -n "$title" ] && ((complete++))
+    ((required++))
+    [ -n "$price" ] && [ "$price" != "0" ] && ((complete++))
+    ((required++))
+    [ -n "$isbn" ] && ((complete++))
+    ((required++))
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && ((complete++))
+    ((required++))
+    
+    local percent=$((complete * 100 / required))
+    echo "│"
+    if [ $percent -eq 100 ]; then
+        echo "│ 🎯 PRÊT POUR FNAC ($percent%)"
+    else
+        echo "│ ⚠️  INCOMPLET POUR FNAC ($percent%)"
+    fi
+    
+    echo "└─────────────────────────────────────────────────────────────────┘"
+}
+
+show_cdiscount_requirements() {
+    local id=$1
+    echo "🔴 CDISCOUNT"
+    echo "┌─────────────────────────────────────────────────────────────────┐"
+    
+    local title=$(get_meta_value "$id" "_best_title")
+    local price=$(get_meta_value "$id" "_price")
+    local isbn=$(get_meta_value "$id" "_isbn")
+    local desc=$(get_meta_value "$id" "_best_description")
+    local image=$(get_meta_value "$id" "_best_cover_image")
+    local brand=$(get_meta_value "$id" "_cdiscount_brand")
+    local weight=$(get_meta_value "$id" "_calculated_weight")
+    
+    [ -n "$title" ] && echo "│ ✅ Titre" || echo "│ ❌ Titre MANQUANT"
+    [ -n "$price" ] && [ "$price" != "0" ] && echo "│ ✅ Prix : $price €" || echo "│ ❌ Prix MANQUANT"
+    [ -n "$isbn" ] && echo "│ ✅ Code EAN/ISBN : $isbn" || echo "│ ❌ Code EAN MANQUANT"
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && echo "│ ✅ Description" || echo "│ ❌ Description MANQUANTE"
+    [ -n "$image" ] && echo "│ ✅ Image" || echo "│ ❌ Image MANQUANTE"
+    [ -n "$brand" ] && echo "│ ✅ Marque/Éditeur : $brand" || echo "│ ❌ Marque MANQUANTE"
+    [ -n "$weight" ] && echo "│ ✅ Poids : ${weight}g" || echo "│ ❌ Poids MANQUANT"
+    
+    # Score
+    local required=0
+    local complete=0
+    [ -n "$title" ] && ((complete++))
+    ((required++))
+    [ -n "$price" ] && [ "$price" != "0" ] && ((complete++))
+    ((required++))
+    [ -n "$isbn" ] && ((complete++))
+    ((required++))
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && ((complete++))
+    ((required++))
+    [ -n "$image" ] && ((complete++))
+    ((required++))
+    [ -n "$brand" ] && ((complete++))
+    ((required++))
+    
+    local percent=$((complete * 100 / required))
+    echo "│"
+    if [ $percent -eq 100 ]; then
+        echo "│ 🎯 PRÊT POUR CDISCOUNT ($percent%)"
+    else
+        echo "│ ⚠️  INCOMPLET POUR CDISCOUNT ($percent%)"
+    fi
+    
+    echo "└─────────────────────────────────────────────────────────────────┘"
+}
+
+show_leboncoin_requirements() {
+    local id=$1
+    echo "🟠 LEBONCOIN"
+    echo "┌─────────────────────────────────────────────────────────────────┐"
+    
+    local title=$(get_meta_value "$id" "_best_title")
+    local price=$(get_meta_value "$id" "_price")
+    local desc=$(get_meta_value "$id" "_best_description")
+    local image=$(get_meta_value "$id" "_best_cover_image")
+    local category=$(get_meta_value "$id" "_leboncoin_category")
+    local zip=$(get_meta_value "$id" "_location_zip")
+    local city=$(get_meta_value "$id" "_location_city")
+    local phone_hidden=$(get_meta_value "$id" "_leboncoin_phone_hidden")
+    
+    [ -n "$title" ] && echo "│ ✅ Titre" || echo "│ ❌ Titre MANQUANT"
+    [ -n "$price" ] && [ "$price" != "0" ] && echo "│ ✅ Prix : $price €" || echo "│ ❌ Prix MANQUANT"
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && echo "│ ✅ Description" || echo "│ ❌ Description MANQUANTE"
+    [ -n "$image" ] && echo "│ ✅ Photo" || echo "│ ❌ Photo MANQUANTE"
+    [ "$category" = "27" ] && echo "│ ✅ Catégorie : Livres (27)" || echo "│ ❌ Catégorie INCORRECTE"
+    [ -n "$zip" ] && echo "│ ✅ Code postal : $zip" || echo "│ ❌ Code postal MANQUANT"
+    [ -n "$city" ] && echo "│ ✅ Ville : $city" || echo "│ ❌ Ville MANQUANTE"
+    [ "$phone_hidden" = "true" ] && echo "│ ✅ Téléphone masqué" || echo "│ ⚠️  Téléphone visible"
+    
+    # Score
+    local required=0
+    local complete=0
+    [ -n "$title" ] && ((complete++))
+    ((required++))
+    [ -n "$price" ] && [ "$price" != "0" ] && ((complete++))
+    ((required++))
+    [ -n "$desc" ] && [ ${#desc} -gt 20 ] && ((complete++))
+    ((required++))
+    [ -n "$image" ] && ((complete++))
+    ((required++))
+    [ "$category" = "27" ] && ((complete++))
+    ((required++))
+    [ -n "$zip" ] && ((complete++))
+    ((required++))
+    
+    local percent=$((complete * 100 / required))
+    echo "│"
+    if [ $percent -eq 100 ]; then
+        echo "│ 🎯 PRÊT POUR LEBONCOIN ($percent%)"
+    else
+        echo "│ ⚠️  INCOMPLET POUR LEBONCOIN ($percent%)"
+    fi
+    
+    echo "└─────────────────────────────────────────────────────────────────┘"
 }

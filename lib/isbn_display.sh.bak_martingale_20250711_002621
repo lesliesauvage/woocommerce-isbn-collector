@@ -50,7 +50,7 @@ EOF
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        # DISABLED:         display_martingale_complete "$1"
+        display_martingale_complete "$1"
     fi
     
     # === AFFICHAGE MARTINGALE COMPLÈTE ===
@@ -61,7 +61,7 @@ EOF
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        # DISABLED:         display_martingale_complete "$1"
+        display_martingale_complete "$1"
     fi
 }
 
@@ -158,7 +158,7 @@ show_api_results() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        # DISABLED:         display_martingale_complete "$id"
+        display_martingale_complete "$id"
     fi
     
     # === AFFICHAGE MARTINGALE COMPLÈTE ===
@@ -169,7 +169,7 @@ show_api_results() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        # DISABLED:         display_martingale_complete "$id"
+        display_martingale_complete "$id"
     fi
 }
 
@@ -256,7 +256,7 @@ show_collection_status() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        # DISABLED:         display_martingale_complete "$id"
+        display_martingale_complete "$id"
     fi
 }
 
@@ -297,7 +297,7 @@ show_compact_summary() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        # DISABLED:         display_martingale_complete "$id"
+        display_martingale_complete "$id"
     fi
 }
 
@@ -350,7 +350,7 @@ show_marketplace_status() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        # DISABLED:         display_martingale_complete "$id"
+        display_martingale_complete "$id"
     fi
 }
 
@@ -408,7 +408,7 @@ show_batch_summary() {
         echo -e "${BOLD}${PURPLE}📊 MARTINGALE COMPLÈTE (156 CHAMPS)${NC}"
         echo "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════"
         
-        # DISABLED:         display_martingale_complete "batch"
+        display_martingale_complete "batch"
     fi
 }
 

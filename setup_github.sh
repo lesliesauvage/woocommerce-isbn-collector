@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: setup_github.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # setup_github.sh - Configuration initiale du dépôt GitHub
 
 echo "=== CONFIGURATION GITHUB ==="
@@ -74,3 +76,5 @@ echo ""
 echo "🔐 Pour éviter de taper le mot de passe :"
 echo "Utilisez un token : https://github.com/settings/tokens"
 echo "git config credential.helper store"
+
+echo "[END: setup_github.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

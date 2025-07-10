@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: amazon.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/marketplace/amazon.sh - Requirements Amazon
 
 show_amazon_requirements() {
@@ -143,3 +145,5 @@ show_amazon_requirements() {
    
    echo "└──────────────────────────┴──────────────────────────────────────┴──────────┴────────────────┘"
 }
+
+echo "[END: amazon.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

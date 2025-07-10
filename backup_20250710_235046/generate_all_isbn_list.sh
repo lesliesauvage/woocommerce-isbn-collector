@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: generate_all_isbn_list.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # generate_all_isbn_list.sh - Génère la liste complète des ISBN
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -292,3 +294,5 @@ echo "✅ Génération terminée : $(date)"
 echo ""
 echo "📁 Fichiers générés dans : $SCRIPT_DIR"
 ls -la "$SCRIPT_DIR"/generer_*isbn* 2>/dev/null | tail -5
+
+echo "[END: generate_all_isbn_list.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

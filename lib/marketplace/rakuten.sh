@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: rakuten.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/marketplace/rakuten.sh - Requirements Rakuten/PriceMinister
 
 show_rakuten_requirements() {
@@ -131,3 +133,5 @@ show_rakuten_requirements() {
    
    echo "└──────────────────────────┴──────────────────────────────────────┴──────────┴────────────────┘"
 }
+
+echo "[END: rakuten.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: enrichment.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Fonctions d'enrichissement et calculs
 
 # Source des dépendances
@@ -672,3 +674,5 @@ export -f import_image_to_wordpress
 export -f get_product_id_from_input
 export -f select_incomplete_books
 export -f count_incomplete_books
+
+echo "[END: enrichment.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

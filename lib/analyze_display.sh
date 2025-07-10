@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: analyze_display.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/analyze_display.sh - Fonctions d'affichage pour analyze_with_collect.sh
 
 # Fonction pour afficher l'état AVANT (Section 1)
@@ -456,3 +458,4 @@ show_api_collection() {
         echo "$groq_desc" | fold -s -w 150
     fi
 }
+echo "[END: analyze_display.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

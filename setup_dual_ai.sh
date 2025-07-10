@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: setup_dual_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 clear
 
 echo "=== CONFIGURATION GEMINI + CLAUDE ==="
@@ -158,3 +160,5 @@ echo "   ./smart_categorize_dual_ai.sh    # Utiliser la double IA"
 echo ""
 echo "💡 Note : Ce fichier setup_dual_ai.sh peut être réutilisé pour changer les clés"
 echo ""
+
+echo "[END: setup_dual_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

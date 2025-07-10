@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: utils.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Fonctions utilitaires communes
 
 # Fonction de log
@@ -59,3 +61,4 @@ parse_api_data() {
     
     echo "$data" | grep -o "${field}:[^|]*" | cut -d: -f2-
 }
+echo "[END: utils.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: categorize_all_books.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 clear
 source config/settings.sh
 source lib/safe_functions.sh
@@ -200,3 +202,5 @@ echo "✅ Catégorisation terminée!"
 echo ""
 echo "Pour voir les livres d'une catégorie spécifique:"
 echo "mysql -e \"SELECT p.ID, p.post_title FROM wp_${SITE_ID}_posts p JOIN wp_${SITE_ID}_term_relationships tr ON p.ID = tr.object_id WHERE tr.term_taxonomy_id = (SELECT term_taxonomy_id FROM wp_${SITE_ID}_term_taxonomy WHERE term_id = ID_CATEGORIE)\""
+
+echo "[END: categorize_all_books.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: best_data.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/best_data.sh - Gestion des meilleures données
 
 # Récupérer la meilleure valeur pour un type de donnée
@@ -235,3 +237,4 @@ select_best_description() {
 export -f get_best_value
 export -f store_best_data
 export -f select_best_description
+echo "[END: best_data.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

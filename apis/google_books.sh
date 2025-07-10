@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: google_books.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # API Google Books - VERSION CORRIGÉE AVEC TOUTES LES IMAGES
 
 # Source des dépendances
@@ -127,3 +129,5 @@ fetch_google_books() {
         return 1
     fi
 }
+
+echo "[END: google_books.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

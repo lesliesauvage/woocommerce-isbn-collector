@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: analyze_after.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Bibliothèque pour l'analyse APRÈS collecte
 # Affiche les données collectées et leur état
 
@@ -638,3 +640,4 @@ show_leboncoin_requirements() {
     
     echo "└─────────────────────────────────────────────────────────────────┘"
 }
+echo "[END: analyze_after.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

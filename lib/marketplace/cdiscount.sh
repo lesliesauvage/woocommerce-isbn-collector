@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: cdiscount.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/marketplace/cdiscount.sh - Requirements Cdiscount
 
 show_cdiscount_requirements() {
@@ -106,3 +108,5 @@ show_cdiscount_requirements() {
    
    echo "└──────────────────────────┴──────────────────────────────────────┴──────────┴────────────────┘"
 }
+
+echo "[END: cdiscount.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

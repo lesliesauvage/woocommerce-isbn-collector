@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: ai_common.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/ai_common.sh - Fonctions communes pour les IA
 
 # Couleurs pour affichage
@@ -153,3 +155,4 @@ except:
     
     return 0
 }
+echo "[END: ai_common.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

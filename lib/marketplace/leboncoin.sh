@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: leboncoin.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/marketplace/leboncoin.sh - Requirements Leboncoin
 
 show_leboncoin_requirements() {
@@ -125,3 +127,5 @@ show_leboncoin_requirements() {
    
    echo "└──────────────────────────┴──────────────────────────────────────┴──────────┴────────────────┘"
 }
+
+echo "[END: leboncoin.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

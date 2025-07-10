@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: sync_to_github.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # sync_to_github.sh - Synchronisation automatique vers GitHub
 # Usage: ./sync_to_github.sh [message_commit_optionnel]
 
@@ -189,3 +191,4 @@ find "$SCRIPT_DIR/logs" -name "sync_github.log*" -mtime +30 -delete 2>/dev/null
 
 log "🏁 Fin de la synchronisation"
 echo ""
+echo "[END: sync_to_github.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

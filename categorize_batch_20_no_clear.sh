@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: categorize_batch_20_no_clear.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 source config/settings.sh
 
 echo "=== CATÉGORISATION BATCH DE 20 LIVRES (SANS CLEAR) ==="
@@ -122,3 +124,5 @@ echo ""
 echo "✅ Batch terminé : $(date)" | tee -a "$log_file"
 echo ""
 echo "💡 Pour voir tout le log : cat $log_file"
+
+echo "[END: categorize_batch_20_no_clear.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

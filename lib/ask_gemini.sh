@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: ask_gemini.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/ask_gemini.sh - Fonction pour interroger l'API Gemini
 
 # Demander à Gemini
@@ -116,3 +118,5 @@ Es-tu d'accord ? Si oui réponds le même ID, sinon donne ton choix."
     # IMPORTANT : Retourner UNIQUEMENT l'ID extrait, pas les affichages
     echo "$extracted_id"
 }
+
+echo "[END: ask_gemini.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

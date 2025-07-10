@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: other_apis.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Autres APIs (Gallica, WorldCat, Archive.org)
 
 # Source des dépendances
@@ -99,3 +101,5 @@ fetch_archive_org() {
     log "    ✗ Archive.org : pas de résultat"
     return 1
 }
+
+echo "[END: other_apis.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: export_amazon.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Export amazon - Template de base
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -77,3 +79,5 @@ echo ""
 echo ""
 echo "✅ Export terminé : $OUTPUT_FILE"
 echo "📊 Livres exportés : $exported"
+
+echo "[END: export_amazon.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

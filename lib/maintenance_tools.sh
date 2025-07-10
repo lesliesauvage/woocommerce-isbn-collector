@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: maintenance_tools.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/maintenance_tools.sh - Outils de maintenance pour la base de données
 
 # Nettoyer les doublons de métadonnées
@@ -466,3 +468,5 @@ export -f export_isbn_list
 export -f show_global_statistics
 export -f fix_titles_special_chars
 export -f show_maintenance_menu
+
+echo "[END: maintenance_tools.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

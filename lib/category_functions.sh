@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: category_functions.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/category_functions.sh - Fonctions pour gérer les catégories WordPress
 
 # Obtenir toutes les catégories avec leur hiérarchie
@@ -136,3 +138,5 @@ apply_category_to_product() {
     
     return 0
 }
+
+echo "[END: category_functions.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: export_checks.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/export_checks.sh - Vérifications d'exportabilité vers marketplaces
 
 # Calculer le score d'exportabilité d'un livre
@@ -348,3 +350,5 @@ export -f check_marketplace_ready
 export -f check_required_fields
 export -f get_ready_marketplaces
 export -f show_export_summary
+
+echo "[END: export_checks.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

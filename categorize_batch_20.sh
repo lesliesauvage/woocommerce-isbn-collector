@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: categorize_batch_20.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 source config/settings.sh
 
 clear
@@ -108,3 +110,5 @@ tail -20 logs/dual_ai_categorize.log | grep -E "ID:[0-9]+" | tail -10
 
 echo ""
 echo "✅ Batch terminé : $(date)"
+
+echo "[END: categorize_batch_20.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: all_requirements.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/marketplace/all_requirements.sh - Affiche tous les requirements marketplace d'un coup
 
 # Fonction principale qui appelle toutes les autres
@@ -142,3 +144,5 @@ export_to_ready_marketplaces() {
         echo "✅ Export terminé vers $exported marketplace(s)"
     fi
 }
+
+echo "[END: all_requirements.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: diagnose_sync.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 clear
 echo "=== DIAGNOSTIC SYNCHRONISATION GITHUB ==="
 echo "Date : $(date)"
@@ -104,3 +106,5 @@ if [ "$LOCAL" != "$REMOTE" ]; then
 fi
 
 echo ""
+
+echo "[END: diagnose_sync.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

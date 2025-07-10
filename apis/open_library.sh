@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: open_library.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # API Open Library
 
 # Source des dépendances
@@ -81,3 +83,5 @@ fetch_open_library() {
         return 1
     fi
 }
+
+echo "[END: open_library.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

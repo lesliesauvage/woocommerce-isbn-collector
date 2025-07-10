@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: categorize_missing_only.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 source config/settings.sh
 
 clear
@@ -126,3 +128,5 @@ done
 
 echo ""
 echo "✅ Terminé : $(date)"
+
+echo "[END: categorize_missing_only.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

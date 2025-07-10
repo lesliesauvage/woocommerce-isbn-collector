@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: settings.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Configuration générale du projet ISBN
 
 # Base de données WordPress
@@ -36,3 +38,5 @@ DEFAULT_ZIPCODE="76000"
 
 # Mode debug (0=non, 1=oui)
 DEBUG="${DEBUG:-0}"
+
+echo "[END: settings.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

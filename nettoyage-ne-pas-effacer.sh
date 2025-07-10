@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: nettoyage-ne-pas-effacer.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # NETTOYER LE PROJET ISBN - COPIER-COLLER UNIQUE
 cd /var/www/scripts-home-root/isbn/
 
@@ -146,3 +148,5 @@ CLEANUP_EOF
 chmod +x cleanup_project.sh
 ./cleanup_project.sh
 rm -f cleanup_project.sh
+
+echo "[END: nettoyage-ne-pas-effacer.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

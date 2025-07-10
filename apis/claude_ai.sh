@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: claude_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # API Claude AI pour génération de descriptions
 
 # Source des dépendances
@@ -178,3 +180,5 @@ test_claude_connection() {
 # Export des fonctions
 export -f generate_description_claude
 export -f test_claude_connection
+
+echo "[END: claude_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

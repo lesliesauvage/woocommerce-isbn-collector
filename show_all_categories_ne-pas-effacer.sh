@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: show_all_categories_ne-pas-effacer.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 source config/settings.sh
 
 clear
@@ -82,3 +84,5 @@ echo ""
 echo "Pour voir tout : cat arbre_complet.txt"
 echo "Pour voir page par page : less arbre_complet.txt"
 echo "Pour chercher : grep 'terme' arbre_complet.txt"
+
+echo "[END: show_all_categories_ne-pas-effacer.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

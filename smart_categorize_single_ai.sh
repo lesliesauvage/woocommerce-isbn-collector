@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: smart_categorize_single_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Version GEMINI ONLY du smart_categorize
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -67,3 +69,5 @@ if [ "$rep" = "oui" ]; then
         sleep 2
     done
 fi
+
+echo "[END: smart_categorize_single_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

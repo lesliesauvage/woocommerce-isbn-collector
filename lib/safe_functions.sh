@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: safe_functions.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/safe_functions.sh - Fonctions sécurisées pour éviter les bugs courants
 # Usage: source lib/safe_functions.sh
 
@@ -227,3 +229,4 @@ if [ "${1:-}" = "--test" ]; then
     echo "=== FIN DES TESTS ==="
     exit 0
 fi
+echo "[END: safe_functions.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

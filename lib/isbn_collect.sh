@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: isbn_collect.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Bibliothèque de fonctions de collecte pour isbn_unified.sh
 # Gère la collecte des données via APIs et validation
 
@@ -349,3 +351,5 @@ save_to_cache() {
     echo "$data" > "$cache_dir/isbn_${isbn}.json"
     echo "[DEBUG] Données mises en cache pour ISBN $isbn" >&2
 }
+
+echo "[END: isbn_collect.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

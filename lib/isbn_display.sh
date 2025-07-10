@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: isbn_display.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Bibliothèque de fonctions d'affichage pour isbn_unified.sh
 # Gère l'affichage de l'aide, des résultats et des états
 
@@ -460,3 +462,4 @@ show_spinner() {
     done
     printf "    \b\b\b\b"
 }
+echo "[END: isbn_display.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

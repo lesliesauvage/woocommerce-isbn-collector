@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: database.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Fonctions de base de données - VERSION CORRIGÉE
 
 # Source des utilitaires
@@ -84,3 +86,4 @@ get_meta_value() {
         SELECT meta_value FROM wp_${SITE_ID}_postmeta 
         WHERE post_id = $product_id AND meta_key = '$meta_key' LIMIT 1;"
 }
+echo "[END: database.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

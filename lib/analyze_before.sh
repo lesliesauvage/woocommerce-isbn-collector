@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: analyze_before.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/analyze_before.sh - Affichage de l'état AVANT collecte
 
 # Fonction pour afficher l'état avant collecte
@@ -357,3 +359,5 @@ show_before_state() {
         echo "  ⚠️  Données manquantes pour l'export complet"
     fi
 }
+
+echo "[END: analyze_before.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

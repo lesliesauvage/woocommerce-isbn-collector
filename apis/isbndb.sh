@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: isbndb.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # API ISBNdb - VERSION CORRIGÉE AVEC MESSAGES CLAIRS
 
 # Source des dépendances
@@ -104,3 +106,4 @@ fetch_isbndb() {
     echo "title:$i_title|authors:$i_authors|publisher:$i_publisher|synopsis:$i_synopsis|binding:$i_binding|pages:$i_pages|subjects:$i_subjects|msrp:$i_msrp|language:$i_language"
     return 0
 }
+echo "[END: isbndb.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

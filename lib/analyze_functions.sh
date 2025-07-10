@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: analyze_functions.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/analyze_functions.sh - Fonctions d'analyse des données collectées - VERSION CORRIGÉE
 
 # Fonction pour récupérer la meilleure valeur disponible
@@ -563,3 +565,4 @@ _show_compatibility_summary() {
     
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
+echo "[END: analyze_functions.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

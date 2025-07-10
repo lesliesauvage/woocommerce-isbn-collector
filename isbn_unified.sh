@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: isbn_unified.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Script unifié de gestion ISBN - Version 4 MARTINGALE COMPLÈTE MODULAIRE
 # Fichier principal qui charge les modules
 
@@ -162,3 +164,4 @@ esac
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script terminé" >> "$LOG_FILE"
 
 exit 0
+echo "[END: isbn_unified.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

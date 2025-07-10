@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: reset_all_categories.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 source config/settings.sh
 
 clear
@@ -58,3 +60,5 @@ echo ""
 echo "La base est maintenant prête pour recréer les catégories proprement."
 echo ""
 echo "Lancez ensuite le script de création des catégories ECOLIVRES."
+
+echo "[END: reset_all_categories.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

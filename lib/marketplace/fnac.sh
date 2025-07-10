@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: fnac.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/marketplace/fnac.sh - Requirements Fnac
 
 show_fnac_requirements() {
@@ -130,3 +132,5 @@ show_fnac_requirements() {
    
    echo "└──────────────────────────┴──────────────────────────────────────┴──────────┴────────────────┘"
 }
+
+echo "[END: fnac.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

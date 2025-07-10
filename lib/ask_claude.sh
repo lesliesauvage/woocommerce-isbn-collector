@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: ask_claude.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/ask_claude.sh - Fonction pour interroger l'API Claude
 
 # Demander à Claude
@@ -157,3 +159,4 @@ except:
     # IMPORTANT : Retourner UNIQUEMENT l'ID extrait
     echo "$extracted_id"
 }
+echo "[END: ask_claude.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

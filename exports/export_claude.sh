@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: export_claude.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Export Claude AI - Format optimisé pour recommandations
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -212,3 +214,5 @@ echo "   • Toutes les métadonnées de chaque livre"
 echo "   • Format structuré et lisible"
 echo "   • Mots-clés pour faciliter les recommandations"
 echo "   • Instructions d'utilisation intégrées"
+
+echo "[END: export_claude.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

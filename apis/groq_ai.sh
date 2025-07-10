@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: groq_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # API Groq IA
 
 # Source des dépendances
@@ -81,3 +83,5 @@ Génère uniquement la description, sans introduction ni conclusion."
         return 1
     fi
 }
+
+echo "[END: groq_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

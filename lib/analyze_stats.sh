@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: analyze_stats.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/analyze_stats.sh - Fonctions de statistiques et tableaux comparatifs
 
 # Afficher le tableau comparatif des gains
@@ -188,3 +190,5 @@ check_marketplace_ready() {
     
     return 0
 }
+
+echo "[END: analyze_stats.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

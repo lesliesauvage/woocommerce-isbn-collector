@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: smart_categorize_dual_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # ⚠️  FICHIER CRITIQUE - NE JAMAIS SUPPRIMER ⚠️
 # smart_categorize_dual_ai.sh - Double IA qui débattent pour catégoriser
 
@@ -517,3 +519,4 @@ esac
 
 echo ""
 echo "📊 Logs : $LOG_DIR/dual_ai_categorize.log"
+echo "[END: smart_categorize_dual_ai.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

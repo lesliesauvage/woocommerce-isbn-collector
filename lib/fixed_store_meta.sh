@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: fixed_store_meta.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Fonction corrigée pour stocker les métadonnées
 
 fixed_store_meta() {
@@ -24,3 +26,5 @@ SQL
     [ "$DEBUG" = "1" ] && echo "[DEBUG] Stocké: $meta_key = ${meta_value:0:50}..." >&2
     return $result
 }
+
+echo "[END: fixed_store_meta.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

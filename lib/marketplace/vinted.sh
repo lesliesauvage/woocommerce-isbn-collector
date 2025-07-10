@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: vinted.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/marketplace/vinted.sh - Requirements Vinted
 
 show_vinted_requirements() {
@@ -122,3 +124,5 @@ show_vinted_requirements() {
    
    echo "└──────────────────────────┴──────────────────────────────────────┴──────────┴────────────────┘"
 }
+
+echo "[END: vinted.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

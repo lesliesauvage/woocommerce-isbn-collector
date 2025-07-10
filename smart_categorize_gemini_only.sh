@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: smart_categorize_gemini_only.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # ⚠️  FICHIER CRITIQUE - NE JAMAIS SUPPRIMER ⚠️
 # smart_categorize_dual_ai.sh - Double IA qui débattent pour catégoriser
 
@@ -952,3 +954,5 @@ ask_gemini_twice() {
     # Appeler ask_gemini avec le prompt modifié
     ask_gemini "$title" "$authors" "$description" "$categories_list" "$previous_response"
 }
+
+echo "[END: smart_categorize_gemini_only.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

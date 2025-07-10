@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: martingale_complete.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # MARTINGALE COMPLÈTE - 156 CHAMPS
 # Fonctions pour enrichissement exhaustif et affichage
 
@@ -736,3 +738,5 @@ display_martingale_complete() {
 
 # Export de la nouvelle fonction
 export -f display_martingale_complete
+
+echo "[END: martingale_complete.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

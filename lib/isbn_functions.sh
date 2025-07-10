@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: isbn_functions.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Bibliothèque de fonctions utilitaires pour isbn_unified.sh
 # Gère la sélection des données, calculs et génération de contenu
 
@@ -601,3 +603,4 @@ format_progression() {
         display_martingale_complete "$1"
     fi
 }
+echo "[END: isbn_functions.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

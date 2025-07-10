@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: category_filter.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # lib/category_filter.sh - Filtrage intelligent des catégories pour réduire les tokens
 
 # Fonction pour filtrer les catégories pertinentes basées sur le titre et la description
@@ -197,3 +199,4 @@ filter_relevant_categories() {
     
     echo "$filtered_categories"
 }
+echo "[END: category_filter.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

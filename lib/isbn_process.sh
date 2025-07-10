@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: isbn_process.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Bibliothèque de fonctions de traitement pour isbn_unified.sh
 # Gère le traitement des livres, marquage vendu, batch processing
 
@@ -481,3 +483,4 @@ process_single_book() {
         fi
     fi
 }
+echo "[END: isbn_process.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

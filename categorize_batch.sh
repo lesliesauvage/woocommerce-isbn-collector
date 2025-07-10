@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: categorize_batch.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 clear
 source config/settings.sh
 
@@ -47,3 +49,5 @@ echo "📋 DERNIÈRES CATÉGORISATIONS :"
 tail -5 logs/dual_ai_categorize.log 2>/dev/null || echo "Pas de logs"
 
 echo ""
+
+echo "[END: categorize_batch.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

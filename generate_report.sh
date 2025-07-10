@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: generate_report.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # Script pour générer un rapport détaillé
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -118,3 +120,5 @@ LIMIT 10;"
 
 echo ""
 echo "Rapport généré dans : $LOG_DIR/report_$(date +%Y%m%d_%H%M%S).txt"
+
+echo "[END: generate_report.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "[START: watch_and_sync.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
 # watch_and_sync.sh - Surveillance et synchronisation automatique GitHub
 # Lance une sync dès qu'un fichier est modifié
 
@@ -148,3 +150,4 @@ do
     # Déclencher la synchronisation
     sync_to_github
 done
+echo "[END: watch_and_sync.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

@@ -367,7 +367,7 @@ process_single_book() {
     
     # === MARTINGALE COMPLÈTE : ENRICHISSEMENT ===
     echo ""
-    echo -e "${BOLD}${PURPLE}🎯 ENRICHISSEMENT VIA MARTINGALE${NC}"
+    echo -e "${BOLD}${PURPLE}🎯 ENRICHISSEMENT VIA MARTINGALE COMPLÈTE${NC}"
     echo "────────────────────────────────────────────────────────────────────────────────"
     
     # Appeler l'enrichissement complet
@@ -415,7 +415,7 @@ process_single_book() {
     # === VÉRIFICATION MARTINGALE ===
     echo ""
     echo ""
-    echo -e "${BOLD}${YELLOW}🔍 VÉRIFICATION MARTINGALE${NC}"
+    echo -e "${BOLD}${YELLOW}🔍 VÉRIFICATION MARTINGALE COMPLÈTE${NC}"
     echo "════════════════════════════════════════════════════════════════════════════════"
     
     # Compter les champs remplis
@@ -465,7 +465,7 @@ process_single_book() {
     fi
     
     if [ $percent -eq 100 ]; then
-        echo -e "${GREEN}✅ MARTINGALE : 100% des données collectées !${NC}"
+        echo -e "${GREEN}✅ MARTINGALE COMPLÈTE : 100% des données collectées !${NC}"
     else
         echo -e "${YELLOW}❌ MARTINGALE INCOMPLÈTE : $percent%${NC}"
     fi

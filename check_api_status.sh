@@ -11,102 +11,105 @@ echo ""
 source config/settings.sh
 source config/credentials.sh
 
-# ISBN de test (Harry Potter)
-TEST_ISBN="9782070543588"
+# VOS ISBN DE LA BDD
+ISBN_LIST=(
+    "9782070360024"  # L'étranger (Camus) - ID: 16127
+    "2901821030"     # La Révélation d'Arès - ID: 16091
+    "2850760854"     # Dictionnaire Astrologique - ID: 16089
+    "2040120815"     # L'écrevisse et son élevage - ID: 16087
+    "9782070543588"  # Harry Potter - ID: 16128
+)
 
-echo "📚 ISBN de test : $TEST_ISBN"
+echo "📚 Test avec ${#ISBN_LIST[@]} ISBN de votre BDD"
 echo "📅 Date : $(date)"
 echo ""
 
-# 1. TEST GOOGLE BOOKS
-echo "1️⃣ GOOGLE BOOKS API"
-echo "────────────────────────────────────────────────────"
-if [ -n "$GOOGLE_BOOKS_API_KEY" ]; then
-    echo "   ✅ Clé API configurée"
-    echo -n "   🔄 Test de connexion... "
+# Fonction pour tester un ISBN sur toutes les APIs
+test_isbn() {
+    local isbn=$1
+    local desc=$2
     
-    response=$(curl -s -w "\n%{http_code}" "https://www.googleapis.com/books/v1/volumes?q=isbn:$TEST_ISBN&key=$GOOGLE_BOOKS_API_KEY")
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📖 TEST ISBN: $isbn"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Google Books
+    echo -n "   Google Books: "
+    if [ -n "$GOOGLE_BOOKS_API_KEY" ]; then
+        response=$(curl -s -w "\n%{http_code}" "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn&key=$GOOGLE_BOOKS_API_KEY" 2>/dev/null)
+        http_code=$(echo "$response" | tail -1)
+        content=$(echo "$response" | head -n -1)
+        
+        if [ "$http_code" = "200" ]; then
+            title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
+            if [ -n "$title" ]; then
+                echo "✅ $title"
+            else
+                echo "⚠️ Pas trouvé"
+            fi
+        else
+            echo "❌ Erreur $http_code"
+        fi
+    else
+        echo "❌ Clé manquante"
+    fi
+    
+    # ISBNdb
+    echo -n "   ISBNdb:       "
+    if [ -n "$ISBNDB_API_KEY" ]; then
+        response=$(curl -s -w "\n%{http_code}" -H "Authorization: $ISBNDB_API_KEY" "https://api2.isbndb.com/book/$isbn" 2>/dev/null)
+        http_code=$(echo "$response" | tail -1)
+        content=$(echo "$response" | head -n -1)
+        
+        if [ "$http_code" = "200" ]; then
+            title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
+            if [ -n "$title" ]; then
+                echo "✅ $title"
+            else
+                echo "⚠️ Pas trouvé"
+            fi
+        else
+            echo "❌ Erreur $http_code"
+        fi
+    else
+        echo "❌ Clé manquante"
+    fi
+    
+    # Open Library
+    echo -n "   Open Library: "
+    response=$(curl -s -w "\n%{http_code}" "https://openlibrary.org/api/books?bibkeys=ISBN:$isbn&format=json&jscmd=data" 2>/dev/null)
     http_code=$(echo "$response" | tail -1)
     content=$(echo "$response" | head -n -1)
     
     if [ "$http_code" = "200" ]; then
-        title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
-        if [ -n "$title" ]; then
-            echo "✅ OK"
-            echo "   📖 Livre trouvé : $title"
+        if [ "$content" != "{}" ]; then
+            title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
+            if [ -n "$title" ]; then
+                echo "✅ $title"
+            else
+                echo "✅ Trouvé (sans titre)"
+            fi
         else
-            echo "⚠️ Connecté mais aucun livre trouvé"
+            echo "⚠️ Pas trouvé"
         fi
     else
-        echo "❌ Erreur HTTP $http_code"
-        echo "   Message : $(echo "$content" | grep -o '"message":"[^"]*' | cut -d'"' -f4)"
+        echo "❌ Erreur $http_code"
     fi
-else
-    echo "   ❌ Clé API non configurée"
-fi
+}
 
-# 2. TEST ISBNDB
-echo ""
-echo "2️⃣ ISBNDB API"
-echo "────────────────────────────────────────────────────"
-if [ -n "$ISBNDB_API_KEY" ]; then
-    echo "   ✅ Clé API configurée"
-    echo -n "   🔄 Test de connexion... "
-    
-    response=$(curl -s -w "\n%{http_code}" \
-        -H "Authorization: $ISBNDB_API_KEY" \
-        "https://api2.isbndb.com/book/$TEST_ISBN")
-    http_code=$(echo "$response" | tail -1)
-    content=$(echo "$response" | head -n -1)
-    
-    if [ "$http_code" = "200" ]; then
-        title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
-        if [ -n "$title" ]; then
-            echo "✅ OK"
-            echo "   📖 Livre trouvé : $title"
-        else
-            echo "⚠️ Connecté mais aucun livre trouvé"
-        fi
-    else
-        echo "❌ Erreur HTTP $http_code"
-        if [[ "$content" =~ "Unauthorized" ]]; then
-            echo "   ⚠️ Clé API invalide ou expirée"
-        else
-            echo "   Message : $(echo "$content" | grep -o '"message":"[^"]*' | cut -d'"' -f4)"
-        fi
-    fi
-else
-    echo "   ❌ Clé API non configurée"
-fi
+# TESTER TOUS VOS ISBN
+echo "🔍 TEST DE VOS LIVRES EXISTANTS"
+echo "════════════════════════════════════════════════════════════════════════"
 
-# 3. TEST OPEN LIBRARY
-echo ""
-echo "3️⃣ OPEN LIBRARY API"
-echo "────────────────────────────────────────────────────"
-echo "   ℹ️ API gratuite sans clé"
-echo -n "   🔄 Test de connexion... "
+# Tester chaque ISBN
+test_isbn "9782070360024"  # L'étranger (Camus)
+test_isbn "2901821030"     # La Révélation d'Arès
+test_isbn "2850760854"     # Dictionnaire Astrologique
+test_isbn "2040120815"     # L'écrevisse et son élevage
+test_isbn "9782070543588"  # Harry Potter
 
-response=$(curl -s -w "\n%{http_code}" "https://openlibrary.org/api/books?bibkeys=ISBN:$TEST_ISBN&format=json&jscmd=data")
-http_code=$(echo "$response" | tail -1)
-content=$(echo "$response" | head -n -1)
-
-if [ "$http_code" = "200" ]; then
-    if [ "$content" != "{}" ]; then
-        title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
-        if [ -n "$title" ]; then
-            echo "✅ OK"
-            echo "   📖 Livre trouvé : $title"
-        else
-            echo "✅ API accessible"
-        fi
-    else
-        echo "⚠️ Connecté mais livre non trouvé"
-    fi
-else
-    echo "❌ Erreur HTTP $http_code"
-fi
-
-# 4. RÉSUMÉ
+# RÉSUMÉ
 echo ""
 echo "════════════════════════════════════════════════════════════════════════"
 echo "📊 RÉSUMÉ DU STATUS"
@@ -130,7 +133,9 @@ else
 fi
 
 echo ""
-echo "💡 Pour configurer les clés API manquantes :"
-echo "   nano config/credentials.sh"
+echo "💡 Pour traiter ces livres :"
+echo "   ./isbn_unified.sh 9782070360024  # L'étranger"
+echo "   ./isbn_unified.sh 2901821030     # La Révélation d'Arès"
+echo "   ./collect_api_data.sh            # Tous d'un coup"
 echo ""
 echo "[END: check_api_status.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2

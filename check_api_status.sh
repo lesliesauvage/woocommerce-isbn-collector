@@ -42,7 +42,7 @@ test_isbn() {
         content=$(echo "$response" | head -n -1)
         
         if [ "$http_code" = "200" ]; then
-            title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
+            title=$(echo "$content" | jq -r ".items[0].volumeInfo.title" 2>/dev/null || echo "")
             if [ -n "$title" ]; then
                 echo "✅ $title"
             else
@@ -63,7 +63,7 @@ test_isbn() {
         content=$(echo "$response" | head -n -1)
         
         if [ "$http_code" = "200" ]; then
-            title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
+            title=$(echo "$content" | jq -r ".items[0].volumeInfo.title" 2>/dev/null || echo "")
             if [ -n "$title" ]; then
                 echo "✅ $title"
             else
@@ -84,7 +84,7 @@ test_isbn() {
     
     if [ "$http_code" = "200" ]; then
         if [ "$content" != "{}" ]; then
-            title=$(echo "$content" | grep -o '"title":"[^"]*' | head -1 | cut -d'"' -f4)
+            title=$(echo "$content" | jq -r ".items[0].volumeInfo.title" 2>/dev/null || echo "")
             if [ -n "$title" ]; then
                 echo "✅ $title"
             else

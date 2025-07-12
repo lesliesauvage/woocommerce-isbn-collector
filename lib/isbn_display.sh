@@ -1,5 +1,16 @@
 #!/bin/bash
 echo "[START: isbn_display.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+# Définition des couleurs
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+BLUE="\033[0;34m"
+PURPLE="\033[0;35m"
+CYAN="\033[0;36m"
+GRAY="\033[0;90m"
+BOLD="\033[1m"
+NC="\033[0m"  # No Color
+
 
 # Bibliothèque de fonctions d'affichage pour isbn_unified.sh
 # Gère l'affichage de l'aide, des résultats et des états

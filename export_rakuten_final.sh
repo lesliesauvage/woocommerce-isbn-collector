@@ -26,7 +26,6 @@ map_to_rakuten_category() {
     local category_path="$1"
     local mapping_file="config/rakuten_category_mapping.csv"
     
-    # Chercher une correspondance exacte dans le fichier
     if [ -f "$mapping_file" ]; then
         local mapped=$(grep -F "\"$category_path\"," "$mapping_file" | head -1 | cut -d',' -f2 | tr -d '"')
         if [ -n "$mapped" ]; then
@@ -34,8 +33,6 @@ map_to_rakuten_category() {
             return
         fi
         
-        # Si pas de correspondance exacte, chercher une correspondance partielle
-        # D'abord essayer avec le dernier niveau
         local last_level=$(echo "$category_path" | rev | cut -d'>' -f1 | rev | xargs)
         mapped=$(grep -i "$last_level" "$mapping_file" | head -1 | cut -d',' -f2 | tr -d '"')
         if [ -n "$mapped" ]; then
@@ -43,7 +40,6 @@ map_to_rakuten_category() {
             return
         fi
         
-        # Ensuite essayer avec des mots-clés
         local keywords=("littérature" "romans" "jeunesse" "histoire" "science" "art" "philosophie" "médecine" "informatique" "cuisine" "voyage")
         for keyword in "${keywords[@]}"; do
             if [[ "${category_path,,}" =~ $keyword ]]; then
@@ -56,14 +52,149 @@ map_to_rakuten_category() {
         done
     fi
     
-    # Valeur par défaut
     echo "Littérature française"
 }
 
+# Fonction d'analyse du CSV généré
+analyze_csv() {
+    local file="$1"
+    local errors=0
+    local warnings=0
+    
+    echo ""
+    echo "🔍 ANALYSE DU FICHIER GÉNÉRÉ"
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    
+    # VÉRIFIER L'ENCODAGE
+    echo "📋 STRUCTURE :"
+    echo "─────────────"
+    encoding=$(file -bi "$file" | cut -d'=' -f2)
+    if [[ "$encoding" =~ "utf-16" ]] || [[ "$encoding" =~ "UTF-16" ]]; then
+        echo "✅ Encodage : UTF-16"
+    else
+        echo "⚠️  Encodage : $encoding (UTF-16 recommandé)"
+        ((warnings++))
+    fi
+    
+    # Convertir temporairement en UTF-8 pour l'analyse
+    temp_file="/tmp/rakuten_temp_$$.csv"
+    iconv -f UTF-16LE -t UTF-8 "$file" > "$temp_file" 2>/dev/null || cp "$file" "$temp_file"
+    
+    # COMPTER LES COLONNES
+    header_cols=$(head -1 "$temp_file" | awk -F';' '{print NF}')
+    data_cols=$(tail -1 "$temp_file" | awk -F';' '{print NF}')
+    
+    if [ "$header_cols" -eq 29 ] && [ "$data_cols" -eq 29 ]; then
+        echo "✅ Nombre de colonnes : 29"
+    else
+        echo "❌ Nombre de colonnes : en-tête=$header_cols, données=$data_cols (29 attendues)"
+        ((errors++))
+    fi
+    
+    # VÉRIFIER LES RETOURS LIGNE
+    line_count=$(wc -l < "$temp_file")
+    if [ "$line_count" -ne 2 ]; then
+        echo "❌ Fichier contient $line_count lignes (2 attendues)"
+        ((errors++))
+    else
+        echo "✅ Structure : 2 lignes (en-tête + données)"
+    fi
+    
+    echo ""
+    echo "📊 DONNÉES OBLIGATOIRES :"
+    echo "────────────────────────"
+    
+    # Lire la ligne de données
+    data_line=$(tail -1 "$temp_file")
+    IFS=';' read -r -a cols <<< "$data_line"
+    
+    # VÉRIFICATIONS DÉTAILLÉES
+    checks=(
+        "1:ISBN:^[0-9]{10,13}$"
+        "3:Prix:^[0-9]+(\.[0-9]{1,2})?$"
+        "5:Qualité:^(N|CN|TBE|BE|EC)$"
+        "6:Quantité:^[1-9][0-9]{0,2}$"
+        "10:Titre:.+"
+        "13:Langue:^Français$"
+        "14:Auteurs:.+"
+        "15:Éditeur:.+"
+        "17:Classification:.+"
+        "18:Poids:^[0-9]+$"
+        "19:Taille:^(Petit|Moyen|Grand)$"
+    )
+    
+    for check in "${checks[@]}"; do
+        IFS=':' read -r col_num col_name pattern <<< "$check"
+        value="${cols[$((col_num-1))]}"
+        
+        if [[ "$value" =~ $pattern ]]; then
+            if [ ${#value} -gt 30 ]; then
+                echo "✅ Col $col_num - $col_name : ${value:0:30}..."
+            else
+                echo "✅ Col $col_num - $col_name : $value"
+            fi
+        else
+            echo "❌ Col $col_num - $col_name : '$value' (invalide)"
+            ((errors++))
+        fi
+    done
+    
+    # VÉRIFIER L'IMAGE
+    image="${cols[20]}"
+    if [ -z "$image" ]; then
+        echo "⚠️  Col 21 - Image : vide"
+        ((warnings++))
+    elif [[ ! "$image" =~ ^https:// ]]; then
+        echo "❌ Col 21 - Image : doit commencer par https://"
+        ((errors++))
+    else
+        echo "✅ Col 21 - Image : ${image:0:30}..."
+    fi
+    
+    echo ""
+    echo "🔤 CARACTÈRES INTERDITS :"
+    echo "───────────────────────"
+    
+    # Vérifier les caractères Microsoft
+    bad_chars=0
+    for char in ''' ''' '"' '"' '«' '»' '…' '—' '–'; do
+        if grep -F "$char" "$temp_file" > /dev/null 2>&1; then
+            echo "❌ Caractère interdit trouvé : $char"
+            ((bad_chars++))
+        fi
+    done
+    
+    if [ $bad_chars -eq 0 ]; then
+        echo "✅ Aucun caractère Microsoft détecté"
+    else
+        ((errors++))
+    fi
+    
+    rm -f "$temp_file"
+    
+    # RÉSULTAT
+    echo ""
+    echo "════════════════════════════════════════════════════════════════"
+    echo "📝 RÉSULTAT DE L'ANALYSE :"
+    
+    if [ $errors -eq 0 ] && [ $warnings -eq 0 ]; then
+        echo "✅ FICHIER PARFAIT - Prêt pour Rakuten !"
+        return 0
+    elif [ $errors -eq 0 ]; then
+        echo "⚠️  $warnings avertissement(s) - Fichier utilisable"
+        return 0
+    else
+        echo "❌ $errors erreur(s) à corriger"
+        return 1
+    fi
+}
+
+# DÉBUT DU SCRIPT PRINCIPAL
 isbn="${1:-9782070360024}"
 output="rakuten_${isbn}_$(date +%Y%m%d_%H%M%S).csv"
 
-echo "📤 EXPORT RAKUTEN CSV - ISBN: $isbn"
+echo "📤 EXPORT RAKUTEN COMPLET - ISBN: $isbn"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
 
@@ -71,7 +202,6 @@ echo ""
 echo "📊 Récupération des données..."
 all_data=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
 WITH RECURSIVE CategoryPath AS (
-    -- Trouver toutes les catégories du produit
     SELECT 
         tt.term_id,
         t.name,
@@ -87,7 +217,6 @@ WITH RECURSIVE CategoryPath AS (
     
     UNION ALL
     
-    -- Remonter la hiérarchie
     SELECT 
         tt.term_id,
         t.name,
@@ -269,15 +398,12 @@ echo "Colonnes : 29"
 echo "Titre : $titre"
 echo "Prix : $prix €"
 echo "Classification : $rakuten_category"
-echo ""
 
-# Lancer automatiquement l'analyse si le script existe
-if [ -f "./analyze_rakuten_csv.sh" ]; then
-    echo "🔍 Lancement de l'analyse..."
+# LANCER L'ANALYSE AUTOMATIQUEMENT
+if analyze_csv "$output"; then
     echo ""
-    ./analyze_rakuten_csv.sh "$output"
+    echo "🚀 FICHIER PRÊT POUR UPLOAD SUR RAKUTEN !"
 else
-    echo "💾 Fichier prêt pour Rakuten !"
     echo ""
-    echo "💡 Conseil : Créez analyze_rakuten_csv.sh pour valider automatiquement"
+    echo "⚠️  Corrigez les erreurs avant upload"
 fi

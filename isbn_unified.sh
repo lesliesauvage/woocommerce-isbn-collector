@@ -312,12 +312,12 @@ case "$MODE" in
             
             # Appeler process_single_book qui va collecter et enrichir
             process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
-            local process_status=$?
+            process_status=$?
             
             # Si la collecte a réussi et que la catégorisation n'est pas désactivée
             if [ $process_status -eq 0 ] && [ "$SKIP_CATEGORIZATION" != "1" ]; then
                 # Récupérer l'ID du post pour la catégorisation
-                local post_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+                post_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
                 SELECT post_id FROM wp_${SITE_ID}_postmeta 
                 WHERE meta_key = '_isbn' AND meta_value = '$PARAM_ISBN'
                 LIMIT 1" 2>/dev/null)
@@ -339,4 +339,4 @@ esac
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script terminé" >> "$LOG_FILE"
 
 exit 0
-echo "[END: isbn_unified.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+echo "[END: isbn_unified.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >

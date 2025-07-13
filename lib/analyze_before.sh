@@ -3,55 +3,87 @@ echo "[START: analyze_before.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
 
 # lib/analyze_before.sh - Affichage de l'état AVANT collecte
 
+# Couleurs ANSI
+GREEN='\033[0;32m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# Fonction pour obtenir la hiérarchie complète d'une catégorie
+get_full_category_hierarchy() {
+    local term_id="$1"
+    local hierarchy=""
+    
+    while [ -n "$term_id" ] && [ "$term_id" != "0" ]; do
+        local cat_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT t.name, tt.parent
+        FROM wp_${SITE_ID}_terms t
+        JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
+        WHERE t.term_id = $term_id AND tt.taxonomy = 'product_cat'
+        " 2>/dev/null)
+        
+        if [ -n "$cat_info" ]; then
+            local cat_name=$(echo "$cat_info" | cut -f1)
+            local parent_id=$(echo "$cat_info" | cut -f2)
+            
+            if [ -z "$hierarchy" ]; then
+                hierarchy="$cat_name"
+            else
+                hierarchy="$cat_name > $hierarchy"
+            fi
+            
+            term_id="$parent_id"
+        else
+            break
+        fi
+    done
+    
+    echo "$hierarchy"
+}
+
 # Fonction pour afficher l'état avant collecte
 show_before_state() {
     local id=$1
     local isbn=$2
-    
+
     # Récupérer les informations de base
     local title=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT post_title FROM wp_${SITE_ID}_posts WHERE ID=$id")
-    
+
     local status=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT post_status FROM wp_${SITE_ID}_posts WHERE ID=$id")
-    
+
     local created=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT post_date FROM wp_${SITE_ID}_posts WHERE ID=$id")
-    
+
     local modified=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT post_modified FROM wp_${SITE_ID}_posts WHERE ID=$id")
-    
-    # Récupérer les catégories avec hiérarchie
+
+    # Récupérer les catégories avec hiérarchie complète
     local categories_hierarchy=""
-    local categories_result=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT t.term_id, t.name, tt.parent
-        FROM wp_${SITE_ID}_terms t
-        JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-        JOIN wp_${SITE_ID}_term_relationships tr ON tt.term_taxonomy_id = tr.term_taxonomy_id
+    local category_ids=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT tt.term_id
+        FROM wp_${SITE_ID}_term_relationships tr
+        JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
         WHERE tr.object_id = $id 
         AND tt.taxonomy = 'product_cat'
-        AND t.term_id NOT IN (3088, 3089)
-        ORDER BY tt.parent, t.name")
-    
-    if [ -n "$categories_result" ]; then
-        while IFS=$'\t' read -r cat_id cat_name parent_id; do
-            if [ "$parent_id" = "0" ]; then
-                # Catégorie parent
-                categories_hierarchy="${categories_hierarchy}${cat_name} (Parent)"
+        AND tt.term_id NOT IN (3088, 3089)
+        " 2>/dev/null)
+
+    if [ -n "$category_ids" ]; then
+        local first=1
+        while read cat_id; do
+            local full_hierarchy=$(get_full_category_hierarchy "$cat_id")
+            if [ $first -eq 1 ]; then
+                categories_hierarchy="$full_hierarchy"
+                first=0
             else
-                # Catégorie enfant - récupérer le nom du parent
-                local parent_name=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-                    SELECT name FROM wp_${SITE_ID}_terms WHERE term_id = $parent_id")
-                categories_hierarchy="${categories_hierarchy}${parent_name} > ${cat_name}"
+                categories_hierarchy="$categories_hierarchy, $full_hierarchy"
             fi
-            categories_hierarchy="${categories_hierarchy}, "
-        done <<< "$categories_result"
-        # Enlever la dernière virgule
-        categories_hierarchy=${categories_hierarchy%, }
+        done <<< "$category_ids"
     else
         categories_hierarchy="NON CATÉGORISÉ"
     fi
-    
+
     echo "📚 INFORMATIONS WORDPRESS DE BASE"
     echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
     echo "ID Produit        : $id"
@@ -60,15 +92,15 @@ show_before_state() {
     echo "Statut            : $status"
     echo "Date création     : $created"
     echo "Dernière modif    : $modified"
-    echo "CATÉGORIES WP     : $categories_hierarchy"
-    
+    echo -e "CATÉGORIES WP     : ${GREEN}${BOLD}$categories_hierarchy${NC}"
+
     # Tableau des données commerciales et physiques
     echo ""
     echo "💰 DONNÉES COMMERCIALES, PHYSIQUES ET MARKETPLACE"
     printf "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐\n"
     printf "│ %-44s │ %-102s │ %-8s │\n" "Champ" "Valeur actuelle" "Status"
     printf "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤\n"
-    
+
     # Prix
     local price=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_price' LIMIT 1")
@@ -77,7 +109,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Prix de vente (_price)" "Non défini" "✗ VIDE"
     fi
-    
+
     # État du livre
     local condition=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_book_condition' LIMIT 1")
@@ -86,7 +118,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "État du livre (_book_condition)" "Non défini" "✗ VIDE"
     fi
-    
+
     # Condition Vinted
     local vinted_condition=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_vinted_condition' LIMIT 1")
@@ -104,7 +136,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Condition Vinted (_vinted_condition)" "Non défini" "✗ VIDE"
     fi
-    
+
     # Catégorie Vinted - UTILISER _cat_vinted au lieu de _vinted_category
     local vinted_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_cat_vinted' LIMIT 1")
@@ -119,25 +151,25 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Catégorie Vinted" "1601 - Livres (défaut)" "⚠ VIDE"
     fi
-    
+
     # Stock
     local stock=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_stock' LIMIT 1")
     local stock_status=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_stock_status' LIMIT 1")
-    
+
     if [ -n "$stock" ]; then
         printf "│ %-44s │ %-102s │ %-8s │\n" "Quantité en stock" "$stock" "✓ OK"
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Quantité en stock" "Non défini" "✗ VIDE"
     fi
-    
+
     if [ -n "$stock_status" ]; then
         printf "│ %-44s │ %-102s │ %-8s │\n" "Statut du stock" "$stock_status" "✓ OK"
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Statut du stock" "Non défini" "✗ VIDE"
     fi
-    
+
     # Poids et dimensions
     local weight=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_calculated_weight' LIMIT 1")
@@ -146,7 +178,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Poids calculé (_calculated_weight)" "Non calculé" "✗ VIDE"
     fi
-    
+
     local dimensions=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_calculated_dimensions' LIMIT 1")
     if [ -n "$dimensions" ]; then
@@ -154,7 +186,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Dimensions calculées" "Non calculées" "✗ VIDE"
     fi
-    
+
     # Code postal
     local zip=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_location_zip' LIMIT 1")
@@ -163,16 +195,16 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Code postal (_location_zip)" "Non défini" "✗ VIDE"
     fi
-    
+
     printf "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘\n"
-    
+
     # Tableau des données bibliographiques
     echo ""
     echo "📖 DONNÉES BIBLIOGRAPHIQUES ACTUELLES"
     printf "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐\n"
     printf "│ %-44s │ %-102s │ %-8s │\n" "Champ" "Valeur actuelle" "Status"
     printf "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤\n"
-    
+
     # Titre final
     local best_title=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_title' LIMIT 1")
@@ -181,7 +213,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Titre final" "Non défini" "✗ VIDE"
     fi
-    
+
     # Auteur(s)
     local best_authors=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_authors' LIMIT 1")
@@ -190,7 +222,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Auteur(s)" "Non défini" "✗ VIDE"
     fi
-    
+
     # Éditeur
     local best_publisher=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_publisher' LIMIT 1")
@@ -199,7 +231,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Éditeur" "Non défini" "✗ VIDE"
     fi
-    
+
     # Nombre de pages
     local best_pages=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_pages' LIMIT 1")
@@ -208,7 +240,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Nombre de pages" "Non défini" "✗ VIDE"
     fi
-    
+
     # Description
     local best_description=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_best_description' LIMIT 1")
@@ -221,7 +253,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Description" "Non définie" "✗ VIDE"
     fi
-    
+
     # Format/Reliure
     local binding=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_i_binding' LIMIT 1")
@@ -230,7 +262,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Format/Reliure" "Pas encore collecté" "✗ VIDE"
     fi
-    
+
     # Langue
     local language=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_g_language' LIMIT 1")
@@ -239,7 +271,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Langue" "Non définie" "✗ VIDE"
     fi
-    
+
     # Date de publication
     local pub_date=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_g_publishedDate' LIMIT 1")
@@ -248,7 +280,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Date de publication" "Non définie" "✗ VIDE"
     fi
-    
+
     # Statut de collecte
     local collection_status=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_collection_status' LIMIT 1")
@@ -257,7 +289,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Statut de collecte" "Non collecté" "✗ VIDE"
     fi
-    
+
     # Date de dernière collecte
     local last_collected=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_last_collected' LIMIT 1")
@@ -266,7 +298,7 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "Date dernière collecte" "Jamais collecté" "✗ VIDE"
     fi
-    
+
     # A une description
     local has_description=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_has_description' LIMIT 1")
@@ -275,55 +307,55 @@ show_before_state() {
     else
         printf "│ %-44s │ %-102s │ %-8s │\n" "A une description" "0" "✗ VIDE"
     fi
-    
+
     printf "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘\n"
-    
+
     # Tableau des images
     echo ""
     echo "🖼️  IMAGES ACTUELLES"
     printf "┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────┐\n"
     printf "│ %-44s │ %-102s │ %-8s │\n" "Source / Type" "URL de l'image" "Status"
     printf "├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────┤\n"
-    
+
     # Images Google
     local g_thumb=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_g_thumbnail' LIMIT 1")
     if [ -n "$g_thumb" ]; then
         printf "│ %-44s │ %-102s │ %-8s │\n" "Google Thumbnail" "$g_thumb" "✓ OK"
     fi
-    
+
     local g_small=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_g_smallThumbnail' LIMIT 1")
     if [ -n "$g_small" ]; then
         printf "│ %-44s │ %-102s │ %-8s │\n" "Google Small Thumbnail" "$g_small" "✓ OK"
     fi
-    
+
     # Images Open Library
     local o_large=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_o_cover_large' LIMIT 1")
     if [ -n "$o_large" ]; then
         printf "│ %-44s │ %-102s │ %-8s │\n" "Open Library Large" "$o_large" "✓ OK"
     fi
-    
+
     local o_medium=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_o_cover_medium' LIMIT 1")
     if [ -n "$o_medium" ]; then
         printf "│ %-44s │ %-102s │ %-8s │\n" "Open Library Medium" "$o_medium" "✓ OK"
     fi
-    
+
     local o_small=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key='_o_cover_small' LIMIT 1")
     if [ -n "$o_small" ]; then
         printf "│ %-44s │ %-102s │ %-8s │\n" "Open Library Small" "$o_small" "✓ OK"
     fi
-    
+
     printf "└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────┘\n"
-    
+
     # Statistiques
     echo ""
     echo "📊 STATISTIQUES DE L'ÉTAT ACTUEL"
     echo "──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
-    
+
     local g_count=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT COUNT(*) FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key LIKE '_g_%'")
     local i_count=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
@@ -332,26 +364,26 @@ show_before_state() {
         SELECT COUNT(*) FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND meta_key LIKE '_o_%'")
     local best_count=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT COUNT(*) FROM wp_${SITE_ID}_postmeta WHERE post_id=$id AND (meta_key LIKE '_best_%' OR meta_key LIKE '_calculated_%')")
-    
+
     local total_count=$((g_count + i_count + o_count + best_count))
-    
+
     echo "Google Books    : $g_count données"
     echo "ISBNdb          : $i_count données"
     echo "Open Library    : $o_count données"
     echo "Best/Calculées  : $best_count données"
     echo "TOTAL           : $total_count données"
-    
+
     # Compter les images
     local image_count=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT COUNT(*) FROM wp_${SITE_ID}_postmeta 
-        WHERE post_id=$id 
+        SELECT COUNT(*) FROM wp_${SITE_ID}_postmeta
+        WHERE post_id=$id
         AND (meta_key LIKE '%thumbnail%' OR meta_key LIKE '%cover_%' OR meta_key LIKE '%image%')
         AND meta_value != ''")
     echo "Images          : $image_count trouvée(s)"
-    
+
     echo ""
     echo "EXPORTABILITÉ ACTUELLE :"
-    
+
     # Vérifier l'exportabilité
     if [ -n "$best_title" ] && [ -n "$price" ] && [ -n "$best_description" ] && [ $image_count -gt 0 ]; then
         echo "  ✅ Prêt pour export vers certaines marketplaces"

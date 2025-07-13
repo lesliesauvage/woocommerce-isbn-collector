@@ -6,6 +6,45 @@ clean_text() {
     echo "$1" | tr '\n' ' ' | tr '\r' ' ' | tr '\t' ' ' | sed 's/  */ /g' | sed 's/^ *//;s/ *$//'
 }
 
+# FONCTION DE MAPPING DEPUIS LE FICHIER CSV
+map_to_rakuten_category() {
+    local category_path="$1"
+    local mapping_file="config/rakuten_category_mapping.csv"
+    
+    # Chercher une correspondance exacte dans le fichier
+    if [ -f "$mapping_file" ]; then
+        local mapped=$(grep -F "\"$category_path\"," "$mapping_file" | head -1 | cut -d',' -f2 | tr -d '"')
+        if [ -n "$mapped" ]; then
+            echo "$mapped"
+            return
+        fi
+        
+        # Si pas de correspondance exacte, chercher une correspondance partielle
+        # D'abord essayer avec le dernier niveau
+        local last_level=$(echo "$category_path" | rev | cut -d'>' -f1 | rev | xargs)
+        mapped=$(grep -i "$last_level" "$mapping_file" | head -1 | cut -d',' -f2 | tr -d '"')
+        if [ -n "$mapped" ]; then
+            echo "$mapped"
+            return
+        fi
+        
+        # Ensuite essayer avec des mots-clés
+        local keywords=("littérature" "romans" "jeunesse" "histoire" "science" "art" "philosophie" "médecine" "informatique" "cuisine" "voyage")
+        for keyword in "${keywords[@]}"; do
+            if [[ "${category_path,,}" =~ $keyword ]]; then
+                mapped=$(grep -i "$keyword" "$mapping_file" | head -1 | cut -d',' -f2 | tr -d '"')
+                if [ -n "$mapped" ]; then
+                    echo "$mapped"
+                    return
+                fi
+            fi
+        done
+    fi
+    
+    # Valeur par défaut
+    echo "Littérature française"
+}
+
 isbn="${1:-9782070360024}"
 
 echo "📤 EXPORT RAKUTEN - ISBN: $isbn"
@@ -16,8 +55,37 @@ echo ""
 echo "🔍 VÉRIFICATION DES DONNÉES OBLIGATOIRES..."
 echo "───────────────────────────────────────────"
 
-# Récupérer toutes les données
+# Récupérer toutes les données incluant TOUTE la hiérarchie des catégories
 data=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+WITH RECURSIVE CategoryPath AS (
+    -- Trouver toutes les catégories du produit
+    SELECT 
+        tt.term_id,
+        t.name,
+        tt.parent,
+        CAST(t.name AS CHAR(1000)) AS path,
+        0 as level
+    FROM wp_${SITE_ID}_posts p
+    JOIN wp_${SITE_ID}_postmeta pm_isbn ON p.ID = pm_isbn.post_id AND pm_isbn.meta_key = '_isbn'
+    JOIN wp_${SITE_ID}_term_relationships tr ON p.ID = tr.object_id
+    JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id AND tt.taxonomy = 'product_cat'
+    JOIN wp_${SITE_ID}_terms t ON tt.term_id = t.term_id
+    WHERE pm_isbn.meta_value = '$isbn'
+    
+    UNION ALL
+    
+    -- Remonter la hiérarchie
+    SELECT 
+        tt.term_id,
+        t.name,
+        tt.parent,
+        CONCAT(t.name, ' > ', cp.path) AS path,
+        cp.level + 1
+    FROM CategoryPath cp
+    JOIN wp_${SITE_ID}_term_taxonomy tt ON cp.parent = tt.term_id AND tt.taxonomy = 'product_cat'
+    JOIN wp_${SITE_ID}_terms t ON tt.term_id = t.term_id
+    WHERE cp.parent > 0
+)
 SELECT 
     pm_isbn.meta_value as isbn,
     COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title) as titre,
@@ -26,6 +94,7 @@ SELECT
     pm_authors.meta_value as auteurs,
     pm_publisher.meta_value as editeur,
     pm_date.meta_value as date_parution,
+    (SELECT path FROM CategoryPath ORDER BY level DESC LIMIT 1) as wp_category,
     p.ID as post_id
 FROM wp_${SITE_ID}_posts p
 JOIN wp_${SITE_ID}_postmeta pm_isbn ON p.ID = pm_isbn.post_id AND pm_isbn.meta_key = '_isbn'
@@ -41,7 +110,10 @@ WHERE pm_isbn.meta_value = '$isbn'
 LIMIT 1" 2>/dev/null)
 
 # Parser les données
-IFS=$'\t' read -r isbn titre prix condition auteurs editeur date_parution post_id <<< "$data"
+IFS=$'\t' read -r isbn titre prix condition auteurs editeur date_parution wp_category post_id <<< "$data"
+
+# Mapper la catégorie
+rakuten_category=$(map_to_rakuten_category "$wp_category")
 
 # Vérifier chaque champ obligatoire
 errors=0
@@ -105,6 +177,10 @@ else
     echo "✅ Date de parution : $date_parution"
 fi
 
+# Catégorie
+echo "✅ Catégorie WP : $wp_category"
+echo "✅ Classification Rakuten : $rakuten_category"
+
 # DÉCISION FINALE
 echo ""
 echo "════════════════════════════════════════════════════════════════"
@@ -138,7 +214,7 @@ output="rakuten_final_${isbn}_$(date +%Y%m%d_%H%M%S).txt"
 # En-tête
 echo -e "EAN / ISBN / Code produit\tRéférence unique de l'annonce * / Unique Advert Refence (SKU) *\tPrix de vente * / Selling Price *\tPrix d'origine / RRP in euros\tQualité * / Condition *\tQuantité * / Quantity *\tCommentaire de l'annonce * / Advert comment *\tCommentaire privé de l'annonce / Private Advert Comment\tType de Produit * / Type of Product *\tTitre * / Title *\tDescription courte * / Short Description *\tRésumé du Livre ou Revue\tLangue\tAuteurs\tEditeur\tDate de parution\tClassification Thématique\tPoids en grammes / Weight in grammes\tTaille / Size\tNombre de Pages / Number of pages\tURL Image principale * / Main picture *\tURLs Images Secondaires / Secondary Picture\tCode opération promo / Promotion code\tColonne vide / void column\tDescription Annonce Personnalisée\tExpédition, Retrait / Shipping, Pick Up\tTéléphone / Phone number\tCode postale / Zip Code\tPays / Country"
 
-# Données complètes - AVEC NETTOYAGE DES APOSTROPHES DANS LE TITRE
+# Données complètes - AVEC LA CATÉGORIE MAPPÉE
 mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
 SELECT 
     pm_isbn.meta_value,
@@ -163,7 +239,7 @@ SELECT
     IFNULL(pm_authors.meta_value, ''),
     IFNULL(pm_publisher.meta_value, ''),
     IFNULL(pm_date.meta_value, ''),
-    IFNULL(pm_cat.meta_value, 'Littérature française'),
+    '$rakuten_category',
     IFNULL(pm_weight.meta_value, '200'),
     CASE
         WHEN pm_binding.meta_value LIKE '%poche%' THEN 'Petit'
@@ -193,7 +269,6 @@ LEFT JOIN wp_${SITE_ID}_postmeta pm_desc ON p.ID = pm_desc.post_id AND pm_desc.m
 LEFT JOIN wp_${SITE_ID}_postmeta pm_authors ON p.ID = pm_authors.post_id AND pm_authors.meta_key = '_best_authors'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_publisher ON p.ID = pm_publisher.post_id AND pm_publisher.meta_key = '_best_publisher'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = '_g_publishedDate'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_cat ON p.ID = pm_cat.post_id AND pm_cat.meta_key = '_g_categories'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_weight ON p.ID = pm_weight.post_id AND pm_weight.meta_key = '_calculated_weight'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_binding ON p.ID = pm_binding.post_id AND pm_binding.meta_key = '_best_binding'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_pages ON p.ID = pm_pages.post_id AND pm_pages.meta_key = '_best_pages'
@@ -209,6 +284,7 @@ echo "📋 VÉRIFICATIONS FINALES :"
 echo "──────────────────────────"
 echo "Nombre de colonnes : $(head -1 "$output" | awk -F'\t' '{print NF}')"
 echo "Titre exporté : $(tail -1 "$output" | cut -f10)"
+echo "Classification : $(tail -1 "$output" | cut -f17)"
 echo ""
 echo "💾 Fichier prêt pour upload sur Rakuten !"
 echo ""

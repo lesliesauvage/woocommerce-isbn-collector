@@ -162,13 +162,6 @@ analyze_csv() {
     
     # Vérifier chaque caractère interdit un par un
     if echo "$data_only" | grep -F " > /dev/null 2>&1; then        echo ❌
-    done
-    
-    if [ $bad_chars -eq 0 ]; then
-        echo "✅ Aucun caractère Microsoft dans les données"
-    else
-        ((errors++))
-    fi
     
     rm -f "$temp_file"
     

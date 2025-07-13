@@ -156,18 +156,17 @@ analyze_csv() {
     echo "🔤 CARACTÈRES INTERDITS :"
     echo "───────────────────────"
     
-    # Vérifier UNIQUEMENT dans les données (pas l'en-tête)
+    # Vérifier les caractères Microsoft
     bad_chars=0
-    data_only=$(tail -1 "$temp_file")
     for char in ''' ''' '"' '"' '«' '»' '…' '—' '–'; do
-        if echo "$data_only" | grep -F "$char" > /dev/null 2>&1; then
-            echo "❌ Caractère interdit trouvé dans les données : $char"
+        if grep -F "$char" "$temp_file" > /dev/null 2>&1; then
+            echo "❌ Caractère interdit trouvé : $char"
             ((bad_chars++))
         fi
     done
     
     if [ $bad_chars -eq 0 ]; then
-        echo "✅ Aucun caractère Microsoft dans les données"
+        echo "✅ Aucun caractère Microsoft détecté"
     else
         ((errors++))
     fi
@@ -349,7 +348,7 @@ description_courte="${description:0:200}"
 # GÉNÉRER LE FICHIER CSV
 echo "📝 Génération du fichier CSV..."
 {
-# En-tête SANS APOSTROPHES (29 colonnes)
+# En-tête (29 colonnes)
 echo "EAN / ISBN / Code produit;Référence unique de l annonce * / Unique Advert Refence (SKU) *;Prix de vente * / Selling Price *;Prix d origine / RRP in euros;Qualité * / Condition *;Quantité * / Quantity *;Commentaire de l annonce * / Advert comment *;Commentaire privé de l annonce / Private Advert Comment;Type de Produit * / Type of Product *;Titre * / Title *;Description courte * / Short Description *;Résumé du Livre ou Revue;Langue;Auteurs;Editeur;Date de parution;Classification Thématique;Poids en grammes / Weight in grammes;Taille / Size;Nombre de Pages / Number of pages;URL Image principale * / Main picture *;URLs Images Secondaires / Secondary Picture;Code opération promo / Promotion code;Colonne vide / void column;Description Annonce Personnalisée;Expédition, Retrait / Shipping, Pick Up;Téléphone / Phone number;Code postale / Zip Code;Pays / Country"
 
 # Données (29 colonnes) - SANS HTML

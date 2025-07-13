@@ -51,12 +51,12 @@ echo "📤 EXPORT RAKUTEN - ISBN: $isbn"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
 
-# VÉRIFICATION DES DONNÉES OBLIGATOIRES AVANT EXPORT
-echo "🔍 VÉRIFICATION DES DONNÉES OBLIGATOIRES..."
+# RÉCUPÉRER TOUTES LES DONNÉES D'UN COUP
+echo "📊 Récupération de TOUTES les données..."
 echo "───────────────────────────────────────────"
 
 # Récupérer toutes les données incluant TOUTE la hiérarchie des catégories
-data=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+all_data=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
 WITH RECURSIVE CategoryPath AS (
     -- Trouver toutes les catégories du produit
     SELECT 
@@ -90,11 +90,19 @@ SELECT
     pm_isbn.meta_value as isbn,
     COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title) as titre,
     pm_price.meta_value as prix,
+    pm_regular.meta_value as prix_public,
     pm_condition.meta_value as condition_livre,
+    pm_stock.meta_value as stock,
+    CONCAT('Envoi rapide et soigné. Livre en ', IFNULL(pm_condition.meta_value, 'bon'), ' état.') as commentaire,
+    pm_desc.meta_value as description,
     pm_authors.meta_value as auteurs,
     pm_publisher.meta_value as editeur,
     pm_date.meta_value as date_parution,
     (SELECT path FROM CategoryPath ORDER BY level DESC LIMIT 1) as wp_category,
+    pm_weight.meta_value as poids,
+    pm_binding.meta_value as binding,
+    pm_pages.meta_value as pages,
+    pm_image.meta_value as image,
     p.ID as post_id
 FROM wp_${SITE_ID}_posts p
 JOIN wp_${SITE_ID}_postmeta pm_isbn ON p.ID = pm_isbn.post_id AND pm_isbn.meta_key = '_isbn'
@@ -102,91 +110,118 @@ LEFT JOIN wp_${SITE_ID}_postmeta pm_title ON p.ID = pm_title.post_id AND pm_titl
 LEFT JOIN wp_${SITE_ID}_postmeta pm_g_title ON p.ID = pm_g_title.post_id AND pm_g_title.meta_key = '_g_title'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_i_title ON p.ID = pm_i_title.post_id AND pm_i_title.meta_key = '_i_title'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_price ON p.ID = pm_price.post_id AND pm_price.meta_key = '_price'
+LEFT JOIN wp_${SITE_ID}_postmeta pm_regular ON p.ID = pm_regular.post_id AND pm_regular.meta_key = '_regular_price'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_condition ON p.ID = pm_condition.post_id AND pm_condition.meta_key = '_book_condition'
+LEFT JOIN wp_${SITE_ID}_postmeta pm_stock ON p.ID = pm_stock.post_id AND pm_stock.meta_key = '_stock'
+LEFT JOIN wp_${SITE_ID}_postmeta pm_desc ON p.ID = pm_desc.post_id AND pm_desc.meta_key = '_best_description'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_authors ON p.ID = pm_authors.post_id AND pm_authors.meta_key = '_best_authors'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_publisher ON p.ID = pm_publisher.post_id AND pm_publisher.meta_key = '_best_publisher'
 LEFT JOIN wp_${SITE_ID}_postmeta pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = '_g_publishedDate'
+LEFT JOIN wp_${SITE_ID}_postmeta pm_weight ON p.ID = pm_weight.post_id AND pm_weight.meta_key = '_calculated_weight'
+LEFT JOIN wp_${SITE_ID}_postmeta pm_binding ON p.ID = pm_binding.post_id AND pm_binding.meta_key = '_best_binding'
+LEFT JOIN wp_${SITE_ID}_postmeta pm_pages ON p.ID = pm_pages.post_id AND pm_pages.meta_key = '_best_pages'
+LEFT JOIN wp_${SITE_ID}_postmeta pm_image ON p.ID = pm_image.post_id AND pm_image.meta_key = '_best_cover_image'
 WHERE pm_isbn.meta_value = '$isbn'
 LIMIT 1" 2>/dev/null)
 
 # Parser les données
-IFS=$'\t' read -r isbn titre prix condition auteurs editeur date_parution wp_category post_id <<< "$data"
+IFS=$'\t' read -r isbn titre prix prix_public condition stock commentaire description auteurs editeur date_parution wp_category poids binding pages image post_id <<< "$all_data"
 
 # Mapper la catégorie
 rakuten_category=$(map_to_rakuten_category "$wp_category")
 
-# Vérifier chaque champ obligatoire
+# VÉRIFICATION STRICTE DE TOUS LES CHAMPS OBLIGATOIRES
+echo ""
+echo "🔍 VÉRIFICATION DES CHAMPS OBLIGATOIRES..."
+echo "══════════════════════════════════════════"
 errors=0
-echo ""
-echo "📋 CHAMPS OBLIGATOIRES RAKUTEN :"
-echo ""
 
-# ISBN
+# ISBN (col 1)
 if [ -z "$isbn" ]; then
-    echo "❌ ISBN/EAN : VIDE (obligatoire)"
+    echo "❌ [Col 1] ISBN/EAN : VIDE"
     ((errors++))
 else
-    echo "✅ ISBN/EAN : $isbn"
+    echo "✅ [Col 1] ISBN/EAN : $isbn"
 fi
 
-# Prix
+# Prix (col 3)
 if [ -z "$prix" ] || [ "$prix" = "0" ]; then
-    echo "❌ Prix de vente : VIDE ou 0 (obligatoire)"
+    echo "❌ [Col 3] Prix de vente : VIDE ou 0"
     ((errors++))
 else
-    echo "✅ Prix de vente : $prix €"
+    echo "✅ [Col 3] Prix de vente : $prix €"
 fi
 
-# Qualité
+# Qualité (col 5)
 if [ -z "$condition" ]; then
-    echo "❌ Qualité/Condition : VIDE (obligatoire)"
+    echo "❌ [Col 5] Qualité/Condition : VIDE"
     ((errors++))
 else
-    echo "✅ Qualité/Condition : $condition"
+    echo "✅ [Col 5] Qualité/Condition : $condition"
 fi
 
-# TITRE - LE PLUS IMPORTANT
+# Commentaire annonce (col 7)
+if [ -z "$commentaire" ]; then
+    echo "❌ [Col 7] Commentaire annonce : VIDE"
+    ((errors++))
+else
+    echo "✅ [Col 7] Commentaire annonce : $commentaire"
+fi
+
+# TITRE (col 10) - LE PLUS IMPORTANT
 if [ -z "$titre" ]; then
-    echo "❌ TITRE : VIDE (obligatoire) ⚠️  CRITIQUE !"
+    echo "❌ [Col 10] TITRE : VIDE ⚠️⚠️⚠️"
     ((errors++))
 else
-    echo "✅ Titre : $titre"
+    echo "✅ [Col 10] Titre : $titre"
 fi
 
-# Auteurs
+# LANGUE (col 13) - TOUJOURS FRANÇAIS
+echo "✅ [Col 13] Langue : Français (FIXÉ EN DUR)"
+
+# Auteurs (col 14)
 if [ -z "$auteurs" ]; then
-    echo "❌ Auteurs : VIDE (obligatoire)"
+    echo "❌ [Col 14] Auteurs : VIDE"
     ((errors++))
 else
-    echo "✅ Auteurs : $auteurs"
+    echo "✅ [Col 14] Auteurs : $auteurs"
 fi
 
-# Éditeur
+# Éditeur (col 15)
 if [ -z "$editeur" ]; then
-    echo "❌ Éditeur : VIDE (obligatoire)"
+    echo "❌ [Col 15] Éditeur : VIDE"
     ((errors++))
 else
-    echo "✅ Éditeur : $editeur"
+    echo "✅ [Col 15] Éditeur : $editeur"
 fi
 
-# Date de parution
+# Date de parution (col 16)
 if [ -z "$date_parution" ]; then
-    echo "❌ Date de parution : VIDE (obligatoire)"
+    echo "❌ [Col 16] Date de parution : VIDE"
     ((errors++))
 else
-    echo "✅ Date de parution : $date_parution"
+    echo "✅ [Col 16] Date de parution : $date_parution"
 fi
 
-# Catégorie
-echo "✅ Catégorie WP : $wp_category"
-echo "✅ Classification Rakuten : $rakuten_category"
+# Classification Thématique (col 17)
+if [ -z "$rakuten_category" ]; then
+    echo "❌ [Col 17] Classification Thématique : VIDE"
+    ((errors++))
+else
+    echo "✅ [Col 17] Classification Thématique : $rakuten_category"
+fi
+
+echo ""
+echo "🔍 Catégorie WordPress complète : $wp_category"
+echo ""
 
 # DÉCISION FINALE
-echo ""
 echo "════════════════════════════════════════════════════════════════"
 
 if [ $errors -gt 0 ]; then
     echo "🛑 EXPORT ANNULÉ : $errors champ(s) obligatoire(s) manquant(s) !"
+    echo ""
+    echo "⚠️  AUCUN FICHIER N'A ÉTÉ GÉNÉRÉ !"
     echo ""
     echo "💡 SOLUTIONS :"
     echo "───────────────"
@@ -199,82 +234,60 @@ if [ $errors -gt 0 ]; then
     echo "3. Si le problème persiste, collecter manuellement :"
     echo "   ./add_and_collect.sh $isbn"
     echo ""
-    echo "❌ Aucun fichier d'export n'a été généré."
     exit 1
 fi
 
-echo "✅ TOUTES LES DONNÉES OBLIGATOIRES SONT PRÉSENTES !"
+echo "✅ TOUS LES CHAMPS OBLIGATOIRES SONT REMPLIS !"
 echo ""
 echo "📝 Génération du fichier d'export..."
 
 output="rakuten_final_${isbn}_$(date +%Y%m%d_%H%M%S).txt"
 
-# Créer le fichier avec TOUS les champs
+# Créer le fichier avec TOUS les champs REMPLIS
 {
 # En-tête
 echo -e "EAN / ISBN / Code produit\tRéférence unique de l'annonce * / Unique Advert Refence (SKU) *\tPrix de vente * / Selling Price *\tPrix d'origine / RRP in euros\tQualité * / Condition *\tQuantité * / Quantity *\tCommentaire de l'annonce * / Advert comment *\tCommentaire privé de l'annonce / Private Advert Comment\tType de Produit * / Type of Product *\tTitre * / Title *\tDescription courte * / Short Description *\tRésumé du Livre ou Revue\tLangue\tAuteurs\tEditeur\tDate de parution\tClassification Thématique\tPoids en grammes / Weight in grammes\tTaille / Size\tNombre de Pages / Number of pages\tURL Image principale * / Main picture *\tURLs Images Secondaires / Secondary Picture\tCode opération promo / Promotion code\tColonne vide / void column\tDescription Annonce Personnalisée\tExpédition, Retrait / Shipping, Pick Up\tTéléphone / Phone number\tCode postale / Zip Code\tPays / Country"
 
-# Données complètes - AVEC LA CATÉGORIE MAPPÉE
-mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-SELECT 
-    pm_isbn.meta_value,
-    pm_isbn.meta_value,
-    IFNULL(pm_price.meta_value, '0'),
-    IFNULL(pm_regular.meta_value, pm_price.meta_value),
-    CASE 
-        WHEN pm_condition.meta_value = 'neuf' THEN 'N'
-        WHEN pm_condition.meta_value = 'comme neuf' THEN 'CN'
-        WHEN pm_condition.meta_value = 'très bon' THEN 'TBE'
-        WHEN pm_condition.meta_value = 'bon' THEN 'BE'
-        ELSE 'BE'
-    END,
-    IFNULL(pm_stock.meta_value, '1'),
-    CONCAT('Envoi rapide et soigné. Livre en ', IFNULL(pm_condition.meta_value, 'bon'), ' état.'),
-    '',
-    'Livre',
-    REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title), '''', ' '), CHAR(10), ' '), CHAR(13), ' '), 'L''', 'L '),
-    LEFT(REPLACE(REPLACE(IFNULL(pm_desc.meta_value, 'Roman classique'), CHAR(10), ' '), CHAR(13), ' '), 200),
-    REPLACE(REPLACE(IFNULL(pm_desc.meta_value, 'Roman classique de la littérature française'), CHAR(10), ' '), CHAR(13), ' '),
-    'Français',
-    IFNULL(pm_authors.meta_value, ''),
-    IFNULL(pm_publisher.meta_value, ''),
-    IFNULL(pm_date.meta_value, ''),
-    '$rakuten_category',
-    IFNULL(pm_weight.meta_value, '200'),
-    CASE
-        WHEN pm_binding.meta_value LIKE '%poche%' THEN 'Petit'
-        WHEN pm_binding.meta_value LIKE '%grand%' THEN 'Grand'
-        ELSE 'Moyen'
-    END,
-    IFNULL(pm_pages.meta_value, ''),
-    IFNULL(pm_image.meta_value, ''),
-    '',
-    '',
-    '',
-    CONCAT('<div><h3>', REPLACE(REPLACE(REPLACE(COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title), '''', ' '), CHAR(10), ' '), CHAR(13), ' '), '</h3><p>', LEFT(REPLACE(REPLACE(IFNULL(pm_desc.meta_value, ''), CHAR(10), ' '), CHAR(13), ' '), 500), '</p></div>'),
-    'EXP / RET',
-    '0668563512',
-    '76000',
-    'France'
-FROM wp_${SITE_ID}_posts p
-JOIN wp_${SITE_ID}_postmeta pm_isbn ON p.ID = pm_isbn.post_id AND pm_isbn.meta_key = '_isbn'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_price ON p.ID = pm_price.post_id AND pm_price.meta_key = '_price'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_regular ON p.ID = pm_regular.post_id AND pm_regular.meta_key = '_regular_price'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_condition ON p.ID = pm_condition.post_id AND pm_condition.meta_key = '_book_condition'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_stock ON p.ID = pm_stock.post_id AND pm_stock.meta_key = '_stock'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_title ON p.ID = pm_title.post_id AND pm_title.meta_key = '_best_title'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_g_title ON p.ID = pm_g_title.post_id AND pm_g_title.meta_key = '_g_title'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_i_title ON p.ID = pm_i_title.post_id AND pm_i_title.meta_key = '_i_title'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_desc ON p.ID = pm_desc.post_id AND pm_desc.meta_key = '_best_description'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_authors ON p.ID = pm_authors.post_id AND pm_authors.meta_key = '_best_authors'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_publisher ON p.ID = pm_publisher.post_id AND pm_publisher.meta_key = '_best_publisher'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_date ON p.ID = pm_date.post_id AND pm_date.meta_key = '_g_publishedDate'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_weight ON p.ID = pm_weight.post_id AND pm_weight.meta_key = '_calculated_weight'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_binding ON p.ID = pm_binding.post_id AND pm_binding.meta_key = '_best_binding'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_pages ON p.ID = pm_pages.post_id AND pm_pages.meta_key = '_best_pages'
-LEFT JOIN wp_${SITE_ID}_postmeta pm_image ON p.ID = pm_image.post_id AND pm_image.meta_key = '_best_cover_image'
-WHERE pm_isbn.meta_value = '$isbn'
-LIMIT 1" 2>/dev/null
+# Données - UNE SEULE LIGNE AVEC TOUT
+echo -ne "$isbn\t"                                                          # 1. EAN/ISBN
+echo -ne "$isbn\t"                                                          # 2. SKU
+echo -ne "$prix\t"                                                          # 3. Prix de vente
+echo -ne "${prix_public:-$prix}\t"                                          # 4. Prix public
+case "$condition" in
+    "neuf") echo -ne "N\t" ;;
+    "comme neuf") echo -ne "CN\t" ;;
+    "très bon") echo -ne "TBE\t" ;;
+    "bon") echo -ne "BE\t" ;;
+    *) echo -ne "BE\t" ;;
+esac                                                                        # 5. Qualité
+echo -ne "${stock:-1}\t"                                                    # 6. Quantité
+echo -ne "$commentaire\t"                                                   # 7. Commentaire annonce
+echo -ne "\t"                                                               # 8. Commentaire privé
+echo -ne "Livre\t"                                                          # 9. Type de produit
+echo -ne "$(clean_text "$titre" | sed "s/L'/L /g")\t"                     # 10. TITRE
+echo -ne "$(clean_text "${description:0:200}")\t"                          # 11. Description courte
+echo -ne "$(clean_text "$description")\t"                                  # 12. Résumé
+echo -ne "Français\t"                                                       # 13. LANGUE TOUJOURS FRANÇAIS
+echo -ne "$auteurs\t"                                                       # 14. Auteurs
+echo -ne "$editeur\t"                                                       # 15. Éditeur
+echo -ne "$date_parution\t"                                                 # 16. Date parution
+echo -ne "$rakuten_category\t"                                              # 17. CLASSIFICATION THÉMATIQUE
+echo -ne "${poids:-200}\t"                                                  # 18. Poids
+case "$binding" in
+    *"poche"*) echo -ne "Petit\t" ;;
+    *"grand"*) echo -ne "Grand\t" ;;
+    *) echo -ne "Moyen\t" ;;
+esac                                                                        # 19. Taille
+echo -ne "${pages:-}\t"                                                     # 20. Pages
+echo -ne "${image:-}\t"                                                     # 21. Image principale
+echo -ne "\t"                                                               # 22. Images secondaires
+echo -ne "\t"                                                               # 23. Code promo
+echo -ne "\t"                                                               # 24. Vide
+echo -ne "<div><h3>$(clean_text "$titre" | sed "s/L'/L /g")</h3><p>$(clean_text "${description:0:500}")</p></div>\t"  # 25. Description HTML
+echo -ne "EXP / RET\t"                                                      # 26. Expédition
+echo -ne "0668563512\t"                                                     # 27. Téléphone
+echo -ne "76000\t"                                                          # 28. Code postal
+echo -e "France"                                                            # 29. Pays
 } > "$output"
 
 echo ""
@@ -284,9 +297,7 @@ echo "📋 VÉRIFICATIONS FINALES :"
 echo "──────────────────────────"
 echo "Nombre de colonnes : $(head -1 "$output" | awk -F'\t' '{print NF}')"
 echo "Titre exporté : $(tail -1 "$output" | cut -f10)"
+echo "Langue : $(tail -1 "$output" | cut -f13)"
 echo "Classification : $(tail -1 "$output" | cut -f17)"
 echo ""
 echo "💾 Fichier prêt pour upload sur Rakuten !"
-echo ""
-echo "⚠️  NOTE : Les apostrophes ont été remplacées par des espaces"
-echo "    'L'étranger' devient 'L étranger'"

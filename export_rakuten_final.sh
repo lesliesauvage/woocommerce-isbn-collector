@@ -1,6 +1,11 @@
 #!/bin/bash
 source config/settings.sh
 
+# Fonction pour nettoyer le texte
+clean_text() {
+    echo "$1" | tr '\n' ' ' | tr '\r' ' ' | tr '\t' ' ' | sed 's/  */ /g' | sed 's/^ *//;s/ *$//'
+}
+
 isbn="${1:-9782070360024}"
 
 echo "📤 EXPORT RAKUTEN - ISBN: $isbn"
@@ -126,11 +131,6 @@ echo "✅ TOUTES LES DONNÉES OBLIGATOIRES SONT PRÉSENTES !"
 echo ""
 echo "📝 Génération du fichier d'export..."
 
-# Fonction pour nettoyer le texte
-clean_text() {
-    echo "$1" | tr '\n' ' ' | tr '\r' ' ' | tr '\t' ' ' | sed 's/  */ /g' | sed 's/^ *//;s/ *$//'
-}
-
 output="rakuten_final_${isbn}_$(date +%Y%m%d_%H%M%S).txt"
 
 # Créer le fichier avec TOUS les champs
@@ -138,7 +138,7 @@ output="rakuten_final_${isbn}_$(date +%Y%m%d_%H%M%S).txt"
 # En-tête
 echo -e "EAN / ISBN / Code produit\tRéférence unique de l'annonce * / Unique Advert Refence (SKU) *\tPrix de vente * / Selling Price *\tPrix d'origine / RRP in euros\tQualité * / Condition *\tQuantité * / Quantity *\tCommentaire de l'annonce * / Advert comment *\tCommentaire privé de l'annonce / Private Advert Comment\tType de Produit * / Type of Product *\tTitre * / Title *\tDescription courte * / Short Description *\tRésumé du Livre ou Revue\tLangue\tAuteurs\tEditeur\tDate de parution\tClassification Thématique\tPoids en grammes / Weight in grammes\tTaille / Size\tNombre de Pages / Number of pages\tURL Image principale * / Main picture *\tURLs Images Secondaires / Secondary Picture\tCode opération promo / Promotion code\tColonne vide / void column\tDescription Annonce Personnalisée\tExpédition, Retrait / Shipping, Pick Up\tTéléphone / Phone number\tCode postale / Zip Code\tPays / Country"
 
-# Données complètes
+# Données complètes - AVEC NETTOYAGE DES APOSTROPHES DANS LE TITRE
 mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
 SELECT 
     pm_isbn.meta_value,
@@ -156,7 +156,7 @@ SELECT
     CONCAT('Envoi rapide et soigné. Livre en ', IFNULL(pm_condition.meta_value, 'bon'), ' état.'),
     '',
     'Livre',
-    REPLACE(REPLACE(COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title), CHAR(10), ' '), CHAR(13), ' '),
+    REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title), '''', ' '), CHAR(10), ' '), CHAR(13), ' '), 'L''', 'L '),
     LEFT(REPLACE(REPLACE(IFNULL(pm_desc.meta_value, 'Roman classique'), CHAR(10), ' '), CHAR(13), ' '), 200),
     REPLACE(REPLACE(IFNULL(pm_desc.meta_value, 'Roman classique de la littérature française'), CHAR(10), ' '), CHAR(13), ' '),
     'Français',
@@ -175,7 +175,7 @@ SELECT
     '',
     '',
     '',
-    CONCAT('<div><h3>', REPLACE(REPLACE(COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title), CHAR(10), ' '), CHAR(13), ' '), '</h3><p>', LEFT(REPLACE(REPLACE(IFNULL(pm_desc.meta_value, ''), CHAR(10), ' '), CHAR(13), ' '), 500), '</p></div>'),
+    CONCAT('<div><h3>', REPLACE(REPLACE(REPLACE(COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title), '''', ' '), CHAR(10), ' '), CHAR(13), ' '), '</h3><p>', LEFT(REPLACE(REPLACE(IFNULL(pm_desc.meta_value, ''), CHAR(10), ' '), CHAR(13), ' '), 500), '</p></div>'),
     'EXP / RET',
     '0668563512',
     '76000',
@@ -211,3 +211,6 @@ echo "Nombre de colonnes : $(head -1 "$output" | awk -F'\t' '{print NF}')"
 echo "Titre exporté : $(tail -1 "$output" | cut -f10)"
 echo ""
 echo "💾 Fichier prêt pour upload sur Rakuten !"
+echo ""
+echo "⚠️  NOTE : Les apostrophes ont été remplacées par des espaces"
+echo "    'L'étranger' devient 'L étranger'"

@@ -149,7 +149,7 @@ esac
 echo -e "EAN / ISBN / Code produit\tRéférence unique de l'annonce * / Unique Advert Refence (SKU) *\tPrix de vente * / Selling Price *\tPrix d'origine / RRP in euros\tQualité * / Condition *\tQuantité * / Quantity *\tCommentaire de l'annonce * / Advert comment *\tCommentaire privé de l'annonce / Private Advert Comment\tType de Produit * / Type of Product *\tTitre * / Title *\tDescription courte * / Short Description *\tRésumé du Livre ou Revue\tLangue\tAuteurs\tEditeur\tDate de parution\tClassification Thématique\tPoids en grammes / Weight in grammes\tTaille / Size\tNombre de Pages / Number of pages\tURL Image principale * / Main picture *\tURLs Images Secondaires / Secondary Picture\tCode opération promo / Promotion code\tColonne vide / void column\tDescription Annonce Personnalisée\tExpédition, Retrait / Shipping, Pick Up\tTéléphone / Phone number\tCode postale / Zip Code\tPays / Country"
 
 # Données avec TAB
-echo -e "$isbn\t$isbn\t$prix\t$prix_public\t$qualite\t$stock\t$commentaire\t\tLivre\t$titre\t${description:0:200}\t$description\tFrançais\t$auteurs\t$editeur\t$date_parution\t$rakuten_category\t$poids\t$taille\t$pages\t$image\t\t\t\t\tEXP / RET\t0668563512\t76000\tFrance"
+echo -e "$isbn\t$isbn\t$prix\t$prix_public\t$qualite\t$stock\t$commentaire\tLivre\t$titre\t${description:0:200}\t$description\tFrançais\t$auteurs\t$editeur\t$date_parution\t$rakuten_category\t$poids\t$taille\t$pages\t$image\t\t\t\t\tEXP / RET\t0668563512\t76000\tFrance"
 } > "$output"
 
 echo ""

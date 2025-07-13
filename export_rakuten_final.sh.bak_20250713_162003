@@ -1,11 +1,6 @@
 #!/bin/bash
 source config/settings.sh
 
-# Fonction pour nettoyer le texte
-clean_text() {
-    echo "$1" | tr '\n' ' ' | tr '\r' ' ' | sed 's/  */ /g' | sed 's/^ *//;s/ *$//'
-}
-
 isbn="${1:-9782070360024}"
 output="rakuten_final_${isbn}_$(date +%Y%m%d_%H%M%S).txt"
 
@@ -49,7 +44,7 @@ SELECT
     CONCAT('Envoi rapide et soigné. Livre en ', IFNULL(pm_condition.meta_value, 'bon'), ' état.'),
     '',
     'Livre',
-    COALESCE(pm_title.meta_value, pm_g_title.meta_value, pm_i_title.meta_value, p.post_title, 'L''étranger'"),
+    IFNULL(pm_title.meta_value, IFNULL(pm_g_title.meta_value, IFNULL(pm_i_title.meta_value, p.post_title))),
     LEFT(IFNULL(pm_desc.meta_value, 'Roman classique'), 200),
     IFNULL(pm_desc.meta_value, 'Roman classique de la littérature française'),
     CASE 

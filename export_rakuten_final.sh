@@ -159,11 +159,9 @@ analyze_csv() {
     # Vérifier UNIQUEMENT dans les données (pas l'en-tête)
     bad_chars=0
     data_only=$(tail -1 "$temp_file")
-    for char in ''' ''' '"' '"' '«' '»' '…' '—' '–'; do
-        if echo "$data_only" | grep -F "$char" > /dev/null 2>&1; then
-            echo "❌ Caractère interdit trouvé dans les données : $char"
-            ((bad_chars++))
-        fi
+    
+    # Vérifier chaque caractère interdit un par un
+    if echo "$data_only" | grep -F " > /dev/null 2>&1; then        echo ❌
     done
     
     if [ $bad_chars -eq 0 ]; then

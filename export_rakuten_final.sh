@@ -7,10 +7,10 @@ clean_rakuten_text() {
     tr '\n' ' ' | \
     tr '\r' ' ' | \
     tr '\t' ' ' | \
-    sed 's/'/'\''/g' | \
-    sed 's/'/'\''/g' | \
-    sed 's/"/"/g' | \
-    sed 's/"/"/g' | \
+    sed "s/'/ /g" | \
+    sed "s/'/ /g" | \
+    sed 's/"/ /g' | \
+    sed 's/"/ /g' | \
     sed 's/«/ /g' | \
     sed 's/»/ /g' | \
     sed 's/…/.../g' | \
@@ -26,13 +26,31 @@ clean_with_br() {
     sed 's/\r\n/<br \/>/g' | \
     sed 's/\n/<br \/>/g' | \
     sed 's/\r/<br \/>/g' | \
-    sed 's/'/'\''/g' | \
-    sed 's/'/'\''/g' | \
-    sed 's/"/"/g' | \
-    sed 's/"/"/g' | \
+    sed "s/'/ /g" | \
+    sed "s/'/ /g" | \
+    sed 's/"/ /g' | \
+    sed 's/"/ /g' | \
     sed 's/«/ /g' | \
     sed 's/»/ /g' | \
     sed 's/…/.../g'
+}
+
+# Fonction de mapping des catégories
+map_to_rakuten_category() {
+    local category_path="$1"
+    local mapping_file="config/rakuten_category_mapping.csv"
+    
+    # Chercher une correspondance exacte dans le fichier
+    if [ -f "$mapping_file" ]; then
+        local mapped=$(grep -F "\"$category_path\"," "$mapping_file" | head -1 | cut -d',' -f2 | tr -d '"')
+        if [ -n "$mapped" ]; then
+            echo "$mapped"
+            return
+        fi
+    fi
+    
+    # Valeur par défaut
+    echo "Littérature française"
 }
 
 isbn="${1:-9782070360024}"
@@ -86,6 +104,17 @@ LIMIT 1" 2>/dev/null)
 # Parser les données
 IFS=$'\t' read -r isbn titre prix prix_public condition stock description auteurs editeur date_parution poids binding pages image wp_category <<< "$all_data"
 
+# Debug - afficher les données récupérées
+echo "📊 DONNÉES RÉCUPÉRÉES :"
+echo "────────────────────────"
+echo "ISBN: $isbn"
+echo "Titre: $titre"
+echo "Prix: $prix"
+echo "Condition: $condition"
+echo "Auteurs: $auteurs"
+echo "Catégorie WP: $wp_category"
+echo ""
+
 # Nettoyer toutes les variables
 titre=$(clean_rakuten_text "$titre")
 description=$(clean_with_br "$description")
@@ -94,7 +123,6 @@ editeur=$(clean_rakuten_text "$editeur")
 commentaire=$(clean_rakuten_text "Envoi rapide et soigné. Livre en ${condition:-bon} état.")
 
 # Mapper la catégorie
-source lib/rakuten_category_mapping.sh 2>/dev/null
 rakuten_category=$(map_to_rakuten_category "$wp_category")
 rakuten_category=$(clean_rakuten_text "$rakuten_category")
 
@@ -143,6 +171,30 @@ else
     echo "✅ Titre : $titre"
 fi
 
+# Vérifier auteurs
+if [ -z "$auteurs" ]; then
+    echo "❌ Auteurs VIDE"
+    ((errors++))
+else
+    echo "✅ Auteurs : $auteurs"
+fi
+
+# Vérifier éditeur
+if [ -z "$editeur" ]; then
+    echo "❌ Éditeur VIDE"
+    ((errors++))
+else
+    echo "✅ Éditeur : $editeur"
+fi
+
+# Vérifier date
+if [ -z "$date_parution" ]; then
+    echo "❌ Date de parution VIDE"
+    ((errors++))
+else
+    echo "✅ Date : $date_parution"
+fi
+
 # Vérifier image (doit commencer par https://)
 if [ -n "$image" ] && [[ ! "$image" =~ ^https:// ]]; then
     # Corriger http:// en https://
@@ -152,6 +204,9 @@ fi
 if [ $errors -gt 0 ]; then
     echo ""
     echo "🛑 EXPORT ANNULÉ : $errors erreur(s) détectée(s)"
+    echo ""
+    echo "💡 SOLUTION : Relancer la collecte"
+    echo "   ./isbn_unified.sh $isbn -force"
     exit 1
 fi
 

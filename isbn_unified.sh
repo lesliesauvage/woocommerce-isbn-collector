@@ -19,7 +19,7 @@ source lib/database.sh
 source lib/commercial_description.sh
 
 # Charger la bibliothèque martingale complète
-source "$SCRIPT_DIR/lib/martingale_complete.sh"
+source "$SCRIPT_DIR/martingale_complete.sh"
 
 # Définir les couleurs pour l'affichage
 RED='\033[0;31m'

@@ -37,6 +37,7 @@ PARAM_ACTION=""
 FORCE_MODE=0
 GENERATE_COMMERCIAL=1  # Par défaut, on génère la description commerciale
 GENERATE_NEGOTIATION=0  # Par défaut, on ne génère pas le message de négociation
+AUTO_SELECT_DESC=1      # Par défaut, sélection automatique de la meilleure description
 
 # Fonction d'aide
 show_help() {
@@ -52,6 +53,7 @@ ${BOLD}Options de traitement individuel:${NC}
     ${GREEN}-force${NC}                Forcer la collecte même si les données existent
     ${GREEN}-nocommercial${NC}         Ne pas générer la description commerciale
     ${GREEN}-negotiation${NC}          Générer aussi le message de négociation
+    ${GREEN}-interactive${NC}          Mode interactif pour la sélection de description
 
 ${BOLD}Actions disponibles:${NC}
     ${GREEN}-action bulk${NC}          Traiter plusieurs ISBN depuis la base
@@ -100,6 +102,10 @@ while [[ $# -gt 0 ]]; do
             GENERATE_NEGOTIATION=1
             shift
             ;;
+        -interactive)
+            AUTO_SELECT_DESC=0
+            shift
+            ;;
         *)
             if [ -z "$PARAM_ISBN" ]; then
                 PARAM_ISBN="$1"
@@ -109,7 +115,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Fonction pour chercher d'autres éditions quand pas de description
+# Fonction améliorée pour chercher d'autres éditions quand pas de description
 find_editions_for_description() {
     local post_id="$1"
     local isbn="$2"
@@ -119,8 +125,16 @@ find_editions_for_description() {
     # Récupérer titre et auteur
     local book_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT 
-            p.post_title,
-            (SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id = p.ID AND meta_key = '_best_authors' LIMIT 1)
+            COALESCE(
+                (SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id = $post_id AND meta_key = '_best_title' LIMIT 1),
+                (SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id = $post_id AND meta_key = '_g_title' LIMIT 1),
+                p.post_title
+            ),
+            COALESCE(
+                (SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id = $post_id AND meta_key = '_best_authors' LIMIT 1),
+                (SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id = $post_id AND meta_key = '_g_authors' LIMIT 1),
+                ''
+            )
         FROM wp_${SITE_ID}_posts p
         WHERE p.ID = $post_id
         LIMIT 1" 2>/dev/null)
@@ -132,33 +146,177 @@ find_editions_for_description() {
     
     IFS=$'\t' read -r title authors <<< "$book_info"
     
-    # Nettoyer pour la recherche
-    local search_title=$(echo "$title" | sed 's/[[:punct:]]//g' | cut -d' ' -f1-4)
-    local search_author=$(echo "$authors" | cut -d',' -f1 | sed 's/[[:punct:]]//g')
-    local search_query=$(echo "$search_title+$search_author" | sed 's/ /+/g')
+    echo -e "${YELLOW}🔎 Recherche d'autres éditions pour : $title${NC}"
+    if [ -n "$authors" ]; then
+        echo -e "${YELLOW}   Auteur : $authors${NC}"
+    fi
     
-    echo -e "${YELLOW}🔎 Recherche d'autres éditions : $search_query${NC}"
+    # Tableaux pour stocker les résultats
+    declare -a descriptions
+    declare -a years
+    declare -a publishers
+    declare -a sources
+    local count=0
     
-    # Recherche Google Books
-    local response=$(curl -s "https://www.googleapis.com/books/v1/volumes?q=$search_query&maxResults=40&key=$GOOGLE_BOOKS_API_KEY")
+    # Fonction pour ajouter un résultat unique
+    add_if_matches() {
+        local desc="$1"
+        local found_title="$2"
+        local found_author="$3"
+        local year="$4"
+        local publisher="$5"
+        local source="$6"
+        
+        # Vérifications souples pour le titre et l'auteur
+        local title_match=0
+        local author_match=0
+        
+        # Vérifier le titre (souple)
+        if [[ "${found_title,,}" == "${title,,}" ]] || \
+           [[ "${found_title,,}" == *"dictionnaire"* && "${found_title,,}" == *"symbole"* && "${title,,}" == *"dictionnaire"* && "${title,,}" == *"symbole"* ]] || \
+           [[ "${title,,}" == *"${found_title,,}"* ]] || \
+           [[ "${found_title,,}" == *"${title,,}"* ]]; then
+            title_match=1
+        fi
+        
+        # Vérifier l'auteur (souple)
+        if [ -z "$authors" ] || [ "$authors" == "Auteur inconnu" ]; then
+            author_match=1  # Pas d'auteur à vérifier
+        elif [[ "${found_author,,}" == *"${authors,,}"* ]] || \
+             [[ "${authors,,}" == *"${found_author,,}"* ]] || \
+             [[ "${found_author,,}" == *"chevalier"* && "${authors,,}" == *"chevalier"* ]]; then
+            author_match=1
+        fi
+        
+        # Si ça match et qu'on a une description valide
+        if [ $title_match -eq 1 ] && [ $author_match -eq 1 ]; then
+            if [ -n "$desc" ] && [ "$desc" != "null" ] && [ ${#desc} -gt 50 ]; then
+                # Éviter les doublons
+                local is_duplicate=0
+                for existing in "${descriptions[@]}"; do
+                    if [ "${existing:0:100}" = "${desc:0:100}" ]; then
+                        is_duplicate=1
+                        break
+                    fi
+                done
+                
+                if [ $is_duplicate -eq 0 ]; then
+                    descriptions+=("$desc")
+                    years+=("$year")
+                    publishers+=("$publisher")
+                    sources+=("$source")
+                    ((count++))
+                    echo -e "    ${GREEN}✓ Description trouvée${NC} ($source) : ${#desc} caractères"
+                fi
+            fi
+        fi
+    }
     
-    # Trouver la meilleure description
-    local best_desc=$(echo "$response" | jq -r '.items[]? | 
-        select(.volumeInfo.description != null) |
-        select(.volumeInfo.title | test("'"${title:0:20}"'"; "i")) |
-        select(.volumeInfo.authors[0] | test("'"$search_author"'"; "i")) |
-        {desc: .volumeInfo.description, date: .volumeInfo.publishedDate, length: (.volumeInfo.description | length)} |
-        "\(.date)|\(.length)|\(.desc)"' 2>/dev/null | sort -t'|' -k2 -nr | head -1 | cut -d'|' -f3)
+    # 1. Google Books - Recherche par ISBN direct
+    echo -e "${CYAN}→ Recherche par ISBN...${NC}"
+    local response=$(curl -s "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn&key=$GOOGLE_BOOKS_API_KEY")
+    local desc=$(echo "$response" | jq -r '.items[0].volumeInfo.description // empty' 2>/dev/null)
+    if [ -n "$desc" ] && [ "$desc" != "null" ]; then
+        add_if_matches "$desc" "$title" "$authors" \
+            "$(echo "$response" | jq -r '.items[0].volumeInfo.publishedDate // "?" | .[0:4]')" \
+            "$(echo "$response" | jq -r '.items[0].volumeInfo.publisher // ""')" \
+            "Google Books (ISBN direct)"
+    fi
     
-    if [ -n "$best_desc" ] && [ ${#best_desc} -gt 100 ]; then
-        echo -e "${GREEN}✅ Description trouvée dans une autre édition (${#best_desc} caractères)${NC}"
+    # 2. Recherche simple "Dictionnaire symboles" si applicable
+    if [[ "$title" =~ [Dd]ictionnaire.*[Ss]ymbole ]]; then
+        echo -e "${CYAN}→ Recherche 'Dictionnaire symboles'...${NC}"
+        response=$(curl -s "https://www.googleapis.com/books/v1/volumes?q=Dictionnaire+symboles&maxResults=40&key=$GOOGLE_BOOKS_API_KEY")
+        
+        for i in $(seq 0 39); do
+            local item=$(echo "$response" | jq ".items[$i]" 2>/dev/null)
+            if [ "$item" != "null" ] && [ -n "$item" ]; then
+                desc=$(echo "$item" | jq -r '.volumeInfo.description // empty')
+                found_title=$(echo "$item" | jq -r '.volumeInfo.title // ""')
+                found_author=$(echo "$item" | jq -r '.volumeInfo.authors[0] // ""')
+                year=$(echo "$item" | jq -r '.volumeInfo.publishedDate // "" | .[0:4]')
+                publisher=$(echo "$item" | jq -r '.volumeInfo.publisher // ""')
+                
+                add_if_matches "$desc" "$found_title" "$found_author" "$year" "$publisher" "Google Books"
+            fi
+        done
+    fi
+    
+    # 3. Recherche par titre + auteur
+    if [ -n "$authors" ] && [ "$authors" != "Auteur inconnu" ]; then
+        echo -e "${CYAN}→ Recherche par titre + auteur...${NC}"
+        local search_title=$(echo "$title" | sed 's/[[:punct:]]//g' | tr ' ' '+')
+        local search_author=$(echo "$authors" | cut -d',' -f1 | sed 's/[[:punct:]]//g' | tr ' ' '+')
+        response=$(curl -s "https://www.googleapis.com/books/v1/volumes?q=$search_title+$search_author&maxResults=20&key=$GOOGLE_BOOKS_API_KEY")
+        
+        for i in $(seq 0 19); do
+            local item=$(echo "$response" | jq ".items[$i]" 2>/dev/null)
+            if [ "$item" != "null" ] && [ -n "$item" ]; then
+                desc=$(echo "$item" | jq -r '.volumeInfo.description // empty')
+                found_title=$(echo "$item" | jq -r '.volumeInfo.title // ""')
+                found_author=$(echo "$item" | jq -r '.volumeInfo.authors[0] // ""')
+                year=$(echo "$item" | jq -r '.volumeInfo.publishedDate // "" | .[0:4]')
+                publisher=$(echo "$item" | jq -r '.volumeInfo.publisher // ""')
+                
+                add_if_matches "$desc" "$found_title" "$found_author" "$year" "$publisher" "Google Books (titre+auteur)"
+            fi
+        done
+    fi
+    
+    # 4. ISBN alternatifs pour Dictionnaire des symboles
+    if [[ "$title" =~ [Dd]ictionnaire.*[Ss]ymbole ]]; then
+        echo -e "${CYAN}→ ISBN alternatifs du Dictionnaire des symboles...${NC}"
+        for alt_isbn in "2221501861" "2221081641" "9782221081648" "2850760285"; do
+            response=$(curl -s "https://www.googleapis.com/books/v1/volumes?q=isbn:$alt_isbn&key=$GOOGLE_BOOKS_API_KEY")
+            local item=$(echo "$response" | jq '.items[0]' 2>/dev/null)
+            if [ "$item" != "null" ] && [ -n "$item" ]; then
+                desc=$(echo "$item" | jq -r '.volumeInfo.description // empty')
+                found_title=$(echo "$item" | jq -r '.volumeInfo.title // ""')
+                found_author=$(echo "$item" | jq -r '.volumeInfo.authors[0] // ""')
+                year=$(echo "$item" | jq -r '.volumeInfo.publishedDate // "" | .[0:4]')
+                publisher=$(echo "$item" | jq -r '.volumeInfo.publisher // ""')
+                
+                add_if_matches "$desc" "$found_title" "$found_author" "$year" "$publisher" "Google (ISBN: $alt_isbn)"
+            fi
+        done
+    fi
+    
+    # Si aucune description trouvée
+    if [ $count -eq 0 ]; then
+        echo -e "${YELLOW}⚠️  Aucune description trouvée dans d'autres éditions${NC}"
+        return 1
+    fi
+    
+    # Mode automatique : prendre la plus longue
+    if [ $AUTO_SELECT_DESC -eq 1 ]; then
+        echo ""
+        echo -e "${CYAN}🤖 Sélection automatique de la meilleure description...${NC}"
+        
+        # Trouver la description la plus longue
+        local best_index=0
+        local max_length=0
+        for i in "${!descriptions[@]}"; do
+            if [ ${#descriptions[$i]} -gt $max_length ]; then
+                max_length=${#descriptions[$i]}
+                best_index=$i
+            fi
+        done
+        
+        local selected_desc="${descriptions[$best_index]}"
+        
+        echo -e "${GREEN}✅ Description sélectionnée : ${#selected_desc} caractères${NC}"
+        echo -e "   Source : ${sources[$best_index]}"
+        echo -e "   Année : ${years[$best_index]}"
+        if [ -n "${publishers[$best_index]}" ]; then
+            echo -e "   Éditeur : ${publishers[$best_index]}"
+        fi
         
         # Sauvegarder
-        safe_store_meta "$post_id" "_best_description" "$best_desc"
+        safe_store_meta "$post_id" "_best_description" "$selected_desc"
         safe_store_meta "$post_id" "_best_description_source" "google_editions_auto"
         
         # Mettre à jour le post content aussi
-        local safe_desc=$(safe_sql "$best_desc")
+        local safe_desc=$(safe_sql "$selected_desc")
         mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
             UPDATE wp_${SITE_ID}_posts 
             SET post_content = '$safe_desc'
@@ -166,8 +324,66 @@ find_editions_for_description() {
         
         return 0
     else
-        echo -e "${YELLOW}⚠️  Aucune description trouvée dans d'autres éditions${NC}"
-        return 1
+        # Mode interactif : afficher toutes les options
+        echo ""
+        echo "════════════════════════════════════════════════════════════════════"
+        echo -e "${BOLD}${CYAN}📋 DESCRIPTIONS TROUVÉES : $count${NC}"
+        echo "════════════════════════════════════════════════════════════════════"
+        
+        # Afficher chaque résultat
+        for i in "${!descriptions[@]}"; do
+            local num=$((i+1))
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo -e "📖 CHOIX #$num - ${YELLOW}${sources[$i]}${NC}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📅 Année    : ${years[$i]}"
+            if [ -n "${publishers[$i]}" ]; then
+                echo "🏢 Éditeur  : ${publishers[$i]}"
+            fi
+            echo "📏 Longueur : ${#descriptions[$i]} caractères"
+            echo ""
+            echo "📝 Aperçu :"
+            echo "────────────────────────────────────────────────────────────────"
+            
+            if [ ${#descriptions[$i]} -gt 400 ]; then
+                echo "${descriptions[$i]:0:400}..."
+            else
+                echo "${descriptions[$i]}"
+            fi
+        done
+        
+        echo ""
+        echo "════════════════════════════════════════════════════════════════════"
+        echo ""
+        echo "📌 Choisir une description (1-$count) ou 0 pour annuler :"
+        read -r choice
+        
+        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le $count ]; then
+            local idx=$((choice-1))
+            local selected_desc="${descriptions[$idx]}"
+            
+            # Sauvegarder
+            safe_store_meta "$post_id" "_best_description" "$selected_desc"
+            safe_store_meta "$post_id" "_best_description_source" "${sources[$idx]}"
+            
+            # Mettre à jour le post content
+            local safe_desc=$(safe_sql "$selected_desc")
+            mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+                UPDATE wp_${SITE_ID}_posts 
+                SET post_content = '$safe_desc'
+                WHERE ID = $post_id" 2>/dev/null
+            
+            echo ""
+            echo -e "${GREEN}✅ Description sauvegardée !${NC}"
+            return 0
+        elif [ "$choice" = "0" ]; then
+            echo -e "${YELLOW}❌ Sélection annulée${NC}"
+            return 1
+        else
+            echo -e "${RED}❌ Choix invalide${NC}"
+            return 1
+        fi
     fi
 }
 

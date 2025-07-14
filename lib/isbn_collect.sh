@@ -353,3 +353,27 @@ save_to_cache() {
 }
 
 echo "[END: isbn_collect.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
+# Wrapper pour Google Books
+collect_google_books() {
+    local post_id="$1"
+    local isbn="$2"
+    source "$SCRIPT_DIR/apis/google_books.sh"
+    fetch_google_books "$isbn" "$post_id"
+}
+
+# Wrapper pour ISBNdb
+collect_isbndb() {
+    local post_id="$1"
+    local isbn="$2"
+    source "$SCRIPT_DIR/apis/isbndb.sh"
+    fetch_isbndb_data "$isbn" "$post_id"
+}
+
+# Wrapper pour Open Library
+collect_open_library() {
+    local post_id="$1"
+    local isbn="$2"
+    source "$SCRIPT_DIR/apis/open_library.sh"
+    fetch_open_library "$isbn" "$post_id"
+}

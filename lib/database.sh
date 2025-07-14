@@ -87,3 +87,41 @@ get_meta_value() {
         WHERE post_id = $product_id AND meta_key = '$meta_key' LIMIT 1;"
 }
 echo "[END: database.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+
+# Récupérer l'ID d'un post par ISBN
+get_post_id_by_isbn() {
+    local isbn="$1"
+    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT post_id FROM wp_${SITE_ID}_postmeta 
+        WHERE meta_key = '_isbn' AND meta_value = '$isbn' 
+        LIMIT 1" 2>/dev/null
+}
+
+# Ajouter un livre à WordPress
+add_book_to_wordpress() {
+    local isbn="$1"
+    local title="Livre sans titre"
+    local post_name=$(echo "$isbn" | tr -d '-')
+    
+    # Insérer le post
+    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+        INSERT INTO wp_${SITE_ID}_posts (
+            post_author, post_date, post_date_gmt, post_content, 
+            post_title, post_status, post_name, post_type
+        ) VALUES (
+            1, NOW(), NOW(), '',
+            '$title', 'publish', '$post_name', 'product'
+        )" 2>/dev/null
+    
+    # Récupérer l'ID
+    local post_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT LAST_INSERT_ID()" 2>/dev/null)
+    
+    # Ajouter l'ISBN
+    if [ -n "$post_id" ] && [ "$post_id" != "0" ]; then
+        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+            INSERT INTO wp_${SITE_ID}_postmeta (post_id, meta_key, meta_value)
+            VALUES ($post_id, '_isbn', '$isbn')" 2>/dev/null
+        echo "$post_id"
+    fi
+}

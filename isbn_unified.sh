@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "[START: isbn_unified.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
+echo "[START: isbn_unified.sh] $(date '+%Y-%m-%d %H:%M:%S')" >&2
 
 # Script unifié de gestion ISBN - Version 4 MARTINGALE COMPLÈTE MODULAIRE
 # Fichier principal qui charge les modules
@@ -46,6 +46,7 @@ LOG_FILE="$LOG_DIR/isbn_unified_$(date +%Y%m%d_%H%M%S).log"
 FORCE_COLLECT=0
 VERBOSE=0
 SKIP_CATEGORIZATION=0  # Nouvelle variable pour permettre de désactiver la catégorisation
+SKIP_COMMERCIAL=0       # Nouvelle variable pour permettre de désactiver la description commerciale
 
 # Couleurs ANSI pour affichage
 RED='\033[0;31m'
@@ -100,6 +101,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -nocategorize|--no-categorize)
             SKIP_CATEGORIZATION=1
+            shift
+            ;;
+        -nocommercial|--no-commercial)
+            SKIP_COMMERCIAL=1
             shift
             ;;
         *)
@@ -270,6 +275,72 @@ categorize_book_with_ai() {
     return $categorize_status
 }
 
+# Fonction pour générer la description commerciale
+generate_commercial_description_for_book() {
+    local post_id="$1"
+    local isbn="$2"
+    
+    echo "[DEBUG] Génération description commerciale pour post_id=$post_id, isbn=$isbn" >&2
+    
+    # Vérifier si commercial_desc.sh existe
+    if [ ! -f "$SCRIPT_DIR/commercial_desc.sh" ]; then
+        echo -e "${YELLOW}⚠️  commercial_desc.sh non trouvé - description commerciale ignorée${NC}"
+        return 1
+    fi
+    
+    # Vérifier si la clé API Claude est configurée
+    if [ -z "$CLAUDE_API_KEY" ]; then
+        echo -e "${YELLOW}⚠️  Clé API Claude manquante - description commerciale ignorée${NC}"
+        return 1
+    fi
+    
+    # Vérifier si une description commerciale existe déjà
+    local existing_commercial=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id = $post_id AND meta_key = '_commercial_description'
+        AND meta_value IS NOT NULL AND meta_value != 'NULL' AND meta_value != ''
+        LIMIT 1" 2>/dev/null)
+    
+    if [ -n "$existing_commercial" ] && [ "$FORCE_MODE" != "force" ]; then
+        echo ""
+        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}${CYAN}📢 DESCRIPTION COMMERCIALE EXISTANTE :${NC}"
+        echo -e "   ${GREEN}✅ $(echo "$existing_commercial" | head -c 150)...${NC}"
+        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        return 0
+    fi
+    
+    echo ""
+    echo -e "${BOLD}${CYAN}🛍️  GÉNÉRATION DESCRIPTION COMMERCIALE...${NC}"
+    
+    # Attendre que les données soient bien enregistrées
+    sleep 2
+    
+    # Générer et sauvegarder directement
+    if ./commercial_desc.sh "$isbn" -save -quiet >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Description commerciale générée et sauvegardée${NC}"
+        
+        # Afficher un extrait
+        commercial_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+            SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+            WHERE post_id = $post_id AND meta_key = '_commercial_description' 
+            LIMIT 1" 2>/dev/null)
+        
+        if [ -n "$commercial_desc" ] && [ "$commercial_desc" != "NULL" ]; then
+            echo ""
+            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+            echo -e "${BOLD}${CYAN}📢 NOUVELLE DESCRIPTION COMMERCIALE :${NC}"
+            echo -e "${commercial_desc}" | head -c 300
+            echo "..."
+            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        fi
+        return 0
+    else
+        echo -e "${YELLOW}⚠️  Description commerciale non générée (données insuffisantes)${NC}"
+        return 1
+    fi
+}
+
 # === PROGRAMME PRINCIPAL ===
 
 echo "[DEBUG] Mode: $MODE, ISBN: $PARAM_ISBN" >&2
@@ -314,17 +385,24 @@ case "$MODE" in
             process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
             process_status=$?
             
-            # Si la collecte a réussi et que la catégorisation n'est pas désactivée
-            if [ $process_status -eq 0 ] && [ "$SKIP_CATEGORIZATION" != "1" ]; then
-                # Récupérer l'ID du post pour la catégorisation
+            # Si la collecte a réussi
+            if [ $process_status -eq 0 ]; then
+                # Récupérer l'ID du post
                 post_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
                 SELECT post_id FROM wp_${SITE_ID}_postmeta 
                 WHERE meta_key = '_isbn' AND meta_value = '$PARAM_ISBN'
                 LIMIT 1" 2>/dev/null)
                 
                 if [ -n "$post_id" ]; then
-                    # Appeler la catégorisation IA
-                    categorize_book_with_ai "$post_id" "$PARAM_ISBN"
+                    # 1. Catégorisation IA (si pas désactivée)
+                    if [ "$SKIP_CATEGORIZATION" != "1" ]; then
+                        categorize_book_with_ai "$post_id" "$PARAM_ISBN"
+                    fi
+                    
+                    # 2. Description commerciale (si pas désactivée)
+                    if [ "$SKIP_COMMERCIAL" != "1" ]; then
+                        generate_commercial_description_for_book "$post_id" "$PARAM_ISBN"
+                    fi
                 fi
             fi
         else
@@ -338,5 +416,5 @@ esac
 # Log de fin
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script terminé" >> "$LOG_FILE"
 
+echo "[END: isbn_unified.sh] $(date '+%Y-%m-%d %H:%M:%S')" >&2
 exit 0
-echo "[END: isbn_unified.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >

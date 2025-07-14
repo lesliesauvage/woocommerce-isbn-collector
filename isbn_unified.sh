@@ -297,7 +297,7 @@ generate_commercial_description_for_book() {
     # Vérifier si une description commerciale existe déjà
     local existing_commercial=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
         SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-        WHERE post_id = $post_id AND meta_key = '_commercial_description'
+        WHERE post_id = '$post_id' AND meta_key = '_commercial_description'
         AND meta_value IS NOT NULL AND meta_value != 'NULL' AND meta_value != ''
         LIMIT 1" 2>/dev/null)
     
@@ -305,7 +305,10 @@ generate_commercial_description_for_book() {
         echo ""
         echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
         echo -e "${BOLD}${CYAN}📢 DESCRIPTION COMMERCIALE EXISTANTE :${NC}"
-        echo -e "   ${GREEN}✅ $(echo "$existing_commercial" | head -c 150)...${NC}"
+        echo ""
+        # Afficher la description complète avec retour à la ligne
+        echo -e "${CYAN}$existing_commercial${NC}"
+        echo ""
         echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
         return 0
     fi
@@ -320,19 +323,24 @@ generate_commercial_description_for_book() {
     if ./commercial_desc.sh "$isbn" -save -quiet >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Description commerciale générée et sauvegardée${NC}"
         
-        # Afficher un extrait
+        # Récupérer la description complète
         commercial_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
             SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-            WHERE post_id = $post_id AND meta_key = '_commercial_description' 
+            WHERE post_id = '$post_id' AND meta_key = '_commercial_description' 
             LIMIT 1" 2>/dev/null)
         
         if [ -n "$commercial_desc" ] && [ "$commercial_desc" != "NULL" ]; then
             echo ""
             echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
             echo -e "${BOLD}${CYAN}📢 NOUVELLE DESCRIPTION COMMERCIALE :${NC}"
-            echo -e "${commercial_desc}" | head -c 300
-            echo "..."
+            echo ""
+            # Afficher la description complète avec retour à la ligne
+            echo -e "${CYAN}$commercial_desc${NC}"
+            echo ""
             echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+            echo -e "${BOLD}📊 Statistiques :${NC}"
+            echo -e "   • Longueur : ${GREEN}${#commercial_desc} caractères${NC}"
+            echo -e "   • Mots : ${GREEN}$(echo "$commercial_desc" | wc -w) mots${NC}"
         fi
         return 0
     else

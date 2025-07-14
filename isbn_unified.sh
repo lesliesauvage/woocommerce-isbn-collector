@@ -179,7 +179,7 @@ generate_commercial_description_for_book() {
     echo "[DEBUG] Génération description commerciale pour post_id=$post_id, isbn=$isbn" >&2
     
     # Vérifier si commercial_desc.sh existe
-    if [ ! -f "$SCRIPT_DIR/commercial_desc.sh" ]; then
+    if [ ! -f "./commercial_desc.sh" ]; then
         echo -e "${YELLOW}⚠️  Script commercial_desc.sh non trouvé${NC}"
         return 1
     fi

@@ -496,6 +496,26 @@ verify_book_completeness() {
     fi
 }
 
+# Fonction pour vérifier si un livre a déjà des données
+check_book_has_data() {
+    local post_id="$1"
+    
+    # Vérifier si on a des données principales
+    local has_data=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT COUNT(*) FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id = $post_id 
+        AND meta_key IN ('_best_title', '_best_description', '_g_title', '_i_title', '_o_title')
+        AND meta_value != '' 
+        AND meta_value != 'NULL'"
+        2>/dev/null)
+    
+    if [ "$has_data" -gt 0 ]; then
+        echo "1"
+    else
+        echo "0"
+    fi
+}
+
 # Fonction pour traiter un ISBN individuel
 process_single_isbn() {
     local isbn="$1"

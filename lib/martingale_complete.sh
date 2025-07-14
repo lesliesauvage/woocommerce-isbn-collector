@@ -4,6 +4,16 @@ echo "[START: martingale_complete.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
 # MARTINGALE COMPLÈTE - 156 CHAMPS
 # Fonctions pour enrichissement exhaustif et affichage
 
+# Couleurs pour l'affichage amélioré
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
 # ═══════════════════════════════════════════════════════════════════
 # FONCTION D'ENRICHISSEMENT COMPLÈTE
 # ═══════════════════════════════════════════════════════════════════
@@ -146,6 +156,16 @@ enrich_metadata_complete() {
     # 2. PRIX ET STOCK (10 champs)
     # ─────────────────────────────────────────────────────────────────
     
+    # CORRECTION : Forcer un prix minimum si prix = 0
+    local current_price=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$post_id AND meta_key='_price' LIMIT 1" 2>/dev/null)
+    
+    if [ -z "$current_price" ] || [ "$current_price" = "0" ] || [ "$current_price" = "NULL" ]; then
+        safe_store_meta "$post_id" "_price" "15"
+        safe_store_meta "$post_id" "_regular_price" "15"
+    fi
+    
     safe_store_meta "$post_id" "_sale_price" ""
     safe_store_meta "$post_id" "_sale_price_dates_from" ""
     safe_store_meta "$post_id" "_sale_price_dates_to" ""
@@ -170,10 +190,28 @@ enrich_metadata_complete() {
     safe_store_meta "$post_id" "_cat_vinted" "1601"
     safe_store_meta "$post_id" "_vinted_category_id" "1601"
     safe_store_meta "$post_id" "_vinted_category_name" "Livres"
-    safe_store_meta "$post_id" "_amazon_category" "books"
-    safe_store_meta "$post_id" "_rakuten_category" "livres"
-    safe_store_meta "$post_id" "_fnac_category" "livre"
-    safe_store_meta "$post_id" "_cdiscount_category" "livres"
+    
+    # CORRECTION : Ajouter les catégories par défaut si vides
+    local current_amazon_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$post_id AND meta_key='_amazon_category' LIMIT 1" 2>/dev/null)
+    [ -z "$current_amazon_cat" ] && safe_store_meta "$post_id" "_amazon_category" "books"
+    
+    local current_rakuten_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$post_id AND meta_key='_rakuten_category' LIMIT 1" 2>/dev/null)
+    [ -z "$current_rakuten_cat" ] && safe_store_meta "$post_id" "_rakuten_category" "Littérature française"
+    
+    local current_fnac_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$post_id AND meta_key='_fnac_category' LIMIT 1" 2>/dev/null)
+    [ -z "$current_fnac_cat" ] && safe_store_meta "$post_id" "_fnac_category" "livre"
+    
+    local current_cdiscount_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+        WHERE post_id=$post_id AND meta_key='_cdiscount_category' LIMIT 1" 2>/dev/null)
+    [ -z "$current_cdiscount_cat" ] && safe_store_meta "$post_id" "_cdiscount_category" "livres"
+    
     safe_store_meta "$post_id" "_leboncoin_category" "27"
     safe_store_meta "$post_id" "_ebay_category" "267"
     safe_store_meta "$post_id" "_allegro_category" "7"
@@ -561,19 +599,19 @@ display_martingale_complete() {
     local post_id="$1"
     
     echo ""
-    echo "╔═══════════════════════════════════════════════════════════════════════════╗"
-    echo "║              📊 MARTINGALE COMPLÈTE 156 CHAMPS - LIVRE #$post_id         ║"
-    echo "╚═══════════════════════════════════════════════════════════════════════════╝"
+    echo -e "${BOLD}${PURPLE}╔═══════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${PURPLE}║              📊 MARTINGALE COMPLÈTE 156 CHAMPS - LIVRE #$post_id         ║${NC}"
+    echo -e "${BOLD}${PURPLE}╚═══════════════════════════════════════════════════════════════════════════╝${NC}"
     
-    # Fonction helper améliorée
+    # Fonction helper améliorée avec couleurs
     show_fields() {
         local category="$1"
         local fields="$2"
         
         echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "📁 $category"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}${CYAN}📁 $category${NC}"
+        echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         
         IFS='|' read -ra field_array <<< "$fields"
         local count=0
@@ -585,24 +623,28 @@ display_martingale_complete() {
                 SELECT meta_value FROM wp_${SITE_ID}_postmeta 
                 WHERE post_id=$post_id AND meta_key='$field' LIMIT 1" 2>/dev/null)
             
-            local status="❌"
-            local display_value="-"
+            local status="${RED}❌${NC}"
+            local display_value="${RED}-${NC}"
             
-            if [ -n "$value" ]; then
+            if [ -n "$value" ] && [ "$value" != "NULL" ]; then
                 ((filled++))
-                status="✅"
+                status="${GREEN}✅${NC}"
                 if [ -z "$value" ]; then
-                    display_value="[vide]"
+                    display_value="${YELLOW}[vide]${NC}"
+                elif [ "$value" = "0" ] && [[ "$field" =~ "_price" ]]; then
+                    status="${RED}❌${NC}"
+                    display_value="${RED}0 (invalide)${NC}"
+                    ((filled--))
                 else
                     display_value="${value:0:40}"
                 fi
             fi
             
-            printf "%-35s = %-40s %s\n" "$field" "$display_value" "$status"
+            printf "%-35s = %-40s %b\n" "$field" "$display_value" "$status"
         done
         
-        echo "───────────────────────────────────────────────────────────────────────────"
-        echo "Sous-total: $filled/$count champs remplis"
+        echo -e "${CYAN}───────────────────────────────────────────────────────────────────────────${NC}"
+        echo -e "${BOLD}Sous-total: ${filled}/${count} champs remplis${NC}"
     }
     
     # AFFICHER LES 156 CHAMPS ORGANISÉS PAR CATÉGORIE
@@ -687,7 +729,7 @@ display_martingale_complete() {
     
     # STATISTIQUES FINALES
     echo ""
-    echo "═══════════════════════════════════════════════════════════════════════════"
+    echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════════════════════════════${NC}"
     
     # Compter TOUS les champs
     local total_count=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
@@ -724,16 +766,16 @@ display_martingale_complete() {
     
     local completion_rate=$((total_count * 100 / 156))
     
-    echo "📊 TOTAL FINAL : $total_count/156 champs ($completion_rate%)"
+    echo -e "${BOLD}${CYAN}📊 TOTAL FINAL : ${total_count}/156 champs (${completion_rate}%)${NC}"
     
     if [ $completion_rate -eq 100 ]; then
-        echo "✅ MARTINGALE 100% COMPLÈTE - PRÊT POUR EXPORT TOUTES MARKETPLACES !"
+        echo -e "${BOLD}${GREEN}✅ MARTINGALE 100% COMPLÈTE - PRÊT POUR EXPORT TOUTES MARKETPLACES !${NC}"
     elif [ $completion_rate -ge 90 ]; then
-        echo "✅ MARTINGALE QUASI-COMPLÈTE ($completion_rate%) - EXPORT POSSIBLE"
+        echo -e "${BOLD}${YELLOW}✅ MARTINGALE QUASI-COMPLÈTE (${completion_rate}%) - EXPORT POSSIBLE${NC}"
     else
-        echo "⚠️  MARTINGALE INCOMPLÈTE ($completion_rate%) - ENRICHISSEMENT NÉCESSAIRE"
+        echo -e "${BOLD}${RED}⚠️  MARTINGALE INCOMPLÈTE (${completion_rate}%) - ENRICHISSEMENT NÉCESSAIRE${NC}"
     fi
-    echo "═══════════════════════════════════════════════════════════════════════════"
+    echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════════════════════════════${NC}"
 }
 
 # Export de la nouvelle fonction

@@ -6,49 +6,22 @@ echo "[START: isbn_unified.sh] $(date '+%Y-%m-%d %H:%M:%S')" >&2
 
 # Définir le répertoire du script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-# Charger la configuration et les fonctions de base
-source "$SCRIPT_DIR/config/settings.sh"
-source "$SCRIPT_DIR/lib/safe_functions.sh"
+# Charger les configurations et fonctions
+source config/settings.sh
+source lib/safe_functions.sh
+source lib/isbn_functions.sh
+source lib/isbn_display.sh
+source lib/isbn_collect.sh
+source lib/isbn_process.sh
+source lib/database.sh
+source lib/commercial_description.sh
 
-# Charger les modules
-echo "[DEBUG] Chargement des modules..." >&2
-source "$SCRIPT_DIR/lib/isbn_functions.sh"    # Fonctions utilitaires
-echo "[DEBUG] isbn_functions.sh chargé : $(type -t select_best_data)" >&2
-source "$SCRIPT_DIR/lib/isbn_display.sh"      # Fonctions d'affichage
-echo "[DEBUG] isbn_display.sh chargé : $(type -t show_help)" >&2
-source "$SCRIPT_DIR/lib/isbn_collect.sh"      # Fonctions de collecte
-echo "[DEBUG] isbn_collect.sh chargé : $(type -t collect_all_apis)" >&2
-source "$SCRIPT_DIR/lib/isbn_process.sh"      # Fonctions de traitement
-echo "[DEBUG] isbn_process.sh chargé : $(type -t process_single_book)" >&2
-source "$SCRIPT_DIR/lib/martingale_complete.sh"  # Martingale complète
-echo "[DEBUG] martingale_complete.sh chargé : $(type -t enrich_metadata_complete)" >&2
+# Charger la bibliothèque martingale complète
+source "$SCRIPT_DIR/lib/martingale_complete.sh"
 
-# Charger les fichiers analyze si disponibles
-[ -f "$SCRIPT_DIR/lib/analyze_before.sh" ] && source "$SCRIPT_DIR/lib/analyze_before.sh"
-[ -f "$SCRIPT_DIR/lib/analyze_after.sh" ] && source "$SCRIPT_DIR/lib/analyze_after.sh"
-
-# Variables globales
-PARAM_ISBN=""
-PARAM_PRICE=""
-PARAM_CONDITION=""
-PARAM_STOCK=""
-MODE=""
-LIMIT=""
-FORCE_MODE=""
-
-# Définir LOG_FILE
-LOG_DIR="$SCRIPT_DIR/logs"
-mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/isbn_unified_$(date +%Y%m%d_%H%M%S).log"
-
-# Variables globales pour les options
-FORCE_COLLECT=0
-VERBOSE=0
-SKIP_CATEGORIZATION=0  # Nouvelle variable pour permettre de désactiver la catégorisation
-SKIP_COMMERCIAL=0       # Nouvelle variable pour permettre de désactiver la description commerciale
-
-# Couleurs ANSI pour affichage
+# Définir les couleurs pour l'affichage
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -58,109 +31,90 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# Parser les options
+# Variables pour les paramètres
+PARAM_ISBN=""
+PARAM_ACTION=""
+FORCE_MODE=0
+GENERATE_COMMERCIAL=1  # Par défaut, on génère la description commerciale
+GENERATE_NEGOTIATION=0  # Par défaut, on ne génère pas le message de négociation
+
+# Fonction d'aide
+show_help() {
+    cat << EOF
+${BOLD}${CYAN}📚 Script unifié de gestion ISBN - Version 4 MARTINGALE${NC}
+
+${BOLD}Usage:${NC}
+    $0 [ISBN] [OPTIONS]
+    $0 -action [ACTION] [PARAMS]
+
+${BOLD}Options de traitement individuel:${NC}
+    ${GREEN}ISBN${NC}                  Traiter un ISBN spécifique
+    ${GREEN}-force${NC}                Forcer la collecte même si les données existent
+    ${GREEN}-nocommercial${NC}         Ne pas générer la description commerciale
+    ${GREEN}-negotiation${NC}          Générer aussi le message de négociation
+
+${BOLD}Actions disponibles:${NC}
+    ${GREEN}-action bulk${NC}          Traiter plusieurs ISBN depuis la base
+    ${GREEN}-action missing${NC}       Traiter les livres sans description
+    ${GREEN}-action incomplete${NC}    Traiter les livres avec données incomplètes
+    ${GREEN}-action martingale${NC}    Afficher le tableau martingale d'un livre
+    ${GREEN}-action verify [ISBN]${NC} Vérifier la complétude d'un livre
+
+${BOLD}Exemples:${NC}
+    ${CYAN}$0 9782070360024${NC}              # Traiter un ISBN
+    ${CYAN}$0 9782070360024 -force${NC}       # Forcer la mise à jour
+    ${CYAN}$0 -action bulk${NC}               # Traiter plusieurs livres
+    ${CYAN}$0 -action martingale 9782070360024${NC}  # Voir la martingale
+
+${BOLD}${PURPLE}Fonctionnalités:${NC}
+    ✓ Collecte via 3 APIs (Google Books, ISBNdb, Open Library)
+    ✓ Enrichissement automatique (martingale complète)
+    ✓ Recherche d'éditions si pas de description
+    ✓ Catégorisation IA automatique
+    ✓ Génération description commerciale
+    ✓ Export multi-marketplace ready
+
+EOF
+}
+
+# Parser les arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         -h|--help)
             show_help
             exit 0
             ;;
+        -action)
+            PARAM_ACTION="$2"
+            shift 2
+            ;;
         -force)
-            FORCE_MODE="force"
-            FORCE_COLLECT=1
+            FORCE_MODE=1
             shift
             ;;
-        -notableau)
-            MODE="notableau"
+        -nocommercial)
+            GENERATE_COMMERCIAL=0
             shift
             ;;
-        -simple)
-            MODE="simple"
-            shift
-            ;;
-        -vendu)
-            MODE="vendu"
-            shift
-            ;;
-        -nostatus)
-            MODE="nostatus"
-            shift
-            ;;
-        -p*)
-            MODE="batch"
-            LIMIT="${1#-p}"
-            shift
-            ;;
-        -export)
-            MODE="export"
-            shift
-            ;;
-        -v|--verbose)
-            VERBOSE=1
-            shift
-            ;;
-        -nocategorize|--no-categorize)
-            SKIP_CATEGORIZATION=1
-            shift
-            ;;
-        -nocommercial|--no-commercial)
-            SKIP_COMMERCIAL=1
+        -negotiation)
+            GENERATE_NEGOTIATION=1
             shift
             ;;
         *)
             if [ -z "$PARAM_ISBN" ]; then
                 PARAM_ISBN="$1"
-            elif [ -z "$PARAM_PRICE" ]; then
-                PARAM_PRICE="$1"
-            elif [ -z "$PARAM_CONDITION" ]; then
-                PARAM_CONDITION="$1"
-            elif [ -z "$PARAM_STOCK" ]; then
-                PARAM_STOCK="$1"
             fi
             shift
             ;;
     esac
 done
 
-# Fonction pour obtenir la hiérarchie complète d'une catégorie
-get_full_category_hierarchy() {
-    local term_id="$1"
-    local hierarchy=""
-    
-    while [ -n "$term_id" ] && [ "$term_id" != "0" ]; do
-        local cat_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT t.name, tt.parent
-        FROM wp_${SITE_ID}_terms t
-        JOIN wp_${SITE_ID}_term_taxonomy tt ON t.term_id = tt.term_id
-        WHERE t.term_id = $term_id AND tt.taxonomy = 'product_cat'
-        " 2>/dev/null)
-        
-        if [ -n "$cat_info" ]; then
-            local cat_name=$(echo "$cat_info" | cut -f1)
-            local parent_id=$(echo "$cat_info" | cut -f2)
-            
-            if [ -z "$hierarchy" ]; then
-                hierarchy="$cat_name"
-            else
-                hierarchy="$cat_name > $hierarchy"
-            fi
-            
-            term_id="$parent_id"
-        else
-            break
-        fi
-    done
-    
-    echo "$hierarchy"
-}
-
 # Fonction pour chercher d'autres éditions quand pas de description
 find_editions_for_description() {
     local post_id="$1"
     local isbn="$2"
     
-    echo ""
-    echo -e "${BOLD}${CYAN}🔍 RECHERCHE D'AUTRES ÉDITIONS POUR RÉCUPÉRER UNE DESCRIPTION...${NC}"
+    echo "[DEBUG] Recherche d'éditions pour récupérer une description" >&2
     
     # Récupérer titre et auteur
     local book_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
@@ -172,190 +126,49 @@ find_editions_for_description() {
         LIMIT 1" 2>/dev/null)
     
     if [ -z "$book_info" ]; then
-        echo -e "${RED}❌ Impossible de récupérer les infos du livre${NC}"
+        echo "[ERROR] Livre non trouvé" >&2
         return 1
     fi
     
     IFS=$'\t' read -r title authors <<< "$book_info"
     
     # Nettoyer pour la recherche
-    local search_title=$(echo "$title" | sed 's/[[:punct:]]//g' | head -c 50)
+    local search_title=$(echo "$title" | sed 's/[[:punct:]]//g' | cut -d' ' -f1-4)
     local search_author=$(echo "$authors" | cut -d',' -f1 | sed 's/[[:punct:]]//g')
-    local search_query=$(echo "$search_title $search_author" | sed 's/ /+/g')
+    local search_query=$(echo "$search_title+$search_author" | sed 's/ /+/g')
     
-    echo -e "   📖 Titre : $title"
-    echo -e "   ✍️  Auteur : $authors"
-    echo -e "   🔎 Recherche : $search_query"
-    echo ""
+    echo -e "${YELLOW}🔎 Recherche d'autres éditions : $search_query${NC}"
     
-    # Rechercher sur Google Books
-    local response=$(curl -s "https://www.googleapis.com/books/v1/volumes?q=$search_query&maxResults=40&key=$GOOGLE_BOOKS_API_KEY" 2>/dev/null)
+    # Recherche Google Books
+    local response=$(curl -s "https://www.googleapis.com/books/v1/volumes?q=$search_query&maxResults=40&key=$GOOGLE_BOOKS_API_KEY")
     
-    # Trouver la meilleure description (la plus longue)
-    local best_desc=""
-    local best_date=""
-    local best_isbn=""
-    local max_length=0
-    
-    # Parser les résultats avec jq
-    while IFS='|' read -r date isbn desc; do
-        if [ -n "$desc" ] && [ ${#desc} -gt $max_length ]; then
-            max_length=${#desc}
-            best_desc="$desc"
-            best_date="$date"
-            best_isbn="$isbn"
-        fi
-    done < <(echo "$response" | jq -r '.items[]? | 
+    # Trouver la meilleure description
+    local best_desc=$(echo "$response" | jq -r '.items[]? | 
         select(.volumeInfo.description != null) |
         select(.volumeInfo.title | test("'"${title:0:20}"'"; "i")) |
         select(.volumeInfo.authors[0] | test("'"$search_author"'"; "i")) |
-        "\(.volumeInfo.publishedDate // "?")|\(.volumeInfo.industryIdentifiers[]? | select(.type == "ISBN_13") | .identifier // "?")|\(.volumeInfo.description)"' 2>/dev/null)
+        {desc: .volumeInfo.description, date: .volumeInfo.publishedDate, length: (.volumeInfo.description | length)} |
+        "\(.date)|\(.length)|\(.desc)"' 2>/dev/null | sort -t'|' -k2 -nr | head -1 | cut -d'|' -f3)
     
-    if [ -n "$best_desc" ] && [ $max_length -gt 100 ]; then
-        echo -e "${GREEN}✅ DESCRIPTION TROUVÉE !${NC}"
-        echo -e "   📅 Édition : $best_date"
-        echo -e "   📚 ISBN : $best_isbn"
-        echo -e "   📏 Longueur : $max_length caractères"
-        echo ""
-        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-        echo -e "${CYAN}$(echo "$best_desc" | head -c 300)...${NC}"
-        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+    if [ -n "$best_desc" ] && [ ${#best_desc} -gt 100 ]; then
+        echo -e "${GREEN}✅ Description trouvée dans une autre édition (${#best_desc} caractères)${NC}"
         
-        # Sauvegarder la description
-        echo ""
-        echo -e "${YELLOW}💾 Sauvegarde de la description...${NC}"
+        # Sauvegarder
         safe_store_meta "$post_id" "_best_description" "$best_desc"
-        safe_store_meta "$post_id" "_best_description_source" "google_editions_$best_date"
+        safe_store_meta "$post_id" "_best_description_source" "google_editions_auto"
         
-        # Attendre un peu pour la sauvegarde
-        sleep 1
+        # Mettre à jour le post content aussi
+        local safe_desc=$(safe_sql "$best_desc")
+        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "
+            UPDATE wp_${SITE_ID}_posts 
+            SET post_content = '$safe_desc'
+            WHERE ID = $post_id" 2>/dev/null
         
         return 0
     else
-        echo -e "${YELLOW}⚠️  Aucune description trouvée dans les autres éditions${NC}"
+        echo -e "${YELLOW}⚠️  Aucune description trouvée dans d'autres éditions${NC}"
         return 1
     fi
-}
-
-# Fonction pour catégoriser le livre avec les IA
-categorize_book_with_ai() {
-    local post_id="$1"
-    local isbn="$2"
-    
-    echo "[DEBUG] Tentative de catégorisation IA pour post_id=$post_id, isbn=$isbn" >&2
-    
-    # Vérifier si smart_categorize_dual_ai.sh existe
-    if [ ! -f "$SCRIPT_DIR/smart_categorize_dual_ai.sh" ]; then
-        echo -e "${YELLOW}⚠️  smart_categorize_dual_ai.sh non trouvé - catégorisation IA ignorée${NC}"
-        return 1
-    fi
-    
-    # Vérifier si les clés API sont configurées
-    if [ -z "$GEMINI_API_KEY" ] || [ -z "$CLAUDE_API_KEY" ]; then
-        echo -e "${YELLOW}⚠️  Clés API manquantes - catégorisation IA ignorée${NC}"
-        echo -e "${CYAN}💡 Lancez ./setup_dual_ai.sh pour configurer les clés${NC}"
-        return 1
-    fi
-    
-    # Vérifier si déjà catégorisé
-    local has_cat=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT COUNT(*) 
-    FROM wp_${SITE_ID}_term_relationships tr
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-    WHERE tr.object_id = $post_id 
-    AND tt.taxonomy = 'product_cat'
-    " 2>/dev/null)
-    
-    if [ "$has_cat" -gt 0 ] && [ "$FORCE_MODE" != "force" ]; then
-        # Récupérer et afficher la catégorie existante en vert avec hiérarchie complète
-        echo ""
-        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-        echo -e "${BOLD}${CYAN}🏷️  CATÉGORIE WORDPRESS EXISTANTE :${NC}"
-        
-        mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT tt.term_id
-        FROM wp_${SITE_ID}_term_relationships tr
-        JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-        WHERE tr.object_id = $post_id AND tt.taxonomy = 'product_cat'
-        " 2>/dev/null | while read term_id; do
-            local full_hierarchy=$(get_full_category_hierarchy "$term_id")
-            echo -e "   ${GREEN}${BOLD}✅ $full_hierarchy${NC}"
-        done
-        
-        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-        return 0
-    fi
-    
-    echo ""
-    echo -e "${BOLD}${CYAN}🤖 CATÉGORISATION INTELLIGENTE PAR IA...${NC}"
-    
-    # Sauvegarder la catégorie avant l'appel
-    local before_categories=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-    SELECT GROUP_CONCAT(tt.term_id) 
-    FROM wp_${SITE_ID}_term_relationships tr
-    JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-    WHERE tr.object_id = $post_id AND tt.taxonomy = 'product_cat'
-    " 2>/dev/null)
-    
-    # Appeler smart_categorize_dual_ai.sh avec l'ID du post
-    local categorize_output
-    local categorize_status
-    
-    if [ "$VERBOSE" = "1" ]; then
-        # Mode verbose : afficher toute la sortie
-        "$SCRIPT_DIR/smart_categorize_dual_ai.sh" -id "$post_id"
-        categorize_status=$?
-    else
-        # Mode normal : capturer la sortie et n'afficher que le résultat
-        categorize_output=$("$SCRIPT_DIR/smart_categorize_dual_ai.sh" -id "$post_id" -noverbose 2>&1)
-        categorize_status=$?
-    fi
-    
-    # Afficher le résultat de la catégorisation
-    if [ $categorize_status -eq 0 ]; then
-        # Récupérer la nouvelle catégorie
-        local new_categories=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT tt.term_id
-        FROM wp_${SITE_ID}_term_relationships tr
-        JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-        WHERE tr.object_id = $post_id AND tt.taxonomy = 'product_cat'
-        AND tt.term_id NOT IN (IFNULL('$before_categories', ''))
-        LIMIT 1
-        " 2>/dev/null)
-        
-        if [ -n "$new_categories" ]; then
-            echo ""
-            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-            echo -e "${BOLD}${CYAN}🎯 CATÉGORIE CHOISIE PAR L'IA :${NC}"
-            
-            # Afficher avec la hiérarchie complète
-            local full_hierarchy=$(get_full_category_hierarchy "$new_categories")
-            echo -e "   ${GREEN}${BOLD}✅ $full_hierarchy${NC}"
-            
-            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-        else
-            # Si on n'a pas trouvé de nouvelle catégorie, afficher toutes les catégories
-            echo ""
-            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-            echo -e "${BOLD}${CYAN}🏷️  CATÉGORIES APRÈS IA :${NC}"
-            
-            mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-            SELECT tt.term_id
-            FROM wp_${SITE_ID}_term_relationships tr
-            JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
-            WHERE tr.object_id = $post_id AND tt.taxonomy = 'product_cat'
-            " 2>/dev/null | while read term_id; do
-                local full_hierarchy=$(get_full_category_hierarchy "$term_id")
-                echo -e "   ${GREEN}${BOLD}✅ $full_hierarchy${NC}"
-            done
-            
-            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-        fi
-    else
-        echo -e "${RED}❌ Échec de la catégorisation IA${NC}"
-    fi
-    
-    return $categorize_status
 }
 
 # Fonction pour générer la description commerciale
@@ -367,40 +180,27 @@ generate_commercial_description_for_book() {
     
     # Vérifier si commercial_desc.sh existe
     if [ ! -f "$SCRIPT_DIR/commercial_desc.sh" ]; then
-        echo -e "${YELLOW}⚠️  commercial_desc.sh non trouvé - description commerciale ignorée${NC}"
+        echo -e "${YELLOW}⚠️  Script commercial_desc.sh non trouvé${NC}"
         return 1
     fi
     
     # Vérifier si la clé API Claude est configurée
     if [ -z "$CLAUDE_API_KEY" ]; then
-        echo -e "${YELLOW}⚠️  Clé API Claude manquante - description commerciale ignorée${NC}"
+        echo -e "${YELLOW}⚠️  Clé API Claude non configurée${NC}"
         return 1
     fi
     
-    # Vérifier si une description commerciale existe déjà
-    local existing_commercial=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-        WHERE post_id = '$post_id' AND meta_key = '_commercial_description'
-        AND meta_value IS NOT NULL AND meta_value != 'NULL' AND meta_value != ''
-        LIMIT 1" 2>/dev/null)
-    
-    if [ -n "$existing_commercial" ] && [ "$FORCE_MODE" != "force" ]; then
-        echo ""
-        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-        echo -e "${BOLD}${CYAN}📢 DESCRIPTION COMMERCIALE EXISTANTE :${NC}"
-        echo ""
-        # Afficher la description complète avec retour à la ligne
-        echo -e "${CYAN}$existing_commercial${NC}"
-        echo ""
-        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-        return 0
+    # Vérifier si une description commerciale existe déjà (sauf si force)
+    if [ $FORCE_MODE -eq 0 ]; then
+        local existing_commercial=$(get_meta_value "$post_id" "_commercial_description")
+        if [ -n "$existing_commercial" ] && [ "$existing_commercial" != "NULL" ]; then
+            echo -e "${CYAN}ℹ️  Description commerciale existe déjà${NC}"
+            return 0
+        fi
     fi
     
     echo ""
     echo -e "${BOLD}${CYAN}🛍️  GÉNÉRATION DESCRIPTION COMMERCIALE...${NC}"
-    
-    # Attendre que les données soient bien enregistrées
-    sleep 2
     
     # Générer et sauvegarder directement
     if ./commercial_desc.sh "$isbn" -save -quiet >/dev/null 2>&1; then
@@ -427,6 +227,7 @@ generate_commercial_description_for_book() {
             echo -e "   • Longueur : ${GREEN}${#commercial_desc} caractères${NC}"
             echo -e "   • Mots : ${GREEN}$(echo "$commercial_desc" | wc -w) mots${NC}"
         fi
+        
         return 0
     else
         echo -e "${YELLOW}⚠️  Description commerciale non générée (données insuffisantes)${NC}"
@@ -434,94 +235,432 @@ generate_commercial_description_for_book() {
     fi
 }
 
-# === PROGRAMME PRINCIPAL ===
+# Fonction pour générer le message de négociation
+generate_negotiation_message() {
+    local post_id="$1"
+    local isbn="$2"
+    
+    echo "[DEBUG] Génération message de négociation pour post_id=$post_id, isbn=$isbn" >&2
+    
+    # Récupérer les infos nécessaires
+    local book_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT 
+            p.post_title,
+            (SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id = p.ID AND meta_key = '_best_authors' LIMIT 1),
+            (SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id = p.ID AND meta_key = '_price' LIMIT 1)
+        FROM wp_${SITE_ID}_posts p
+        WHERE p.ID = $post_id
+        LIMIT 1" 2>/dev/null)
+    
+    IFS=$'\t' read -r title authors price <<< "$book_info"
+    
+    # Calculer le prix réduit
+    local reduced_price=$((price - 2))
+    
+    echo ""
+    echo -e "${BOLD}${CYAN}💬 GÉNÉRATION MESSAGE NÉGOCIATION...${NC}"
+    
+    # Appel à Claude
+    local negotiation_msg=$(curl -s -X POST https://api.anthropic.com/v1/messages \
+        -H "Content-Type: application/json" \
+        -H "x-api-key: $CLAUDE_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d '{
+            "model": "claude-3-haiku-20240307",
+            "max_tokens": 250,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Tu es un vendeur expert en psychologie de vente sur Leboncoin/Vinted. Un acheteur négocie sur '"$title"' de '"$authors"' que je vends '"$price"'€. Il propose '"$reduced_price"'€.\n\nÉcris une réponse de VENDEUR MALIN qui :\n\n1. NE PARLE JAMAIS des prix des concurrents\n2. NE DIT PAS qu'\''il y a d'\''autres acheteurs (argument faible)\n3. VALORISE SUBTILEMENT l'\''expertise unique de l'\''auteur DIFFÉREMMENT de la description commerciale\n4. Crée une CONNEXION ÉMOTIONNELLE (\"ce livre va vous transformer\", \"vous allez découvrir\", etc.)\n5. Utilise la RARETÉ psychologique (\"exemplaire particulièrement soigné\", \"édition recherchée\")\n6. ANCRE la valeur (\"pour moins qu'\''un restaurant, vous avez 1060 pages de sagesse\")\n7. Reste FERME sur le prix SANS être désagréable\n8. Termine EXACTEMENT par : \"Qu'\''en dites-vous ?\"\n\nTon : Amical mais professionnel, comme un libraire passionné.\nDébut : \"Bonjour,\"\nMax 120 mots. Sois SUBTIL et PSYCHOLOGUE."
+                }
+            ]
+        }' | jq -r '.content[0].text' 2>/dev/null)
+    
+    if [ -n "$negotiation_msg" ] && [ "$negotiation_msg" != "null" ]; then
+        echo -e "${GREEN}✅ Message de négociation généré${NC}"
+        
+        # Sauvegarder
+        safe_store_meta "$post_id" "_negotiation_message" "$negotiation_msg"
+        
+        echo ""
+        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}${CYAN}💬 MESSAGE DE NÉGOCIATION :${NC}"
+        echo ""
+        echo -e "${CYAN}$negotiation_msg${NC}"
+        echo ""
+        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}📊 Longueur : ${GREEN}${#negotiation_msg} caractères${NC}"
+        
+        return 0
+    else
+        echo -e "${YELLOW}⚠️  Erreur génération message négociation${NC}"
+        return 1
+    fi
+}
 
-echo "[DEBUG] Mode: $MODE, ISBN: $PARAM_ISBN" >&2
+# Fonction pour catégoriser avec l'IA
+categorize_book_with_ai() {
+    local post_id="$1"
+    local isbn="$2"
+    
+    echo "[DEBUG] Tentative de catégorisation IA pour post_id=$post_id, isbn=$isbn" >&2
+    
+    # Vérifier si une catégorie existe déjà
+    local existing_category=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT t.name 
+        FROM wp_${SITE_ID}_term_relationships tr
+        JOIN wp_${SITE_ID}_term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+        JOIN wp_${SITE_ID}_terms t ON tt.term_id = t.term_id
+        WHERE tr.object_id = $post_id 
+        AND tt.taxonomy = 'product_cat'
+        AND t.term_id != (SELECT term_id FROM wp_${SITE_ID}_terms WHERE slug = 'uncategorized')
+        LIMIT 1" 2>/dev/null)
+    
+    if [ -n "$existing_category" ] && [ $FORCE_MODE -eq 0 ]; then
+        echo ""
+        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}${CYAN}🏷️  CATÉGORIE WORDPRESS EXISTANTE :${NC}"
+        echo -e "   ${GREEN}✅ $existing_category${NC}"
+        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        return 0
+    fi
+    
+    # Lancer la catégorisation
+    if [ -f "$SCRIPT_DIR/smart_categorize_dual_ai.sh" ]; then
+        echo -e "${CYAN}🤖 Catégorisation en cours...${NC}"
+        "$SCRIPT_DIR/smart_categorize_dual_ai.sh" "$isbn" 2>/dev/null
+    else
+        echo -e "${YELLOW}⚠️  Script de catégorisation non trouvé${NC}"
+    fi
+}
 
-# Si aucun paramètre, afficher l'aide
-if [ -z "$MODE" ] && [ -z "$PARAM_ISBN" ]; then
-    show_help
-    exit 0
-fi
-
-# Traiter selon le mode
-case "$MODE" in
-    vendu)
-        echo -e "${BOLD}${RED}🛒 Mode marquage VENDU${NC}"
-        mark_as_sold "$PARAM_ISBN"
-        ;;
-    batch)
-        echo -e "${BOLD}${CYAN}📦 Mode traitement batch${NC}"
-        process_batch "$LIMIT"
-        ;;
-    export)
-        echo -e "${BOLD}${PURPLE}🚀 Mode export vers marketplaces${NC}"
-        if [ -n "$PARAM_ISBN" ]; then
-            # Export d'un seul livre
-            echo "Export du livre $PARAM_ISBN..."
-            # TODO: Implémenter l'export
-            echo -e "${YELLOW}⚠️  Fonction export en cours de développement${NC}"
-        else
-            # Export en masse
-            echo "Export en masse..."
-            # TODO: Implémenter l'export en masse
-            echo -e "${YELLOW}⚠️  Fonction export en masse en cours de développement${NC}"
+# Fonction pour traiter en masse
+process_bulk_books() {
+    echo -e "${CYAN}📊 Recherche des livres à traiter...${NC}"
+    
+    # Récupérer les ISBN sans description
+    local isbns=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT DISTINCT pm1.meta_value
+        FROM wp_${SITE_ID}_postmeta pm1
+        LEFT JOIN wp_${SITE_ID}_postmeta pm2 ON pm1.post_id = pm2.post_id 
+            AND pm2.meta_key = '_best_description'
+        WHERE pm1.meta_key = '_isbn'
+        AND pm1.meta_value != ''
+        AND (pm2.meta_value IS NULL OR pm2.meta_value = '' OR pm2.meta_value LIKE 'Description non disponible%')
+        LIMIT 10" 2>/dev/null)
+    
+    local count=$(echo "$isbns" | wc -l)
+    echo -e "${GREEN}✓ $count livres à traiter${NC}"
+    echo ""
+    
+    # Traiter chaque ISBN
+    local i=1
+    while IFS= read -r isbn; do
+        if [ -n "$isbn" ]; then
+            echo -e "${BOLD}${BLUE}[$i/$count] Traitement de : $isbn${NC}"
+            echo "════════════════════════════════════════════"
+            
+            process_single_isbn "$isbn"
+            
+            echo ""
+            echo ""
+            ((i++))
+            
+            # Pause entre les traitements
+            sleep 2
         fi
-        ;;
-    *)
-        # Mode normal : traiter un livre
-        if [ -n "$PARAM_ISBN" ]; then
-            echo -e "${BOLD}${GREEN}📚 Mode traitement individuel${NC}"
-            echo "[DEBUG] Avant appel process_single_book - fonction existe : $(type -t process_single_book)" >&2
-            
-            # Appeler process_single_book qui va collecter et enrichir
-            process_single_book "$PARAM_ISBN" "$PARAM_PRICE" "$PARAM_CONDITION" "$PARAM_STOCK"
-            process_status=$?
-            
-            # Si la collecte a réussi
-            if [ $process_status -eq 0 ]; then
-                # Récupérer l'ID du post
-                post_id=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-                SELECT post_id FROM wp_${SITE_ID}_postmeta 
-                WHERE meta_key = '_isbn' AND meta_value = '$PARAM_ISBN'
-                LIMIT 1" 2>/dev/null)
+    done <<< "$isbns"
+    
+    echo -e "${GREEN}✅ Traitement en masse terminé${NC}"
+}
+
+# Fonction pour traiter les livres sans description
+process_books_without_description() {
+    echo -e "${CYAN}📊 Recherche des livres sans description...${NC}"
+    
+    local isbns=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT DISTINCT pm1.meta_value
+        FROM wp_${SITE_ID}_postmeta pm1
+        LEFT JOIN wp_${SITE_ID}_postmeta pm2 ON pm1.post_id = pm2.post_id 
+            AND pm2.meta_key = '_best_description'
+        WHERE pm1.meta_key = '_isbn'
+        AND pm1.meta_value != ''
+        AND (pm2.meta_value IS NULL OR pm2.meta_value = '' OR LENGTH(pm2.meta_value) < 50)
+        ORDER BY pm1.post_id DESC
+        LIMIT 20" 2>/dev/null)
+    
+    local count=$(echo "$isbns" | wc -l)
+    echo -e "${GREEN}✓ $count livres sans description trouvés${NC}"
+    echo ""
+    
+    local i=1
+    while IFS= read -r isbn; do
+        if [ -n "$isbn" ]; then
+            echo -e "${BOLD}${BLUE}[$i/$count] ISBN : $isbn${NC}"
+            process_single_isbn "$isbn"
+            echo ""
+            ((i++))
+            sleep 1
+        fi
+    done <<< "$isbns"
+}
+
+# Fonction pour traiter les livres incomplets
+process_incomplete_books() {
+    echo -e "${CYAN}📊 Recherche des livres avec données incomplètes...${NC}"
+    
+    # Requête pour trouver les livres avec peu de métadonnées
+    local isbns=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT pm.meta_value, COUNT(pm2.meta_key) as meta_count
+        FROM wp_${SITE_ID}_postmeta pm
+        LEFT JOIN wp_${SITE_ID}_postmeta pm2 ON pm.post_id = pm2.post_id
+        WHERE pm.meta_key = '_isbn'
+        AND pm.meta_value != ''
+        GROUP BY pm.post_id, pm.meta_value
+        HAVING meta_count < 50
+        ORDER BY meta_count ASC
+        LIMIT 15" 2>/dev/null | cut -f1)
+    
+    local count=$(echo "$isbns" | wc -l)
+    echo -e "${GREEN}✓ $count livres incomplets trouvés${NC}"
+    echo ""
+    
+    local i=1
+    while IFS= read -r isbn; do
+        if [ -n "$isbn" ]; then
+            echo -e "${BOLD}${BLUE}[$i/$count] ISBN : $isbn${NC}"
+            process_single_isbn "$isbn" -force
+            echo ""
+            ((i++))
+            sleep 1
+        fi
+    done <<< "$isbns"
+}
+
+# Fonction pour vérifier la complétude d'un livre
+verify_book_completeness() {
+    local isbn="$1"
+    local post_id=$(get_post_id_by_isbn "$isbn")
+    
+    if [ -z "$post_id" ]; then
+        echo -e "${RED}❌ ISBN non trouvé : $isbn${NC}"
+        return 1
+    fi
+    
+    echo -e "${BOLD}${CYAN}📊 VÉRIFICATION DE COMPLÉTUDE${NC}"
+    echo "════════════════════════════════════════════"
+    
+    # Afficher la martingale
+    display_martingale_complete "$post_id" "$isbn"
+    
+    # Vérifier les champs critiques
+    echo ""
+    echo -e "${BOLD}${BLUE}🔍 ANALYSE DES DONNÉES MANQUANTES :${NC}"
+    
+    local missing=0
+    
+    # Vérifier description
+    local desc=$(get_meta_value "$post_id" "_best_description")
+    if [ -z "$desc" ] || [ ${#desc} -lt 50 ]; then
+        echo -e "${RED}❌ Description manquante ou trop courte${NC}"
+        ((missing++))
+    fi
+    
+    # Vérifier image
+    local image=$(get_meta_value "$post_id" "_best_cover_image")
+    if [ -z "$image" ]; then
+        echo -e "${RED}❌ Image de couverture manquante${NC}"
+        ((missing++))
+    fi
+    
+    # Vérifier prix
+    local price=$(get_meta_value "$post_id" "_price")
+    if [ -z "$price" ] || [ "$price" = "0" ]; then
+        echo -e "${RED}❌ Prix non défini${NC}"
+        ((missing++))
+    fi
+    
+    # Vérifier description commerciale
+    local commercial=$(get_meta_value "$post_id" "_commercial_description")
+    if [ -z "$commercial" ]; then
+        echo -e "${YELLOW}⚠️  Description commerciale non générée${NC}"
+        ((missing++))
+    fi
+    
+    if [ $missing -eq 0 ]; then
+        echo -e "${GREEN}✅ Toutes les données sont complètes !${NC}"
+    else
+        echo -e "${YELLOW}⚠️  $missing données manquantes${NC}"
+        echo ""
+        echo -e "${CYAN}💡 Pour compléter : $0 $isbn -force${NC}"
+    fi
+}
+
+# Fonction pour traiter un ISBN individuel
+process_single_isbn() {
+    local isbn="$1"
+    
+    # Valider l'ISBN
+    local clean_isbn=$(validate_isbn "$isbn")
+    if [ -z "$clean_isbn" ]; then
+        echo -e "${RED}❌ ISBN invalide : $isbn${NC}"
+        return 1
+    fi
+    
+    # Vérifier si le livre existe
+    local post_id=$(get_post_id_by_isbn "$clean_isbn")
+    
+    if [ -n "$post_id" ]; then
+        echo -e "${GREEN}✓ Livre trouvé (ID: $post_id)${NC}"
+        
+        # Vérifier si on force la mise à jour
+        if [ $FORCE_MODE -eq 0 ]; then
+            local has_data=$(check_book_has_data "$post_id")
+            if [ "$has_data" = "1" ]; then
+                echo -e "${CYAN}ℹ️  Le livre a déjà des données. Utilisez -force pour mettre à jour.${NC}"
                 
-                if [ -n "$post_id" ]; then
-                    # Vérifier si on a une description suffisante
-                    current_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-                        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-                        WHERE post_id = '$post_id' AND meta_key = '_best_description'
-                        LIMIT 1" 2>/dev/null)
-                    
-                    # Si pas de description ou trop courte ou "non disponible"
-                    if [ -z "$current_desc" ] || [ ${#current_desc} -lt 50 ] || [[ "$current_desc" =~ "non disponible" ]]; then
-                        echo ""
-                        echo -e "${YELLOW}⚠️  Description insuffisante (${#current_desc} caractères)${NC}"
-                        # Chercher dans d'autres éditions
-                        find_editions_for_description "$post_id" "$PARAM_ISBN"
-                    fi
-                    
-                    # 1. Catégorisation IA (si pas désactivée)
-                    if [ "$SKIP_CATEGORIZATION" != "1" ]; then
-                        categorize_book_with_ai "$post_id" "$PARAM_ISBN"
-                    fi
-                    
-                    # 2. Description commerciale (si pas désactivée)
-                    if [ "$SKIP_COMMERCIAL" != "1" ]; then
-                        generate_commercial_description_for_book "$post_id" "$PARAM_ISBN"
-                    fi
+                # Afficher quand même la martingale
+                echo ""
+                display_martingale_complete "$post_id" "$clean_isbn"
+                
+                # Générer la description commerciale si manquante
+                if [ $GENERATE_COMMERCIAL -eq 1 ]; then
+                    generate_commercial_description_for_book "$post_id" "$clean_isbn"
                 fi
+                
+                return 0
             fi
-        else
-            echo -e "${RED}❌ ISBN requis${NC}"
-            show_help
-            exit 1
         fi
-        ;;
-esac
+    else
+        echo -e "${YELLOW}⚠️  Livre non trouvé dans la base${NC}"
+        echo -e "${CYAN}ℹ️  Ajout du livre...${NC}"
+        
+        # Ajouter le livre
+        post_id=$(add_book_to_wordpress "$clean_isbn")
+        if [ -z "$post_id" ]; then
+            echo -e "${RED}❌ Erreur lors de l'ajout du livre${NC}"
+            return 1
+        fi
+        echo -e "${GREEN}✓ Livre ajouté (ID: $post_id)${NC}"
+    fi
+    
+    # Collecter les données
+    echo ""
+    echo -e "${BOLD}${BLUE}📡 COLLECTE DES DONNÉES...${NC}"
+    
+    # Appeler chaque API
+    echo -e "${CYAN}→ Google Books...${NC}"
+    collect_google_books "$post_id" "$clean_isbn"
+    
+    echo -e "${CYAN}→ ISBNdb...${NC}"
+    collect_isbndb "$post_id" "$clean_isbn"
+    
+    echo -e "${CYAN}→ Open Library...${NC}"
+    collect_open_library "$post_id" "$clean_isbn"
+    
+    # Traiter et enrichir les données avec la martingale complète
+    echo ""
+    echo -e "${BOLD}${PURPLE}🎰 ENRICHISSEMENT MARTINGALE...${NC}"
+    local process_status=0
+    if ! enrich_metadata_complete "$post_id" "$clean_isbn"; then
+        echo -e "${YELLOW}⚠️  Enrichissement partiel${NC}"
+        process_status=1
+    fi
+    
+    # Vérifier si on a une description, sinon chercher dans d'autres éditions
+    local description=$(get_meta_value "$post_id" "_best_description")
+    if [ -z "$description" ] || [ ${#description} -lt 50 ] || [[ "$description" == "Description non disponible"* ]]; then
+        echo ""
+        echo -e "${BOLD}${YELLOW}🔍 RECHERCHE D'AUTRES ÉDITIONS...${NC}"
+        find_editions_for_description "$post_id" "$clean_isbn"
+    fi
+    
+    # Afficher les résultats de la martingale complète
+    echo ""
+    display_martingale_complete "$post_id" "$clean_isbn"
+    
+    # Appeler la catégorisation IA si configurée
+    if [ -f "$SCRIPT_DIR/smart_categorize_dual_ai.sh" ]; then
+        echo ""
+        echo -e "${BOLD}${CYAN}🤖 CATÉGORISATION IA...${NC}"
+        if [ -n "$GEMINI_API_KEY" ] || [ -n "$CLAUDE_API_KEY" ]; then
+            categorize_book_with_ai "$post_id" "$clean_isbn"
+        else
+            echo -e "${YELLOW}⚠️  APIs IA non configurées${NC}"
+        fi
+    fi
+    
+    # Générer la description commerciale
+    if [ $GENERATE_COMMERCIAL -eq 1 ] && [ $process_status -eq 0 ]; then
+        generate_commercial_description_for_book "$post_id" "$clean_isbn"
+    fi
+    
+    # Générer le message de négociation si demandé
+    if [ $GENERATE_NEGOTIATION -eq 1 ] && [ $process_status -eq 0 ]; then
+        generate_negotiation_message "$post_id" "$clean_isbn"
+    fi
+    
+    return $process_status
+}
 
-# Log de fin
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script terminé" >> "$LOG_FILE"
+# Fonction principale
+main() {
+    echo "[DEBUG] Mode: $PARAM_ACTION, ISBN: $PARAM_ISBN" >&2
+    
+    # Si pas d'action spécifiée et pas d'ISBN, afficher l'aide
+    if [ -z "$PARAM_ACTION" ] && [ -z "$PARAM_ISBN" ]; then
+        show_help
+        exit 0
+    fi
+    
+    # Traiter selon l'action
+    if [ -n "$PARAM_ACTION" ]; then
+        case "$PARAM_ACTION" in
+            bulk)
+                echo -e "${BOLD}${BLUE}📚 Mode traitement en masse${NC}"
+                process_bulk_books
+                ;;
+            missing)
+                echo -e "${BOLD}${BLUE}📚 Traitement des livres sans description${NC}"
+                process_books_without_description
+                ;;
+            incomplete)
+                echo -e "${BOLD}${BLUE}📚 Traitement des livres incomplets${NC}"
+                process_incomplete_books
+                ;;
+            martingale)
+                if [ -z "$3" ]; then
+                    echo -e "${RED}❌ ISBN requis pour afficher la martingale${NC}"
+                    exit 1
+                fi
+                local post_id=$(get_post_id_by_isbn "$3")
+                if [ -n "$post_id" ]; then
+                    display_martingale_complete "$post_id" "$3"
+                else
+                    echo -e "${RED}❌ ISBN non trouvé : $3${NC}"
+                fi
+                ;;
+            verify)
+                if [ -z "$3" ]; then
+                    echo -e "${RED}❌ ISBN requis pour la vérification${NC}"
+                    exit 1
+                fi
+                verify_book_completeness "$3"
+                ;;
+            *)
+                echo -e "${RED}❌ Action inconnue : $PARAM_ACTION${NC}"
+                show_help
+                exit 1
+                ;;
+        esac
+    else
+        # Mode traitement individuel
+        echo -e "${BOLD}${BLUE}📚 Mode traitement individuel${NC}"
+        process_single_isbn "$PARAM_ISBN"
+    fi
+}
+
+# Exécuter le script principal
+main
 
 echo "[END: isbn_unified.sh] $(date '+%Y-%m-%d %H:%M:%S')" >&2
-exit 0

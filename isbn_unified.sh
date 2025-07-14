@@ -323,6 +323,23 @@ generate_commercial_description_for_book() {
     if ./commercial_desc.sh "$isbn" -save -quiet >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Description commerciale générée et sauvegardée${NC}"
         
+        # PUTAIN AFFICHER LA DESCRIPTION !
+        sleep 1
+        commercial_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+            SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+            WHERE post_id = '$post_id' AND meta_key = '_commercial_description' 
+            LIMIT 1" 2>/dev/null)
+        
+        if [ -n "$commercial_desc" ] && [ "$commercial_desc" != "NULL" ]; then
+            echo ""
+            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+            echo -e "${BOLD}${CYAN}📢 DESCRIPTION COMMERCIALE GÉNÉRÉE :${NC}"
+            echo ""
+            echo -e "${CYAN}$commercial_desc${NC}"
+            echo ""
+            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        fi
+        
         # Récupérer la description complète
         commercial_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
             SELECT meta_value FROM wp_${SITE_ID}_postmeta 

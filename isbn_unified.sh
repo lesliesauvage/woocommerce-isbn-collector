@@ -406,7 +406,10 @@ generate_commercial_description_for_book() {
     if ./commercial_desc.sh "$isbn" -save -quiet >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Description commerciale générée et sauvegardée${NC}"
         
-        # Récupérer la description complète
+        # Attendre un peu pour la sauvegarde
+        sleep 1
+        
+        # Récupérer et afficher la description
         commercial_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
             SELECT meta_value FROM wp_${SITE_ID}_postmeta 
             WHERE post_id = '$post_id' AND meta_key = '_commercial_description' 
@@ -415,9 +418,8 @@ generate_commercial_description_for_book() {
         if [ -n "$commercial_desc" ] && [ "$commercial_desc" != "NULL" ]; then
             echo ""
             echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-            echo -e "${BOLD}${CYAN}📢 NOUVELLE DESCRIPTION COMMERCIALE :${NC}"
+            echo -e "${BOLD}${CYAN}📢 DESCRIPTION COMMERCIALE GÉNÉRÉE :${NC}"
             echo ""
-            # Afficher la description complète avec retour à la ligne
             echo -e "${CYAN}$commercial_desc${NC}"
             echo ""
             echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"

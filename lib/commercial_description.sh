@@ -1,6 +1,10 @@
 #!/bin/bash
 echo "[START: commercial_description.sh] $(date '+%Y-%m-%d %H:%M:%S')" >&2
 
+# Charger les fonctions de base de données
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/database.sh"
+
 # Générer une description commerciale qui fait vendre
 generate_commercial_description() {
     local post_id="$1"

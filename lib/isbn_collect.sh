@@ -87,10 +87,10 @@ collect_all_apis() {
     echo "[DEBUG] Début collecte toutes APIs pour ISBN: $isbn, ID: $post_id" >&2
     
     # Google Books
-    if [ -f "$SCRIPT_DIR/apis/google_books.sh" ]; then
+    if [ -f "/var/www/scripts-home-root/isbn/apis/google_books.sh" ]; then
         echo "  → Appel Google Books API..."
         mark_collection_attempt "$post_id" "google"
-        source "$SCRIPT_DIR/apis/google_books.sh"
+        source "/var/www/scripts-home-root/isbn/apis/google_books.sh"
         if fetch_google_books "$isbn" "$post_id"; then
             ((results++))
             echo "    ✓ Google Books : données récupérées"
@@ -100,10 +100,10 @@ collect_all_apis() {
     fi
     
     # ISBNdb
-    if [ -f "$SCRIPT_DIR/apis/isbndb.sh" ]; then
+    if [ -f "/var/www/scripts-home-root/isbn/apis/isbndb.sh" ]; then
         echo "  → Appel ISBNdb API..."
         mark_collection_attempt "$post_id" "isbndb"
-        source "$SCRIPT_DIR/apis/isbndb.sh"
+        source "/var/www/scripts-home-root/isbn/apis/isbndb.sh"
         if fetch_isbndb "$isbn" "$post_id"; then
             ((results++))
             echo "    ✓ ISBNdb : données récupérées"
@@ -113,10 +113,10 @@ collect_all_apis() {
     fi
     
     # Open Library
-    if [ -f "$SCRIPT_DIR/apis/open_library.sh" ]; then
+    if [ -f "/var/www/scripts-home-root/isbn/apis/open_library.sh" ]; then
         echo "  → Appel Open Library API..."
         mark_collection_attempt "$post_id" "openlibrary"
-        source "$SCRIPT_DIR/apis/open_library.sh"
+        source "/var/www/scripts-home-root/isbn/apis/open_library.sh"
         if fetch_open_library "$isbn" "$post_id"; then
             ((results++))
             echo "    ✓ Open Library : données récupérées"
@@ -152,10 +152,10 @@ generate_ai_description() {
     local description_generated=0
     
     # Essayer Claude d'abord
-    if [ -f "$SCRIPT_DIR/apis/claude_ai.sh" ]; then
+    if [ -f "/var/www/scripts-home-root/isbn/apis/claude_ai.sh" ]; then
         echo "  → Génération description avec Claude AI..."
         mark_collection_attempt "$post_id" "claude"
-        source "$SCRIPT_DIR/apis/claude_ai.sh"
+        source "/var/www/scripts-home-root/isbn/apis/claude_ai.sh"
         
         if claude_desc=$(generate_description_claude "$isbn" "$post_id" "$title" "$authors" "$publisher" "$pages" "$binding" "$categories" 2>&1); then
             if [ -n "$claude_desc" ] && [ ${#claude_desc} -gt 20 ]; then
@@ -174,10 +174,10 @@ generate_ai_description() {
     fi
     
     # Si Claude a échoué, essayer Groq
-    if [ $description_generated -eq 0 ] && [ -f "$SCRIPT_DIR/apis/groq_ai.sh" ]; then
+    if [ $description_generated -eq 0 ] && [ -f "/var/www/scripts-home-root/isbn/apis/groq_ai.sh" ]; then
         echo "  → Génération description avec Groq AI (fallback)..."
         mark_collection_attempt "$post_id" "groq"
-        source "$SCRIPT_DIR/apis/groq_ai.sh"
+        source "/var/www/scripts-home-root/isbn/apis/groq_ai.sh"
         
         if groq_desc=$(generate_description_groq "$isbn" "$post_id" "$title" "$authors" "$publisher" "$pages" "$binding" "$categories" 2>&1); then
             if [ -n "$groq_desc" ] && [ ${#groq_desc} -gt 20 ]; then
@@ -326,7 +326,7 @@ cleanup_invalid_data() {
 # Fonction pour récupérer les métadonnées depuis le cache
 get_from_cache() {
     local isbn="$1"
-    local cache_file="$SCRIPT_DIR/cache/isbn_${isbn}.json"
+    local cache_file="/var/www/scripts-home-root/isbn/cache/isbn_${isbn}.json"
     
     if [ -f "$cache_file" ]; then
         # Vérifier l'âge du cache (7 jours)
@@ -345,7 +345,7 @@ get_from_cache() {
 save_to_cache() {
     local isbn="$1"
     local data="$2"
-    local cache_dir="$SCRIPT_DIR/cache"
+    local cache_dir="/var/www/scripts-home-root/isbn/cache"
     
     mkdir -p "$cache_dir"
     echo "$data" > "$cache_dir/isbn_${isbn}.json"
@@ -358,7 +358,7 @@ echo "[END: isbn_collect.sh] $(date +%Y-%m-%d\ %H:%M:%S)" >&2
 collect_google_books() {
     local post_id="$1"
     local isbn="$2"
-    source "$SCRIPT_DIR/apis/google_books.sh"
+    source "/var/www/scripts-home-root/isbn/apis/google_books.sh"
     fetch_google_books "$isbn" "$post_id"
 }
 
@@ -366,7 +366,7 @@ collect_google_books() {
 collect_isbndb() {
     local post_id="$1"
     local isbn="$2"
-    source "$SCRIPT_DIR/apis/isbndb.sh"
+    source "/var/www/scripts-home-root/isbn/apis/isbndb.sh"
     fetch_isbndb_data "$isbn" "$post_id"
 }
 
@@ -374,6 +374,6 @@ collect_isbndb() {
 collect_open_library() {
     local post_id="$1"
     local isbn="$2"
-    source "$SCRIPT_DIR/apis/open_library.sh"
+    source "/var/www/scripts-home-root/isbn/apis/open_library.sh"
     fetch_open_library "$isbn" "$post_id"
 }

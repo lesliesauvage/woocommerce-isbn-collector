@@ -154,6 +154,89 @@ get_full_category_hierarchy() {
     echo "$hierarchy"
 }
 
+# Fonction pour chercher d'autres éditions quand pas de description
+find_editions_for_description() {
+    local post_id="$1"
+    local isbn="$2"
+    
+    echo ""
+    echo -e "${BOLD}${CYAN}🔍 RECHERCHE D'AUTRES ÉDITIONS POUR RÉCUPÉRER UNE DESCRIPTION...${NC}"
+    
+    # Récupérer titre et auteur
+    local book_info=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+        SELECT 
+            p.post_title,
+            (SELECT meta_value FROM wp_${SITE_ID}_postmeta WHERE post_id = p.ID AND meta_key = '_best_authors' LIMIT 1)
+        FROM wp_${SITE_ID}_posts p
+        WHERE p.ID = $post_id
+        LIMIT 1" 2>/dev/null)
+    
+    if [ -z "$book_info" ]; then
+        echo -e "${RED}❌ Impossible de récupérer les infos du livre${NC}"
+        return 1
+    fi
+    
+    IFS=$'\t' read -r title authors <<< "$book_info"
+    
+    # Nettoyer pour la recherche
+    local search_title=$(echo "$title" | sed 's/[[:punct:]]//g' | head -c 50)
+    local search_author=$(echo "$authors" | cut -d',' -f1 | sed 's/[[:punct:]]//g')
+    local search_query=$(echo "$search_title $search_author" | sed 's/ /+/g')
+    
+    echo -e "   📖 Titre : $title"
+    echo -e "   ✍️  Auteur : $authors"
+    echo -e "   🔎 Recherche : $search_query"
+    echo ""
+    
+    # Rechercher sur Google Books
+    local response=$(curl -s "https://www.googleapis.com/books/v1/volumes?q=$search_query&maxResults=40&key=$GOOGLE_BOOKS_API_KEY" 2>/dev/null)
+    
+    # Trouver la meilleure description (la plus longue)
+    local best_desc=""
+    local best_date=""
+    local best_isbn=""
+    local max_length=0
+    
+    # Parser les résultats avec jq
+    while IFS='|' read -r date isbn desc; do
+        if [ -n "$desc" ] && [ ${#desc} -gt $max_length ]; then
+            max_length=${#desc}
+            best_desc="$desc"
+            best_date="$date"
+            best_isbn="$isbn"
+        fi
+    done < <(echo "$response" | jq -r '.items[]? | 
+        select(.volumeInfo.description != null) |
+        select(.volumeInfo.title | test("'"${title:0:20}"'"; "i")) |
+        select(.volumeInfo.authors[0] | test("'"$search_author"'"; "i")) |
+        "\(.volumeInfo.publishedDate // "?")|\(.volumeInfo.industryIdentifiers[]? | select(.type == "ISBN_13") | .identifier // "?")|\(.volumeInfo.description)"' 2>/dev/null)
+    
+    if [ -n "$best_desc" ] && [ $max_length -gt 100 ]; then
+        echo -e "${GREEN}✅ DESCRIPTION TROUVÉE !${NC}"
+        echo -e "   📅 Édition : $best_date"
+        echo -e "   📚 ISBN : $best_isbn"
+        echo -e "   📏 Longueur : $max_length caractères"
+        echo ""
+        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}$(echo "$best_desc" | head -c 300)...${NC}"
+        echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
+        
+        # Sauvegarder la description
+        echo ""
+        echo -e "${YELLOW}💾 Sauvegarde de la description...${NC}"
+        safe_store_meta "$post_id" "_best_description" "$best_desc"
+        safe_store_meta "$post_id" "_best_description_source" "google_editions_$best_date"
+        
+        # Attendre un peu pour la sauvegarde
+        sleep 1
+        
+        return 0
+    else
+        echo -e "${YELLOW}⚠️  Aucune description trouvée dans les autres éditions${NC}"
+        return 1
+    fi
+}
+
 # Fonction pour catégoriser le livre avec les IA
 categorize_book_with_ai() {
     local post_id="$1"
@@ -323,23 +406,6 @@ generate_commercial_description_for_book() {
     if ./commercial_desc.sh "$isbn" -save -quiet >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Description commerciale générée et sauvegardée${NC}"
         
-        # PUTAIN AFFICHER LA DESCRIPTION !
-        sleep 1
-        commercial_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
-            SELECT meta_value FROM wp_${SITE_ID}_postmeta 
-            WHERE post_id = '$post_id' AND meta_key = '_commercial_description' 
-            LIMIT 1" 2>/dev/null)
-        
-        if [ -n "$commercial_desc" ] && [ "$commercial_desc" != "NULL" ]; then
-            echo ""
-            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-            echo -e "${BOLD}${CYAN}📢 DESCRIPTION COMMERCIALE GÉNÉRÉE :${NC}"
-            echo ""
-            echo -e "${CYAN}$commercial_desc${NC}"
-            echo ""
-            echo -e "${BOLD}${PURPLE}════════════════════════════════════════════════════════════════════${NC}"
-        fi
-        
         # Récupérer la description complète
         commercial_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
             SELECT meta_value FROM wp_${SITE_ID}_postmeta 
@@ -419,6 +485,20 @@ case "$MODE" in
                 LIMIT 1" 2>/dev/null)
                 
                 if [ -n "$post_id" ]; then
+                    # Vérifier si on a une description suffisante
+                    current_desc=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "
+                        SELECT meta_value FROM wp_${SITE_ID}_postmeta 
+                        WHERE post_id = '$post_id' AND meta_key = '_best_description'
+                        LIMIT 1" 2>/dev/null)
+                    
+                    # Si pas de description ou trop courte ou "non disponible"
+                    if [ -z "$current_desc" ] || [ ${#current_desc} -lt 50 ] || [[ "$current_desc" =~ "non disponible" ]]; then
+                        echo ""
+                        echo -e "${YELLOW}⚠️  Description insuffisante (${#current_desc} caractères)${NC}"
+                        # Chercher dans d'autres éditions
+                        find_editions_for_description "$post_id" "$PARAM_ISBN"
+                    fi
+                    
                     # 1. Catégorisation IA (si pas désactivée)
                     if [ "$SKIP_CATEGORIZATION" != "1" ]; then
                         categorize_book_with_ai "$post_id" "$PARAM_ISBN"

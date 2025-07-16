@@ -1,5 +1,5 @@
 <?php
-// Script pour récupérer toutes les catégories WordPress et créer un tableau de mapping
+// Script pour récupérer toutes les catégories WordPress avec leur hiérarchie complète
 
 // Connexion à la base de données WordPress
 require_once('/var/www/html/wp-config.php');
@@ -8,6 +8,31 @@ $mysqli = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
 
 if ($mysqli->connect_error) {
     die("Erreur de connexion: " . $mysqli->connect_error);
+}
+
+// Fonction pour obtenir le chemin complet d'une catégorie
+function getCategoryPath($term_id, $mysqli, $table_prefix) {
+    $path = [];
+    $current_id = $term_id;
+    
+    while ($current_id != 0) {
+        $query = "
+            SELECT t.name, tt.parent 
+            FROM {$table_prefix}terms t
+            INNER JOIN {$table_prefix}term_taxonomy tt ON t.term_id = tt.term_id
+            WHERE t.term_id = $current_id AND tt.taxonomy = 'product_cat'
+        ";
+        
+        $result = $mysqli->query($query);
+        if ($row = $result->fetch_assoc()) {
+            array_unshift($path, $row['name']);
+            $current_id = $row['parent'];
+        } else {
+            break;
+        }
+    }
+    
+    return implode(' > ', $path);
 }
 
 // Récupérer toutes les catégories WordPress
@@ -36,16 +61,19 @@ $fp = fopen($csv_file, 'w');
 
 // En-tête du CSV
 fputcsv($fp, [
+    'ID',
     'Catégorie Ecolivre',
+    'Chemin complet',
     'Slug',
-    'Amazon',
-    'Rakuten', 
-    'eBay',
-    'FNAC',
-    'Cdiscount',
-    'Leboncoin',
-    'Vinted',
-    'Facebook'
+    'Parent ID',
+    'Amazon (ID: Catégorie)',
+    'Rakuten (Catégorie)',
+    'eBay (ID: Catégorie)',
+    'FNAC (Catégorie)',
+    'Cdiscount (Catégorie)',
+    'Leboncoin (ID: Catégorie)',
+    'Vinted (ID: Catégorie)',
+    'Facebook (ID: Catégorie)'
 ], ';');
 
 // Mappings par défaut pour les marketplaces

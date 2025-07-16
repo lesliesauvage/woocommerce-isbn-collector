@@ -76,64 +76,115 @@ fputcsv($fp, [
     'Facebook (ID: Catégorie)'
 ], ';');
 
-// Mappings par défaut pour les marketplaces
-$default_mappings = [
-    'amazon' => '283155', // Books category ID
-    'rakuten' => 'livres',
-    'ebay' => '267', // Books category ID
-    'fnac' => 'livre',
-    'cdiscount' => 'livres',
-    'leboncoin' => '27',
-    'vinted' => '1601', // Books category ID
-    'facebook' => '287' // Books category ID
+// Charger le fichier de mapping Rakuten existant
+$rakuten_mappings = [];
+$rakuten_file = '/var/www/scripts-home-root/isbn/config/rakuten_category_mapping.csv';
+if (file_exists($rakuten_file)) {
+    if (($handle = fopen($rakuten_file, "r")) !== FALSE) {
+        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            if (count($data) >= 2) {
+                $rakuten_mappings[strtolower(trim($data[0]))] = trim($data[1]);
+            }
+        }
+        fclose($handle);
+    }
+}
+
+// Mappings détaillés pour Amazon (sous-catégories livres)
+$amazon_mappings = [
+    'art' => '283155: Arts & Photography',
+    'biographie' => '283155: Biographies & Memoirs',
+    'business' => '283155: Business & Money',
+    'enfant' => '283155: Children\'s Books',
+    'cuisine' => '283155: Cookbooks, Food & Wine',
+    'informatique' => '283155: Computers & Technology',
+    'histoire' => '283155: History',
+    'littérature' => '283155: Literature & Fiction',
+    'mystère' => '283155: Mystery, Thriller & Suspense',
+    'romance' => '283155: Romance',
+    'science-fiction' => '283155: Science Fiction & Fantasy',
+    'jeunesse' => '283155: Teen & Young Adult',
+    'voyage' => '283155: Travel'
+];
+
+// Mappings eBay (sous-catégories livres)
+$ebay_mappings = [
+    'art' => '267: Art & Photography',
+    'enfant' => '267: Children & Young Adults',
+    'bd' => '267: Comics & Graphic Novels',
+    'fiction' => '267: Fiction & Literature',
+    'histoire' => '267: History',
+    'magazine' => '267: Magazine Back Issues',
+    'non-fiction' => '267: Nonfiction',
+    'textbook' => '267: Textbooks, Education & Reference'
 ];
 
 // Parcourir toutes les catégories
 while ($row = $result->fetch_assoc()) {
+    $term_id = $row['term_id'];
     $category_name = $row['category_name'];
     $slug = $row['slug'];
+    $parent_id = $row['parent'];
     
-    // Essayer de mapper intelligemment selon le nom de la catégorie
-    $amazon_map = $default_mappings['amazon'];
-    $rakuten_map = $default_mappings['rakuten'];
-    $ebay_map = $default_mappings['ebay'];
-    $fnac_map = $default_mappings['fnac'];
-    $cdiscount_map = $default_mappings['cdiscount'];
-    $leboncoin_map = $default_mappings['leboncoin'];
-    $vinted_map = $default_mappings['vinted'];
-    $facebook_map = $default_mappings['facebook'];
+    // Obtenir le chemin complet de la catégorie
+    $full_path = getCategoryPath($term_id, $mysqli, $table_prefix);
     
-    // Logique de mapping spécifique selon les mots-clés
-    $category_lower = strtolower($category_name);
+    // Logique de mapping intelligente basée sur le chemin complet
+    $category_lower = strtolower($full_path);
     
-    if (strpos($category_lower, 'roman') !== false || strpos($category_lower, 'littérature') !== false) {
-        $rakuten_map = 'Littérature française';
-    } elseif (strpos($category_lower, 'polar') !== false || strpos($category_lower, 'thriller') !== false) {
-        $rakuten_map = 'Policier';
-    } elseif (strpos($category_lower, 'science-fiction') !== false || strpos($category_lower, 'sf') !== false) {
-        $rakuten_map = 'Science-fiction';
-    } elseif (strpos($category_lower, 'fantasy') !== false || strpos($category_lower, 'fantastique') !== false) {
-        $rakuten_map = 'Fantasy';
-    } elseif (strpos($category_lower, 'histoire') !== false) {
-        $rakuten_map = 'Histoire';
-    } elseif (strpos($category_lower, 'art') !== false) {
-        $rakuten_map = 'Beaux arts';
-    } elseif (strpos($category_lower, 'cuisine') !== false) {
-        $rakuten_map = 'Cuisine';
-    } elseif (strpos($category_lower, 'voyage') !== false || strpos($category_lower, 'tourisme') !== false) {
-        $rakuten_map = 'Tourisme et voyages';
-    } elseif (strpos($category_lower, 'jeunesse') !== false || strpos($category_lower, 'enfant') !== false) {
-        $rakuten_map = 'Jeunesse';
-    } elseif (strpos($category_lower, 'bd') !== false || strpos($category_lower, 'bande dessinée') !== false) {
-        $rakuten_map = 'Bande dessinée';
+    // Amazon mapping
+    $amazon_map = '283155: Books';
+    foreach ($amazon_mappings as $keyword => $mapping) {
+        if (strpos($category_lower, $keyword) !== false) {
+            $amazon_map = $mapping;
+            break;
+        }
+    }
+    
+    // Rakuten mapping - utiliser le fichier existant
+    $rakuten_map = 'Littérature française';
+    foreach ($rakuten_mappings as $rakuten_cat => $rakuten_val) {
+        if (strpos($category_lower, strtolower($rakuten_cat)) !== false) {
+            $rakuten_map = $rakuten_val;
+            break;
+        }
+    }
+    
+    // eBay mapping
+    $ebay_map = '267: Books';
+    foreach ($ebay_mappings as $keyword => $mapping) {
+        if (strpos($category_lower, $keyword) !== false) {
+            $ebay_map = $mapping;
+            break;
+        }
+    }
+    
+    // Autres marketplaces avec leur logique spécifique
+    $fnac_map = 'livre';
+    $cdiscount_map = 'livres';
+    $leboncoin_map = '27: Livres';
+    $vinted_map = '1601: Livres';
+    $facebook_map = '287: Books';
+    
+    // Mappings spécifiques selon les mots-clés dans le chemin complet
+    if (strpos($category_lower, 'bd') !== false || strpos($category_lower, 'bande dessinée') !== false) {
+        $fnac_map = 'bd';
+        $cdiscount_map = 'bd-mangas';
     } elseif (strpos($category_lower, 'manga') !== false) {
-        $rakuten_map = 'Manga';
+        $fnac_map = 'manga';
+        $cdiscount_map = 'bd-mangas';
+    } elseif (strpos($category_lower, 'jeunesse') !== false || strpos($category_lower, 'enfant') !== false) {
+        $fnac_map = 'livre-jeunesse';
+        $cdiscount_map = 'livres-jeunesse';
     }
     
     // Écrire la ligne dans le CSV
     fputcsv($fp, [
+        $term_id,
         $category_name,
+        $full_path,
         $slug,
+        $parent_id,
         $amazon_map,
         $rakuten_map,
         $ebay_map,

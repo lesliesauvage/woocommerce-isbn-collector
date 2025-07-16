@@ -1,10 +1,14 @@
 <?php
 // Script pour récupérer toutes les catégories WordPress avec leur hiérarchie complète
 
-// Connexion à la base de données WordPress
-require_once('/var/www/html/wp-config.php');
+// Configuration de la base de données
+$db_host = 'localhost';
+$db_user = 'wordpress';
+$db_pass = 'e96e30c154b7a661211a793bbac6416dcbaf9843ff19fb54';
+$db_name = 'savoir';
+$table_prefix = 'wp_';
 
-$mysqli = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
+$mysqli = new mysqli($db_host, $db_user, $db_pass, $db_name);
 
 if ($mysqli->connect_error) {
     die("Erreur de connexion: " . $mysqli->connect_error);
